@@ -192,6 +192,7 @@ def open_help_file() -> dict | None:
     
     content = open_file_settings(path, True, False)
     if content is None:
+        log("No /help will be available.")
         return None
     
     log(f"Found {len(content.keys())} entries in help file.")
