@@ -61,7 +61,7 @@ _*Playlist support may depend on command._
 
 ## Requirements
 - UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux/macOS (BSD not tested).
-- Make sure `Python 3.10+`, `FFmpeg` and `FFprobe` are installed on your system.
+- Make sure `Python 3.10+`, `FFmpeg` are installed on your system.
   
   If you're on a GNU/Linux distribution, they may already be installed.
   
