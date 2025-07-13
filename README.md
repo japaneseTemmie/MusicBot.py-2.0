@@ -68,7 +68,9 @@ _*Playlist support may depend on command._
   If not, make sure to install them from your distribution's repositories or compile them from source.
 
   `sudo apt install python3 ffmpeg` (Debian, Debian-based distro (Ubuntu, Mint, ZorinOS))
+  
   `sudo dnf install python3 ffmpeg` (Fedora, Fedora-based distro (Bazzite, Nobara))
+  
   `sudo pacman -S python3 ffmpeg` (Arch, Arch-based distro (CachyOS, Manjaro))
 
   On Windows/macOS, you can find guides on how to install them:
