@@ -1,0 +1,13 @@
+# .gitingore
+config.json
+help_backup.json
+*.log
+.env
+bin/
+guild_data/
+include/
+lib/
+lib64
+__pycache__/
+share/
+pyvenv.cfg
