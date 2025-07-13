@@ -83,6 +83,7 @@ class PlaylistManager:
 
     async def get_content(self, interaction: Interaction) -> dict | int:
         """ Safely read the content of a guild's playlist file.\n
+        Cache the content of a successful read.\n
         If successful, returns the JSON structure. """
         if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
             return RETURN_CODES["READ_FAIL"]
@@ -130,8 +131,8 @@ class PlaylistManager:
         return playlist
 
     async def write(self, interaction: Interaction, content: dict, backup: dict=None) -> int:
-        """ Safely write the modified content of a playlist function to
-        file.\n
+        """ Safely write the modified content of a playlist function to a file.\n
+        Cache new content if written successfully.\n
         Returns a write success status. """
         if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
             return RETURN_CODES["WRITE_FAIL"]
