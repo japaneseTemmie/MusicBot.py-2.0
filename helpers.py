@@ -248,7 +248,7 @@ async def update_loop_queue_add(guild_states: dict, interaction: Interaction) ->
                 queue_to_loop.append(track)
 
 # Functions for updating guild states
-async def update_query_extraction_state(guild_states: dict, interaction: Interaction, amount: int, max_amount: int, current: str):
+async def update_query_extraction_state(guild_states: dict, interaction: Interaction, amount: int, max_amount: int, current: str | None):
     if guild_states.get(interaction.guild.id):
         guild_states[interaction.guild.id]["query_amount"] = amount
         guild_states[interaction.guild.id]["max_queries"] = max_amount
@@ -352,8 +352,9 @@ async def check_queue_length(interaction: Interaction, max_limit: int, queue: li
 
 # Functions for finding items
 async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> tuple[dict, int] | int:
-    """ Find a track given its name in an iterable.
-    returns a tuple with the track dictionary [0] and its index [1] or NOT_FOUND returncode if not found. """
+    """ Find a track given its name or index in an iterable.\n
+    returns a tuple with the track dictionary [0] and its index [1] or NOT_FOUND/NOT_A_NUMBER returncode\n
+    if not found or `track` is not an index number and `by_index` is True. """
     
     if by_index:
         track = track.strip()
@@ -405,13 +406,13 @@ async def get_tracks_from_playlist(usr_tracks: list[str], playlist: list[dict], 
     return found if found else RETURN_CODES["NOT_FOUND"]
 
 async def get_random_tracks_from_playlist(playlist: list[dict] | int, amount: int) -> list[dict] | int:
-    chosen = []
+    found = []
 
     for _ in range(amount):
-        track_info = choice(playlist)
-        chosen.append(track_info)
+        chosen = choice(playlist)
+        found.append(chosen)
 
-    return chosen if chosen else RETURN_CODES["NOT_FOUND"]
+    return found if found else RETURN_CODES["NOT_FOUND"]
 
 # Apply playlist tracks' title and source website to tracks
 # Has no effect on titles if users did not modify them.
@@ -427,12 +428,10 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
     found = []
     
     for track in tracks:
-        result = await find_track(track, queue, by_index)
+        found_track = await find_track(track, queue, by_index)
 
-        if result != RETURN_CODES["NOT_FOUND"] and\
-            result != RETURN_CODES["NOT_A_NUMBER"]:
-
-            removed_track = queue[result[1]] # Add and remove later to fix an issue where if by_index is used, wrong items at selected indices are removed.
+        if found_track not in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
+            removed_track = queue[found_track[1]] # Add and remove later to fix an issue where if by_index is used, wrong items at selected indices are removed.
             found.append(removed_track)
     
     for item in found:
@@ -441,18 +440,17 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
     return found if found else RETURN_CODES["NOT_FOUND"]
 
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict], by_index: bool=False) -> tuple[dict, tuple[dict, int]] | int:
-    track_info = await find_track(track, queue, by_index)
-    if track_info == RETURN_CODES["NOT_FOUND"] and\
-        track_info == RETURN_CODES["NOT_A_NUMBER"]:
-        return track_info
+    found_track = await find_track(track, queue, by_index)
+    if found_track in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
+        return found_track
 
-    if track_info[1] == index:
+    if found_track[1] == index:
         return RETURN_CODES["SAME_INDEX_REPOSITION"]
     
-    track_dict = queue.pop(track_info[1])
+    track_dict = queue.pop(found_track[1])
     queue.insert(index, track_dict)
 
-    return track_dict, track_info
+    return track_dict, found_track
 
 async def replace_track_in_queue(guild_states: dict,
         interaction: Interaction,
@@ -467,27 +465,32 @@ async def replace_track_in_queue(guild_states: dict,
     queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
     is_looping_queue = guild_states[interaction.guild.id]["is_looping_queue"]
 
-    track_info = await find_track(track, queue, by_index)
-    if track_info == RETURN_CODES["NOT_FOUND"] or\
-        track_info == RETURN_CODES["NOT_A_NUMBER"]:
-        return track_info
+    found_track = await find_track(track, queue, by_index)
+    if found_track in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
+        return found_track
 
-    info = await fetch_query(guild_states, interaction, new_track, 1, 1, None, "YouTube Playlist")
-    if isinstance(info, int):
-        return info
+    extracted_track = await fetch_query(guild_states, interaction, new_track, 1, 1, None, "YouTube Playlist")
+    if isinstance(extracted_track, int):
+        return extracted_track
     
     if playlist:
-        info = {"title": info.get("title"), "uploader": info.get("uploader"), "duration": info.get("duration"), "webpage_url": info.get("webpage_url"), "source_website": info.get("source_website")}
+        extracted_track = {
+            "title": extracted_track.get("title"),
+            "uploader": extracted_track.get("uploader"),
+            "duration": extracted_track.get("duration"),
+            "webpage_url": extracted_track.get("webpage_url"),
+            "source_website": extracted_track.get("source_website")
+        }
     
-    removed_track = queue.pop(track_info[1])
-    queue.insert(track_info[1], info)
+    removed_track = queue.pop(found_track[1])
+    queue.insert(found_track[1], extracted_track)
 
     if is_looping_queue and queue_to_loop and not playlist:
-        await update_loop_queue_replace(guild_states, interaction, removed_track, info)
+        await update_loop_queue_replace(guild_states, interaction, removed_track, extracted_track)
 
-    return info, removed_track
+    return extracted_track, removed_track
 
-async def edit_tracks_in_queue(max_name_length: int, queue: list, tracks: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | list:
+async def edit_tracks_in_queue(max_name_length: int, queue: list[dict], tracks: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | list:
     tracks = split(tracks)
     new_names = split(new_names)
     found = []
@@ -498,19 +501,18 @@ async def edit_tracks_in_queue(max_name_length: int, queue: list, tracks: str, n
 
         new_name = new_name.strip()
 
-        result = await find_track(track, queue, by_index)
-        if result != RETURN_CODES["NOT_FOUND"] and\
-            result != RETURN_CODES["NOT_A_NUMBER"]:
+        found_track = await find_track(track, queue, by_index)
+        if found_track not in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
+            old_track = deepcopy(found_track[0])
+            old_track_index = found_track[1]
             
-            old_track = deepcopy(result[0])
-            queue[result[1]]["title"] = new_name
-
+            queue[old_track_index]["title"] = new_name
             found.append((old_track, new_name))
 
     return found
 
 # Custom split
-def split(s: str) -> list[str] | list:
+def split(s: str) -> list[str]:
     """ Allows to escape semicolons to search for stuff with them. """
     
     parts = re.split(r'(?<!\\);', s)

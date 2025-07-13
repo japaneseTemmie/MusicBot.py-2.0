@@ -2392,7 +2392,6 @@ class MusicCog(commands.Cog):
             return
         
         random_tracks = await get_random_tracks_from_playlist(result, amount)
-
         success = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, random_tracks, True)
 
         await update_guild_state(self.guild_states, interaction, False)
