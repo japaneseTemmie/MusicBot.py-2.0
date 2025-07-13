@@ -31,6 +31,8 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     return False
 
 async def open_roles(interaction: Interaction) -> int | dict:
+    """ Open the roles.json file safely. Return cache if content is cached, cache the content if not. """
+    
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return RETURN_CODES["READ_FAIL"]
     
@@ -58,6 +60,8 @@ async def open_roles(interaction: Interaction) -> int | dict:
         return content
 
 async def write_roles(interaction: Interaction, content: dict, backup: dict | None) -> int:
+    """ Write content to roles.json. Cache new content if successful. """
+    
     if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return RETURN_CODES["WRITE_FAIL"]
     
