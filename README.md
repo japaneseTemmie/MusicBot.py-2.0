@@ -87,7 +87,7 @@ _*Playlist support may depend on command._
 
   `ffmpeg -version` (Windows/macOS/Linux)
 
-- (Optional) An internet connection with **high download/upload speeds**.
+- (Optional, but preferred) An internet connection with **high download/upload speeds**.
   
   (Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps DL`/`~500mbps UL` for a moderate amount of guilds)
 
