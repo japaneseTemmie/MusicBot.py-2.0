@@ -26,10 +26,13 @@ cmd_install_venv = ["python3", "-m", "venv", PATH] if OS in ("Linux", "Darwin") 
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
-def msg(content: str, sleep_for: float=0):
+def msg(content: str, sleep_for: float=0) -> None:
     print(f"[runner] | {datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')} | {content}")
     if sleep_for > 0:
         sleep(sleep_for)
+
+def separator() -> None:
+    print("------------------------------")
 
 def run(command: list[str], sep_process: bool=False) -> int:
     """ Spawn the process in a separate group so it's not affected by the runner script. """
@@ -123,6 +126,7 @@ def main() -> None | NoReturn:
 
     try:
         msg("Running main.py")
+        separator()
         run(cmd_run_main)
     except KeyboardInterrupt:
         pass
