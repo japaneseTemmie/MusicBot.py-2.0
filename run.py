@@ -77,7 +77,7 @@ def write(fp: str, content: str) -> None | NoReturn:
         with open(fp, "w") as f:
             f.write(content)
     except OSError as e:
-        msg(f"An error occured. Exiting..\nErr: {e}")
+        msg(f"An error occured while writing to {fp}.\nErr: {e}")
         sysexit(1)
 
 def handle_return_code(code: int, command: str) -> None | NoReturn:
