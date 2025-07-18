@@ -30,10 +30,6 @@ and reduce memory usage if unused.\n
 - enable_UtilsCog: Enables users to run commands from the utils module. Contains important UX commands like /help. It is highly discouraged to disable this.\n
 - enable_MusicCog: Enables users to run commands from the music module.\n """
 
-# remove unused return code
-# bump MAX_IO_WAIT_TIME to 20s
-# remove ffmpeg_options
-
 import asyncio
 import re
 
