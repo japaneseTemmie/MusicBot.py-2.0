@@ -1,11 +1,7 @@
 """ Utilities module for discord.py bot """
 
 from settings import *
-from iohelpers import open_file, write_file, ensure_paths
-from helpers import *
 from roles import *
-from guild import *
-from handlers import *
 from bot import Bot
 
 class UtilsCog(commands.Cog):
