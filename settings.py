@@ -30,6 +30,10 @@ and reduce memory usage if unused.\n
 - enable_UtilsCog: Enables users to run commands from the utils module. Contains important UX commands like /help. It is highly discouraged to disable this.\n
 - enable_MusicCog: Enables users to run commands from the music module.\n """
 
+# remove unused return code
+# bump MAX_IO_WAIT_TIME to 20s
+# remove ffmpeg_options
+
 import asyncio
 import re
 
@@ -209,10 +213,6 @@ def get_defaults() -> dict:
             "extractaudio": True,
             "no_warnings": True
         },
-        "ffmpeg_options": {
-            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30",
-            "options": "-vn -ss 0 -loglevel quiet"
-        },
         "command_prefix": "?",
         "enable_activity": False,
         "activity_name": "With the API",
@@ -304,7 +304,6 @@ RETURN_CODES = {
     "SAME_INDEX_REPOSITION": 7,
     "NO_PLAYLISTS": 8,
     "PLAYLIST_DOES_NOT_EXIST": 9,
-    "WRITE_GENERIC_ERROR": 10,
     "PLAYLIST_EXISTS": 11,
     "MAX_PLAYLIST_LIMIT_REACHED": 12,
     "NAME_TOO_LONG": 13,
@@ -332,7 +331,6 @@ sleep(0.2)
 CAN_LOG = CONFIG.get("enable_logging", True)
 SKIP_FFMPEG_CHECK = CONFIG.get("skip_ffmpeg_check", False)
 YDL_OPTIONS = CONFIG.get("yt_dlp_options", {"quiet": True, "noplaylist": True, "format": "bestaudio/best", "extractaudio": True, "no_warnings": True})
-FFMPEG_OPTIONS = CONFIG.get("ffmpeg_options", {"before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30","options": "-vn -ss 0 -loglevel quiet"})
 COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
 HELP = open_help_file()
 COOLDOWNS = {
@@ -371,17 +369,17 @@ else:
 
 PLAYLIST_LOCKS = {}
 ROLE_LOCKS = {}
-ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600) # Avoids constant disk access for faster data lookup
+ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 
-""" Asyncio.Event() object that function as locks for safe shutdown.
+""" Asyncio.Event() objects that function as locks for safe shutdown.
 Use .clear() to release the lock.
 Use .set() to acquire the lock and refuse any VoiceClient or I/O operation.
 Use .wait() to block the event loop if a lock is acquired (should be used rarely).
 Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
-MAX_IO_WAIT_TIME = 10000 # Only wait up to 10 seconds for locks to be false.
+MAX_IO_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff
 ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_api_data()
