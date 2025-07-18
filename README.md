@@ -85,11 +85,11 @@ _*Playlist support may depend on command._
   
   `python -V` (Windows)
 
-  Expected output: "Python {VERSION}"
+  Expected output: `Python {VERSION}`
 
   `ffmpeg -version` (Windows/macOS/Linux)
 
-  Expected output: "ffmpeg version {VERSION}..."
+  Expected output: `ffmpeg version {VERSION}...`
 
 - (Optional, but preferred) An internet connection with **high download/upload speeds**.
   
