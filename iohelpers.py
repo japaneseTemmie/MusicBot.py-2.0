@@ -5,7 +5,8 @@ from settings import *
 def open_file(file_path: str, json_mode: bool) -> dict | str | int:
     """ Open a file and return its contents.\n
     Use `json_mode` to work with json files.\n
-    Returns: file contents (either in plain text or hashmap depending on mode) or READ_FAIL return code. """
+    Returns: file contents (either in plain text or hashmap depending on mode) or READ_FAIL return code.\n
+    Must be sent to a thread. """
     
     with open(file_path) as f:
         try:
@@ -21,7 +22,8 @@ def open_file(file_path: str, json_mode: bool) -> dict | str | int:
 def write_file(file_path: str, content: dict | str, json_mode: bool) -> None | int:
     """ Write to a file and return None.\n
     Use json mode to work with JSON files.\n
-    Returns: None (success) or WRITE_FAIL return code. """
+    Returns: None (success) or WRITE_FAIL return code.\n
+    Must be sent to a thread """
     
     with open(file_path, "w") as f:
         try:
