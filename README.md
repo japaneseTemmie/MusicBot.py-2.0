@@ -104,7 +104,7 @@ Project was tested on the following software: `Python 3.12.3`, `FFmpeg 6.1` and 
 More up to date versions should be able to work fine.
 
 ## Preparing the project directory
-- Unpack the source code to a directory of your choice.
+- Unpack the source code to a directory of your choice. (Or, `git clone` it.)
 - Open a terminal in that directory.
 
   On Windows:
