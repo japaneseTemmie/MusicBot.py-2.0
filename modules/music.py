@@ -3,7 +3,9 @@ Includes a class with methods for managing a queue and
 managing the playback of tracks."""
 
 from settings import *
-from modules.utils import *
+from helpers import *
+from handlers import *
+from roles import *
 from embedgenerator import *
 from playlist import PlaylistManager
 from bot import Bot
@@ -19,7 +21,7 @@ class MusicCog(commands.Cog):
         self.playlist = PlaylistManager(self.client)
 
     async def close_voice_clients(self):
-        """ Close any leftover VCs and cleanup their open sources, if any. """
+        """ Close any leftover VCs and cleanup their open audio sources, if any. """
         
         VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
         log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set()}")
@@ -31,9 +33,6 @@ class MusicCog(commands.Cog):
             
             await update_guild_state(self.guild_states, vc, True, "stop_flag")
             vc.stop()
-            """if hasattr(vc, "source") and hasattr(vc.source, "cleanup"):
-                log(f"Cleaned up source for channel ID {vc.channel.id}")
-                vc.source.cleanup()""" # Might be useless if stop() is called first.
 
             try:
                 await asyncio.wait_for(vc.disconnect(force=True), timeout=3) # API responds near immediately but the loop hangs for good 10 seconds if we don't pass a minimum timeout
@@ -77,7 +76,7 @@ class MusicCog(commands.Cog):
                 
                 await disconnect_routine(self.client, self.guild_states, member)
 
-    @app_commands.command(name="join", description="Makes the bot join your voice channel.")
+    @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def join_channel(self, interaction: Interaction):
@@ -91,6 +90,8 @@ class MusicCog(commands.Cog):
 
         if channel is None:
             await interaction.response.send_message("Join a voice channel first.")
+        elif channel.type == discord.ChannelType.stage_voice:
+            await interaction.response.send_message(f"I can't join channel **{channel.name}**! Stage channels scare me!")
         elif channel is not None and\
             current_channel is not None and\
             channel == current_channel:
@@ -104,7 +105,7 @@ class MusicCog(commands.Cog):
             log(f"[CONNECT] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
             voice_client = await channel.connect()
-            self.guild_states[interaction.guild.id] = await get_default_settings(voice_client, interaction.channel)
+            self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
             
             log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
 
@@ -156,7 +157,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
-        queries="A semicolon separated list of YT (video or playlist), NG, SoundCloud, Bandcamp URLs or YT search queries.",
+        queries="A semicolon separated list of YT, NG, SC, BC URLs or YT search queries.",
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -280,7 +281,7 @@ class MusicCog(commands.Cog):
             altering the current track with commands like restart, seek, etc. """
         
         if len(history) >= self.max_history_track_limit:
-            history.pop(0)
+            history.clear()
 
         if not position > 0 and\
             not is_looping and\
@@ -298,14 +299,20 @@ class MusicCog(commands.Cog):
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        queue = self.guild_states[interaction.guild.id]["queue"]
+        queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
+        is_random = self.guild_states[interaction.guild.id]["is_random"]
+        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
+
         if await check_users_in_channel(self.guild_states, self.playlist, interaction):
             return
 
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
         
-        if not self.guild_states[interaction.guild.id]["queue"] and not\
-              self.guild_states[interaction.guild.id]["is_looping"] and not\
-                self.guild_states[interaction.guild.id]["queue_to_loop"]:
+        if not queue and not\
+            is_looping and not\
+            queue_to_loop:
             
             await update_guild_state(self.guild_states, interaction, None, "current_track")
             await update_guild_state(self.guild_states, interaction, 0, "start_time")
@@ -315,17 +322,14 @@ class MusicCog(commands.Cog):
             await interaction.channel.send("Queue is empty.") if interaction.is_expired()\
             else await interaction.followup.send("Queue is empty.")
             return
-
-        queue = self.guild_states[interaction.guild.id]["queue"]
-        queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
-
+        
         if not queue and queue_to_loop:
             queue = deepcopy(queue_to_loop)
             await update_guild_state(self.guild_states, interaction, queue, "queue")
 
-        if self.guild_states[interaction.guild.id]["track_to_loop"] and self.guild_states[interaction.guild.id]["is_looping"]:
-            track = self.guild_states[interaction.guild.id]["track_to_loop"]
-        elif self.guild_states[interaction.guild.id]["is_random"]:
+        if track_to_loop and is_looping:
+            track = track_to_loop
+        elif is_random:
             track = queue.pop(queue.index(choice(queue)))
         else:
             track = queue.pop(0)
@@ -333,24 +337,26 @@ class MusicCog(commands.Cog):
         if track and voice_client:
             await self.play_track(interaction, voice_client, track)
 
-            if not self.guild_states[interaction.guild.id]["is_looping"]:
-                await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
-                else await interaction.followup.send(f"Now playing: **{track['title']}**")
+            if not is_looping:
+                try:
+                    await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
+                    else await interaction.followup.send(f"Now playing: **{track['title']}**")
+                except Exception:
+                    pass
         else:
             await interaction.channel.send("An error occured while getting track from the queue.") if interaction.is_expired()\
             else await interaction.followup.send("An error occured while getting track from the queue.")
 
-        #await update_guild_state(self.guild_states, interaction, False)
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
         query="YouTube (video), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
-        keep_current_track="Whether or not to keep the current track in the queue."
+        keep_current_track="Whether or not to keep the current track (if any) in the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def play_track_now(self, interaction: Interaction, query: str, keep_current_track: bool=False):
+    async def play_track_now(self, interaction: Interaction, query: str, keep_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
@@ -648,7 +654,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
-        self.guild_states[interaction.guild.id] = await get_default_settings(voice_client, interaction.channel)
+        self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
         
         await update_guild_state(self.guild_states, interaction, True, "stop_flag")
         voice_client.stop()
@@ -1099,6 +1105,10 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
+        if len(queue) < 2:
+            await interaction.response.send_message("There are not enough tracks to shuffle! (Need 2 atleast)")
+            return
+
         shuffle(queue)
 
         await update_guild_state(self.guild_states, interaction, False)
@@ -2223,7 +2233,8 @@ class MusicCog(commands.Cog):
         await self.playlist.unlock(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if not await handle_generic_extraction_errors(interaction, success):
+            is_not_extraction_error = await handle_generic_extraction_errors(interaction, success)
+            if not is_not_extraction_error:
                 return
 
             if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
@@ -2465,7 +2476,8 @@ class MusicCog(commands.Cog):
         await self.playlist.unlock(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if not await handle_generic_extraction_errors(interaction, success):
+            is_not_extraction_error = await handle_generic_extraction_errors(interaction, success)
+            if not is_not_extraction_error:
                 return
 
             if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
