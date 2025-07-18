@@ -1,9 +1,6 @@
 """ General settings configuration for discord.py bot.\n
 config.json values docs:\n
-- ydl_opts: Options passed to the YouTubeDL object in extractor.py/fetch()
-- ffmpeg_opts: Options passed to ffmpeg when spawning a process, editing the
-options in the file is useless, it is mainly used as a reference, instead, modify the copied version for each call
-in music.py/play_track()\n
+- ydl_options: Options passed to the YouTubeDL object in extractor.py/fetch()
 - cmd_prefix: Command prefix used for classic commands.\n
 - enable_activity: Display custom activity.
 - activity_name: The name of the activity. Appears after the type.
