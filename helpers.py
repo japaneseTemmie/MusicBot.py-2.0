@@ -118,7 +118,7 @@ def update_playlist_pages(guild_states: dict, interaction: Interaction, queue: l
         max_page += 1
 
 # Function to reset states
-async def get_default_settings(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict:
+async def get_default_state(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict:
     return {
         "voice_client": voice_client,
         "voice_client_locked": False,
@@ -173,7 +173,7 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     return True
 
 async def check_current_track(guild_states: dict, interaction: Interaction) -> bool:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         current_track = guild_states[interaction.guild.id]["current_track"]
 
         if current_track is None:
@@ -184,7 +184,7 @@ async def check_current_track(guild_states: dict, interaction: Interaction) -> b
         return True
 
 async def check_queue(guild_states: dict, interaction: Interaction, msg: str="Queue is empty.") -> bool:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
 
         if not queue:
@@ -195,7 +195,7 @@ async def check_queue(guild_states: dict, interaction: Interaction, msg: str="Qu
         return True
 
 async def check_history(guild_states: dict, interaction: Interaction, msg: str="Track history is empty.") -> bool:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         history = guild_states[interaction.guild.id]["queue_history"]
 
         if not history:
@@ -206,7 +206,7 @@ async def check_history(guild_states: dict, interaction: Interaction, msg: str="
         return True
 
 async def check_guild_state(guild_states: dict, interaction: Interaction, state="is_modifying", condition: bool=True, msg: str="The queue is currently being modified, please wait."):
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         value = guild_states[interaction.guild.id][state]
         if value == condition:
             await interaction.response.send_message(msg) if not interaction.response.is_done() else\
@@ -217,7 +217,7 @@ async def check_guild_state(guild_states: dict, interaction: Interaction, state=
 
 # Functions to update the copied queue when loopqueue is enabled.
 async def update_loop_queue_replace(guild_states: dict, interaction: Interaction, old_track: dict, track: dict) -> None:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         loop_queue = guild_states[interaction.guild.id]["queue_to_loop"]
 
         if old_track in loop_queue:
@@ -230,7 +230,7 @@ async def update_loop_queue_replace(guild_states: dict, interaction: Interaction
             loop_queue.insert(loop_index, track)
 
 async def update_loop_queue_remove(guild_states: dict, interaction: Interaction, tracks_to_remove) -> None:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
         loop_queue = guild_states[interaction.guild.id]["queue_to_loop"]
 
@@ -239,7 +239,7 @@ async def update_loop_queue_remove(guild_states: dict, interaction: Interaction,
                 loop_queue.remove(track_to_remove)
 
 async def update_loop_queue_add(guild_states: dict, interaction: Interaction) -> None:
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
 
@@ -249,14 +249,22 @@ async def update_loop_queue_add(guild_states: dict, interaction: Interaction) ->
 
 # Functions for updating guild states
 async def update_query_extraction_state(guild_states: dict, interaction: Interaction, amount: int, max_amount: int, current: str | None):
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         guild_states[interaction.guild.id]["query_amount"] = amount
         guild_states[interaction.guild.id]["max_queries"] = max_amount
         guild_states[interaction.guild.id]["current_query"] = current
 
 async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying"):
-    if guild_states.get(interaction.guild.id):
+    if interaction.guild.id in guild_states:
         guild_states[interaction.guild.id][state] = value
+
+# Possible function to bulk update n amount of states.
+"""async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]):
+    if interaction.guild.id in guild_states and   
+    len(values) == len(states):
+        
+        for state, value in zip(states, values):
+            guild_states[interaction.guild.id][state] = value"""
 
 # Functions for fetching stuff and adding it to a list
 async def fetch_query(
@@ -350,6 +358,10 @@ async def check_queue_length(interaction: Interaction, max_limit: int, queue: li
     
     return True
 
+# Input sanitation
+async def sanitize_name(name: str) -> str:
+    return name.replace("\\", "").strip() or "Untitled"
+
 # Functions for finding items
 async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> tuple[dict, int] | int:
     """ Find a track given its name or index in an iterable.\n
@@ -390,7 +402,7 @@ async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
     
     try:
         return iterable[index] == expected
-    except (IndexError, Exception):
+    except Exception:
         return False
 
 # Functions to get stuff from playlists.
@@ -399,8 +411,7 @@ async def get_tracks_from_playlist(usr_tracks: list[str], playlist: list[dict], 
     for track in usr_tracks:
         track_info = await find_track(track, playlist, by_index)
         
-        if track_info != RETURN_CODES["NOT_FOUND"] and\
-            track_info != RETURN_CODES["NOT_A_NUMBER"]:
+        if track_info not in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
             found.append(track_info[0])
 
     return found if found else RETURN_CODES["NOT_FOUND"]
@@ -490,16 +501,15 @@ async def replace_track_in_queue(guild_states: dict,
 
     return extracted_track, removed_track
 
-async def edit_tracks_in_queue(max_name_length: int, queue: list[dict], tracks: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | list:
+async def edit_tracks_in_queue(max_name_length: int, queue: list[dict], tracks: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | int:
     tracks = split(tracks)
     new_names = split(new_names)
     found = []
     
     for track, new_name in zip(tracks, new_names):
-        if len(new_name) > max_name_length:
-            continue
-
         new_name = new_name.strip()
+        if len(new_name) > max_name_length or new_name == "":
+            continue
 
         found_track = await find_track(track, queue, by_index)
         if found_track not in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
@@ -509,7 +519,21 @@ async def edit_tracks_in_queue(max_name_length: int, queue: list[dict], tracks: 
             queue[old_track_index]["title"] = new_name
             found.append((old_track, new_name))
 
-    return found
+    return found if found else RETURN_CODES["NOT_FOUND"]
+
+async def place_track_in_playlist(queue: list, index: int, track: dict) -> None | int:
+    playlist_track = {
+        'title': track['title'],
+        'uploader': track['uploader'],
+        'duration': track['duration'],
+        'webpage_url': track['webpage_url'],
+        'source_website': track['source_website']
+    }
+
+    if playlist_track in queue and await try_index(queue, index, playlist_track):
+        return RETURN_CODES["SAME_INDEX_PLACEMENT"]
+    
+    queue.insert(index, playlist_track)
 
 # Custom split
 def split(s: str) -> list[str]:
@@ -525,17 +549,18 @@ async def ensure_lock(interaction: Interaction, locks: dict) -> None:
 
 # Connect behaviour
 async def greet_new_user_in_vc(guild_states: dict, voice_channel: discord.VoiceChannel, user: discord.Member) -> None:
-    txt_channel = guild_states[user.guild.id]["interaction_channel"]
-    timeout = guild_states[user.guild.id]["greet_timeouts"].get(user.id, False)
+    if user.guild.id in guild_states:
+        text_channel = guild_states[user.guild.id]["interaction_channel"]
+        timeout = guild_states[user.guild.id]["greet_timeouts"].get(user.id, False)
 
-    if timeout:
-        return
+        if timeout:
+            return
 
-    await txt_channel.send(f"Welcome to **{voice_channel.name}**, {user.mention}!\nTotal users in **{voice_channel.name}**: `{len(voice_channel.members)}`")
-    guild_states[user.guild.id]["greet_timeouts"][user.id] = True
-    
-    await asyncio.sleep(10) # prevents spam or 429s
-    guild_states[user.guild.id]["greet_timeouts"][user.id] = False
+        await text_channel.send(f"Welcome to **{voice_channel.name}**, {user.mention}!\nTotal users in **{voice_channel.name}**: `{len(voice_channel.members)}`")
+        guild_states[user.guild.id]["greet_timeouts"][user.id] = True
+        
+        await asyncio.sleep(10) # prevents spam or 429s
+        guild_states[user.guild.id]["greet_timeouts"][user.id] = False
 
 # Disconnect behaviour
 async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]):
@@ -543,9 +568,9 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
 
     for guild_id in guild_states.copy().keys():
         if guild_id not in guild_ids:
-            del guild_states[guild_id]
-            del ROLE_LOCKS[guild_id]
-            del PLAYLIST_LOCKS[guild_id]
+            guild_states.pop(guild_id, None)
+            ROLE_LOCKS.pop(guild_id, None)
+            PLAYLIST_LOCKS.pop(guild_id, None)
             invalidate_cache(guild_id, PLAYLIST_FILE_CACHE)
             invalidate_cache(guild_id, ROLE_FILE_CACHE)
 
@@ -553,7 +578,7 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
 
 async def check_users_in_channel(guild_states: dict, playlist, member: discord.Member | Interaction) -> bool:
     """ Check if there are any users in a voice channel.
-    Returns True if none are left and the bot is disconnected. """
+    Returns True if none are left and the bot is disconnected, else False. """
     
     if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return True # bot is disconnected
@@ -564,7 +589,7 @@ async def check_users_in_channel(guild_states: dict, playlist, member: discord.M
     if guild_states[member.guild.id]["handling_disconnect_action"]:
         return False
     
-    if len(voice_client.channel.members) > 1:
+    if len(voice_client.channel.members) > 1: # Bot counts as a member, therefore we must check if > 1
         return False
 
     if voice_client.is_connected() and\
@@ -613,12 +638,12 @@ async def disconnect_routine(client: commands.Bot, guild_states: dict, member: d
 
 # FFmpeg options
 async def get_ffmpeg_options(position: int) -> dict:
-    FFMPEG_OPTIONS_COPY = FFMPEG_OPTIONS.copy()
+    FFMPEG_OPTIONS = {}
+    
+    FFMPEG_OPTIONS["before_options"] = f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30 -ss {position}"
+    FFMPEG_OPTIONS["options"] = f"-vn -ss 0 -loglevel quiet" # -ss 0 here seems to sync the position more accurately
 
-    FFMPEG_OPTIONS_COPY["before_options"] = f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30 -ss {position}"
-    FFMPEG_OPTIONS_COPY["options"] = f"-vn -ss 0 -loglevel quiet" # -ss 0 here seems to sync the position more accurately
-
-    return FFMPEG_OPTIONS_COPY
+    return FFMPEG_OPTIONS
 
 # Moderation utilities
 async def get_channel(channels: list, value: str | int, ch_type: discord.ChannelType=discord.ChannelType.text) -> discord.TextChannel | None:
