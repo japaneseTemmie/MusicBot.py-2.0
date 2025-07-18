@@ -220,7 +220,7 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 # Troubleshooting
 - If the bot state ends up broken, restarting might help.
 
-  To restart the program:
+  To restart the bot:
   - **Gracefully** terminate the process with **CTRL + C**, this is the preferred way and allows the bot to properly clean up before exiting.
   - Then, run:
   
