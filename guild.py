@@ -55,6 +55,15 @@ async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return
     
+    """ 
+    Lock VoiceClient and file operations first to prevent
+    any changes made by users during deletion.
+    Then, release the locks.
+    """
+
+    VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
+    FILE_OPERATIONS_LOCKED_PERMANENTLY.set()
+    
     guild_count = len(guilds)
 
     check_guild_data_path(join(PATH, "guild_data"))
@@ -66,3 +75,6 @@ async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
         delete_guild_dirs(to_delete)
     else:
         log("Success! No issues found.")
+
+    VOICE_OPERATIONS_LOCKED_PERMANENTLY.clear()
+    FILE_OPERATIONS_LOCKED_PERMANENTLY.clear()
