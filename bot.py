@@ -64,6 +64,7 @@ class Bot(commands.Bot):
     async def sync_commands(self) -> None:
         """ Sync application commands to Discord. """
 
+        log(f"Syncing app commands..")
         try:
             synced_commands = await self.tree.sync()
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
@@ -87,7 +88,6 @@ class Bot(commands.Bot):
         log("done")
         separator()
 
-        log(f"Syncing app commands..")
         await self.sync_commands()
         await asyncio.sleep(0.3)
 
@@ -129,7 +129,7 @@ class Bot(commands.Bot):
         log("done")
 
     async def close(self) -> None:
-        """ Attempt to cleanly exit the program. Called when CTRL + C is pressed. """
+        """ Attempt to cleanly exit the program. Called when SIGINT is recieved. (either by user or runner script) """
         
         log("Requested to terminate program.")
         log("Attempting a cleanup..")
