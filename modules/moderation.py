@@ -3,9 +3,8 @@ Includes a class with a few methods for managing
 a Discord guild and its users. """
 
 from settings import *
-from handlers import handle_moderation_command_error
-from modules.utils import format_minutes_extended
 from helpers import *
+from handlers import handle_moderation_command_error
 from bot import Bot
 
 class ModerationCog(commands.Cog):
@@ -18,7 +17,7 @@ class ModerationCog(commands.Cog):
         amount="The amount of messages to delete (default 100). Must be > 0 and <= 1000.",
         user="Delete only messages sent by this user.",
         word="Delete only messages that have this word.",
-        show="Whether or not to broadcast the action in the current channel."
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_messages=True)
@@ -52,8 +51,8 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="kick", description="Kicks a member from the guild.")
     @app_commands.describe(
         member="The member to kick.",
-        reason="Reason for kick.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="Reason for kick. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["KICK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(kick_members=True)
@@ -85,8 +84,8 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="ban", description="Bans a member from the guild.")
     @app_commands.describe(
         member="The member to ban.",
-        reason="Ban reason.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="The ban reason. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["BAN_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(ban_members=True)
@@ -116,11 +115,11 @@ class ModerationCog(commands.Cog):
     async def handle_ban_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="unban", description="Unbans a member from the guild.")
+    @app_commands.command(name="unban", description="Unbans a member from the guild. See entry in /help for more info.")
     @app_commands.describe(
         member="The member to unban's username or ID",
-        show="Whether or not to broadcast the action in the current channel.",
-        reason="The unban reason.",
+        reason="The unban reason. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["UNBAN_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(ban_members=True)
@@ -152,8 +151,8 @@ class ModerationCog(commands.Cog):
     @app_commands.describe(
         duration="For how long the user should remain timed out. Must be DD:HH:MM:SS",
         member="The member to timeout.",
-        reason="Reason for timeout.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="Reason for timeout. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(moderate_members=True)
@@ -200,8 +199,8 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="deltimeout", description="Removes a timeout from a user.")
     @app_commands.describe(
         member="The member to remove the timeout from.",
-        reason="Reason for removing the timeout.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="Reason for removing the timeout. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(moderate_members=True)
@@ -225,10 +224,10 @@ class ModerationCog(commands.Cog):
 
     @app_commands.command(name="add-role", description="Adds a role to a member.")
     @app_commands.describe(
-        role="Role to add.",
+        role="The role to add to member.",
         member="The member to add the role to.",
-        reason="The reason for adding the role.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="The reason for adding the role. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ADD_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_roles=True)
@@ -258,10 +257,10 @@ class ModerationCog(commands.Cog):
 
     @app_commands.command(name="remove-role", description="Removes a role from a member.")
     @app_commands.describe(
-        role="Role to remove.",
+        role="The role to remove from member.",
         member="The member to remove the role from.",
-        reason="The reason for removing the role.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="The reason for removing the role. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_roles=True)
@@ -289,11 +288,11 @@ class ModerationCog(commands.Cog):
     async def handle_remove_role_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="delchannel", description="Deletes a channel from the current guild.")
+    @app_commands.command(name="delchannel", description="Deletes a channel from the current guild. See entry in /help for more info.")
     @app_commands.describe(
-        channel="The channel to delete.",
+        channel="The channel to delete's name or ID.",
         type="The channel type. Can be text, voice, news, forum, category or stage.",
-        show="Whether or not to broadcast the action in the current channel."
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["DELETE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -317,16 +316,16 @@ class ModerationCog(commands.Cog):
     async def handle_delete_channel_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="make-text-channel", description="Creates a text channel.")
+    @app_commands.command(name="make-text-channel", description="Creates a text channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The new channel's name.",
-        topic="The new channel's topic.",
-        category="The category name to apply the channel to.",
-        announcement="Whether or not the channel is an announcement channel.",
-        slowmode_delay="The slowmode delay to apply to the channel, must be in seconds.",
-        nsfw="Whether or not the channel is NSFW.",
-        position="The new channel's position relative to all channels. See entry in /help for more info.",
-        show="Whether or not to broadcast the action in the current channel."
+        topic="The new channel's topic. (default none)",
+        category="The category name to apply the channel to. Leave empty for none",
+        announcement="Whether or not the channel is an announcement channel. (default False)",
+        slowmode_delay="The slowmode delay to apply to the channel, must be in seconds. (defaults to 0)",
+        nsfw="Whether or not the channel is NSFW. (default False)",
+        position="The new channel's position relative to all channels. (defaults to 0)",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -380,15 +379,15 @@ class ModerationCog(commands.Cog):
     async def handle_create_channel_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="make-voice-channel", description="Creates a voice channel.")
+    @app_commands.command(name="make-voice-channel", description="Creates a voice channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The name of the new channel.",
         category="The category to apply the new channel to. Leave empty for none.",
-        position="The position of the channel relative to all channels. See entry in /help for more info.",
-        bitrate="The bitrate of the new channel, must be >= 8000 and <= 96000.",
-        user_limit="The new channel's user limit. Must be >= 0 and <= 99.",
+        position="The position of the channel relative to all channels. (defaults to 0)",
+        bitrate="The bitrate of the new channel, must be >= 8000 and <= 96000. (defaults to 64000)",
+        user_limit="The new channel's user limit. Must be >= 0 and <= 99. (defaults to 0 (infinite))",
         video_quality_mode="The new channel's video quality mode, if unsure, leave empty (auto).",
-        show="Whether or not to broadcast the action in the current channel."
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -432,11 +431,11 @@ class ModerationCog(commands.Cog):
     async def handle_create_voice_channel_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="make-category", description="Creates a category.")
+    @app_commands.command(name="make-category", description="Creates a category. See entry in /help for more info.")
     @app_commands.describe(
         name="The new category's name.",
-        position="The new category's position relative to all categories. See entry in /help for more info.",
-        show="Whether or not to broadcast the action in the current channel."
+        position="The new category's position relative to all categories. (defaults to 0)",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -462,15 +461,15 @@ class ModerationCog(commands.Cog):
     async def handle_create_category_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="make-forum", description="Creates a forum channel.")
+    @app_commands.command(name="make-forum", description="Creates a forum channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The new forum's name.",
-        post_guidelines="The new forum's post guidelines. Must be < 1024 characters.",
-        position="The new forum's position relative to all channels. See /help command:makeforum.",
+        post_guidelines="The new forum's post guidelines. Must be < 1024 characters. (default none)",
+        position="The new forum's position relative to all channels. (defaults to 0)",
         category="The new forum's category, leave empty for none.",
-        slowmode_delay="The slowmode delay to apply to the new forum in seconds, default is 0 and max is 21600.",
-        nsfw="Whether or not the new forum should be marked as NSFW.",
-        show="Whether or not to broadcast the action in the current channel."
+        slowmode_delay="The slowmode delay to apply to the new forum in seconds. Maximum is 21600. (defaults to 0)",
+        nsfw="Whether or not the new forum should be marked as NSFW. (default False)",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -520,14 +519,14 @@ class ModerationCog(commands.Cog):
     async def handle_create_forum_channel_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="make-stage", description="Creates a stage channel.")
+    @app_commands.command(name="make-stage", description="Creates a stage channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The new stage channel's name.",
         category="The category to apply the new stage channel to. Leave empty for none.",
-        position="The position of the new channel relative to all channels. See entry in /help for more info.",
-        bitrate="The new stage channel's bitrate. Must be >= 8000 and <= 64000. Defaults to 64000.",
+        position="The position of the new channel relative to all channels. (defaults to 0)",
+        bitrate="The new stage channel's bitrate. Must be >= 8000 and <= 64000. (defaults to 64000).",
         video_quality_mode="The new stage channel's video quality mode, if unsure, leave the default (auto).",
-        show="Whether or not to broadcast the action in the current channel."
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -570,11 +569,11 @@ class ModerationCog(commands.Cog):
     async def handle_create_stage_channel_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel.")
+    @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to modify. Defaults to current one.",
-        slowmode_delay="The new slowmode delay in seconds to set. 0 for none, maximum is 21600.",
-        show="Whether or not to broadcast the action in the current channel."
+        slowmode_delay="The new slowmode delay in seconds to set. Maximum is 21600. (defaults to 0)",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CHANGE_SLOWMODE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -584,6 +583,10 @@ class ModerationCog(commands.Cog):
         channel = interaction.channel if channel is None else channel
         slowmode_delay = max(0, min(slowmode_delay, 21600))
         old_delay = int(channel.slowmode_delay) # Make a copy of the integer
+
+        if slowmode_delay == old_delay:
+            await interaction.response.send_message(f"Slowmode delay is already set to **{slowmode_delay}** seconds.")
+            return
 
         await channel.edit(slowmode_delay=slowmode_delay)
 
@@ -595,12 +598,12 @@ class ModerationCog(commands.Cog):
     async def handle_change_slowmode_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="announce", description="Announce a message in the current/specified channel.")
+    @app_commands.command(name="announce", description="Announce a message in the current/specified channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to announce the message in. Leave empty for current one.",
         message="The message to announce. Must be < 2000 characters long.",
-        no_markdown="Whether or not to ignore markdown text formatting.",
-        no_mentions="Whether or not to ignore formatting of mentions."
+        no_markdown="Whether or not to ignore markdown text formatting. (default False)",
+        no_mentions="Whether or not to ignore formatting of mentions. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ANNOUNCE_MESSAGE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -624,11 +627,11 @@ class ModerationCog(commands.Cog):
     async def handle_announce_message_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="vckick", description="Kicks a user from a voice channel.")
+    @app_commands.command(name="vckick", description="Kicks a user from a voice channel. See entry in /help for more info.")
     @app_commands.describe(
         member="The member to kick.",
-        reason="The reason for kicking the user from its voice channel.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="The reason for kicking the user from its voice channel. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_KICK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(move_members=True)
@@ -664,12 +667,12 @@ class ModerationCog(commands.Cog):
     async def handle_kick_user_from_vc_error(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="vcmove", description="Moves member to target voice channel.")
+    @app_commands.command(name="vcmove", description="Moves member to target voice channel. See entry in /help for more info.")
     @app_commands.describe(
-        member="The member to move to the new target voice channel.",
+        member="The member to move to target voice channel.",
         target_voice_channel="The target voice channel to move the member to.",
-        reason="Reason for moving member to target channel.",
-        show="Whether or not to broadcast the action in the current channel."
+        reason="Reason for moving member to target channel. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MOVE_USER_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(move_members=True)
@@ -707,12 +710,12 @@ class ModerationCog(commands.Cog):
     async def handle_move_user_to_vc(self, interaction: Interaction, error):
         await handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="vcmute", description="Mutes/deafens a member in voice channel.")
+    @app_commands.command(name="vcmute", description="Mutes a member in voice channel. See entry in /help for more info.")
     @app_commands.describe(
         member="The member to mute.",
-        mute="Whether to mute or unmute the member. False to unmute, True to mute (default).",
-        reason="Reason for mute.",
-        show="Whether or not to broadcast the action in the current channel."
+        mute="Whether to mute or unmute the member. False will unmute member. (default True)",
+        reason="Reason for mute. (defaults to 'None')",
+        show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_MUTE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(mute_members=True)
