@@ -50,7 +50,7 @@ def check_guild_data_path(path: str) -> None:
 async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
     """ Compare the guilds the bot's currently in\n
     with the guild IDs in the guild_data directory\n
-    and delete any that aren't in the guilds parameter list. """
+    and delete any that aren't in the `guilds` parameter list. """
 
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return
