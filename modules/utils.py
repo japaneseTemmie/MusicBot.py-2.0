@@ -85,7 +85,7 @@ class UtilsCog(commands.Cog):
             await interaction.response.send_message(f"Set **{role_to_set}** role to **{role.name}** for this guild.", ephemeral=not show)
 
     @set_music_role.error
-    async def handle_set_error(self, interaction: Interaction, error):
+    async def handle_set_role_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
         elif isinstance(error, app_commands.errors.MissingPermissions):
@@ -123,7 +123,7 @@ class UtilsCog(commands.Cog):
             await interaction.response.send_message(f"Default **{role_to_look_for}** role for this guild is **{role_obj.name}**.", ephemeral=not show)
 
     @get_music_role.error
-    async def handle_get_music_role_error(self, interaction: Interaction, error):
+    async def handle_get_role_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
         elif isinstance(error, app_commands.errors.MissingPermissions):
@@ -166,7 +166,7 @@ class UtilsCog(commands.Cog):
             await interaction.response.send_message(f"Removed **{role_to_delete}** role for this guild.", ephemeral=not show)
 
     @wipe_music_role.error
-    async def handle_wipe_error(self, interaction: Interaction, error):
+    async def handle_wipe_role_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
         elif isinstance(error, app_commands.errors.MissingPermissions):
@@ -191,3 +191,15 @@ class UtilsCog(commands.Cog):
             await interaction.response.send_message("Failed to rewrite role structure.", ephemeral=not show)
         else:
             await interaction.response.send_message("Successfully rewritten role structure.", ephemeral=not show)
+
+    @reset_roles.error
+    async def handle_reset_roles_error(self, interaction: Interaction, error):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+        elif isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message("You do not have permission to modify this!")
+        else:
+            if CAN_LOG and LOGGER is not None:
+                LOGGER.exception(error)
+
+            await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
