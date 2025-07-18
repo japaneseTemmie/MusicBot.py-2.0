@@ -85,7 +85,11 @@ _*Playlist support may depend on command._
   
   `python -V` (Windows)
 
+  Expected output: "Python {VERSION}"
+
   `ffmpeg -version` (Windows/macOS/Linux)
+
+  Expected output: "ffmpeg version {VERSION}..."
 
 - (Optional, but preferred) An internet connection with **high download/upload speeds**.
   
@@ -97,7 +101,7 @@ _*Playlist support may depend on command._
 
 Project was tested on the following software: `Python 3.12.3`, `FFmpeg 6.1` and `Linux Mint 22.1`
 
-More modern versions should be able to work fine.
+More up to date versions should be able to work fine.
 
 ## Preparing the project directory
 - Unpack the source code to a directory of your choice.
@@ -196,7 +200,7 @@ Write your class as a `commands.Cog` subclass, which takes _only_ a `client` par
 constructor, this allows custom classes to interact with the Bot subclass of commands.Bot.
 
 Best practices:
-- Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/ext/commands/index.html) for help with the Discord API.
+- Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
 - Check locks before running I/O or VoiceClient operations. These locks are `FILE_OPERATIONS_LOCKED_PERMANENTLY` and `VOICE_OPERATIONS_LOCKED_PERMANENTLY` (from settings, docs included).
 - Do _not_ do I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
