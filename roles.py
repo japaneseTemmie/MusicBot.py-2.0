@@ -36,14 +36,14 @@ async def open_roles(interaction: Interaction) -> int | dict:
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return RETURN_CODES["READ_FAIL"]
     
-    content = get_cache(ROLE_FILE_CACHE, interaction.guild.id)
-    if content:
-        return content
-
     await ensure_lock(interaction, ROLE_LOCKS)
     file_lock = ROLE_LOCKS[interaction.guild.id]
 
     async with file_lock:
+        content = get_cache(ROLE_FILE_CACHE, interaction.guild.id)
+        if content:
+            return content
+
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
         
