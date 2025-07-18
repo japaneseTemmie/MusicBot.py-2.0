@@ -197,7 +197,7 @@ To add your own modules, simply create a new **.py** file in the `modules` direc
 module, which contains useful variables and other modules to help writing your custom module.
 
 Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter in its
-constructor, this allows custom classes to interact with the Bot subclass of commands.Bot.
+constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot`.
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
