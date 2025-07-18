@@ -3,7 +3,8 @@ Includes a few methods for managing playlists\n
 and fetching tracks from them. """
 
 from settings import *
-from modules.utils import *
+from helpers import *
+from iohelpers import *
 from bot import Bot
 
 class PlaylistManager:
@@ -88,14 +89,14 @@ class PlaylistManager:
         if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
             return RETURN_CODES["READ_FAIL"]
         
-        content = get_cache(PLAYLIST_FILE_CACHE, interaction.guild.id)
-        if content:
-            return content
-
         await ensure_lock(interaction, PLAYLIST_LOCKS)
         file_lock = PLAYLIST_LOCKS[interaction.guild.id]
 
         async with file_lock:
+            content = get_cache(PLAYLIST_FILE_CACHE, interaction.guild.id)
+            if content:
+                return content
+
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
 
@@ -192,7 +193,8 @@ class PlaylistManager:
         if len(content) >= self.max_limit:
             return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
 
-        content[playlist_name.strip()] = []
+        playlist_name = await sanitize_name(playlist_name)
+        content[playlist_name] = []
 
         success = await self.write(interaction, content, backup)
         
@@ -247,16 +249,15 @@ class PlaylistManager:
             return RETURN_CODES["PLAYLIST_IS_EMPTY"]
 
         found = await remove_track_from_queue(split(tracks), playlist, by_index)
-
-        if found:
-            success = await self.write(interaction, content, backup)
-            
-            if success == RETURN_CODES["WRITE_SUCCESS"]:
-                return found
-            else:
-                return success
+        if isinstance(found, int):
+            return found
+        
+        success = await self.write(interaction, content, backup)
+        
+        if success == RETURN_CODES["WRITE_SUCCESS"]:
+            return found
         else:
-            return RETURN_CODES["NOT_FOUND"]
+            return success
 
     async def replace(self, guild_states: dict, interaction: Interaction, content: dict, playlist_name: str, old: str, new: str, by_index: bool=False) -> tuple[int, dict, dict] | int:
         """ Replaces a playlist track with a given query.\n
@@ -414,6 +415,7 @@ class PlaylistManager:
             return RETURN_CODES["READ_FAIL"]
 
         backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.has_playlists(content):
             content = {}
@@ -421,7 +423,7 @@ class PlaylistManager:
         if not await self.exists(content, playlist_name):
             if len(content) < self.max_limit:
                 if len(playlist_name) <= self.max_name_length:
-                    content[playlist_name.strip()] = []
+                    content[playlist_name] = []
                 else:
                     return RETURN_CODES["NAME_TOO_LONG"]
             else:
@@ -517,6 +519,7 @@ class PlaylistManager:
         if len(new_playlist_name) > self.max_name_length:
             return RETURN_CODES["NAME_TOO_LONG"]
 
+        new_playlist_name = await sanitize_name(new_playlist_name)
         playlists = content.items()
         content = {new_playlist_name if key == orig_playlist_name else key: value for key, value in playlists}
 
@@ -544,9 +547,8 @@ class PlaylistManager:
             return RETURN_CODES["PLAYLIST_IS_EMPTY"]
 
         found = await edit_tracks_in_queue(self.max_name_length, playlist, tracks, new_names, by_index)
-
-        if not found:
-            return RETURN_CODES["NOT_FOUND"]
+        if isinstance(found, int):
+            return found
 
         success = await self.write(interaction, content, backup)
         
@@ -560,33 +562,25 @@ class PlaylistManager:
             return RETURN_CODES["READ_FAIL"]
         
         backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        playlist_name = await sanitize_name(playlist_name)
         
         if not await self.exists(content, playlist_name):
             if len(content) < self.max_limit:
                 if len(playlist_name) <= self.max_name_length:
-                    content[playlist_name.strip()] = []
+                    content[playlist_name] = []
                 else:
                     return RETURN_CODES["NAME_TOO_LONG"]
             else:
                 return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
             
         playlist = content[playlist_name]
-            
+        
         index = max(1, min(index, len(playlist) + 1)) if index is not None else len(playlist) + 1
         index -= 1
-        
-        playlist_track = {
-            'title': track['title'],
-            'uploader': track['uploader'],
-            'duration': track['duration'],
-            'webpage_url': track['webpage_url'],
-            'source_website': track['source_website']
-        }
 
-        if playlist_track in playlist and await try_index(playlist, index, playlist_track):
-            return RETURN_CODES["SAME_INDEX_PLACEMENT"]
-        
-        playlist.insert(index, playlist_track)
+        result = await place_track_in_playlist(playlist, index, track)
+        if isinstance(result, int):
+            return result
 
         success = await self.write(interaction, content, backup)
 
