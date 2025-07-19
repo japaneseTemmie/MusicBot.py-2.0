@@ -1,6 +1,5 @@
 """ Simple music module for discord.py bot.\n
-Includes a class with methods for managing a queue and
-managing the playback of tracks."""
+Includes a class with methods for managing a queue and track playback."""
 
 from settings import *
 from helpers import *
