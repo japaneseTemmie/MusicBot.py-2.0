@@ -7,6 +7,7 @@ from helpers import *
 from handlers import *
 from roles import *
 from embedgenerator import *
+from timehelpers import format_minutes, format_seconds
 from playlist import PlaylistManager
 from bot import Bot
 
