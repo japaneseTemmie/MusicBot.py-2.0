@@ -34,7 +34,7 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> None | i
 
             return RETURN_CODES["WRITE_FAIL"]
         
-def ensure_paths(path: str, file: str | None) -> int | None:
+def ensure_paths(path: str, file: str | None) -> int:
     if not exists(path):
         try:
             makedirs(path, exist_ok=True)
