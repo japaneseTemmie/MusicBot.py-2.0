@@ -5,6 +5,7 @@ a Discord guild and its users. """
 from settings import *
 from helpers import *
 from handlers import handle_moderation_command_error
+from timehelpers import format_minutes_extended
 from bot import Bot
 
 class ModerationCog(commands.Cog):
