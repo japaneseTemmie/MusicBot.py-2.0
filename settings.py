@@ -360,10 +360,13 @@ else:
     log(f"FFMpeg check disabled. Program may not function correctly if package ffmpeg is not installed.")
     separator()
 
+# Cache
+# Set up hashmaps for asyncio locks and cache
 PLAYLIST_LOCKS = {}
 ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
+EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=3600)
 
 """ Asyncio.Event() objects that function as locks for safe shutdown.
 Use .clear() to release the lock.
