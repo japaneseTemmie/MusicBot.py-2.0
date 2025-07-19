@@ -75,13 +75,14 @@ def run(command: list[str], sep_process: bool=False) -> int:
                 process.terminate() # Fallback
         return process.wait()
 
-def write(fp: str, content: str) -> None | NoReturn:
+def write(fp: str, content: str) -> bool:
     try:
         with open(fp, "w") as f:
             f.write(content)
+        return True
     except OSError as e:
         msg(f"An error occured while writing to {fp}.\nErr: {e}")
-        sysexit(1)
+        return False
 
 def handle_return_code(code: int, command: str) -> None | NoReturn:
     if code != 0:
@@ -96,7 +97,10 @@ def requirements_exist() -> None | NoReturn:
         msg("requirements.txt file not found. Creating file..")
         sleep(1)
 
-        write(join(PATH, "requirements.txt"), DEFAULT_DEPENDENCIES)
+        success = write(join(PATH, "requirements.txt"), DEFAULT_DEPENDENCIES)
+
+        if not success:
+            sysexit(1)
 
 def install_venv() -> None | NoReturn:
     code = run(cmd_install_venv)
