@@ -5,6 +5,8 @@ Supported websites:\n
 - SoundCloud """
 
 from settings import *
+from timehelpers import format_seconds
+from cachehelpers import get_cache, store_cache
 
 # List of regex pattern to match website URLs
 # Second item is the 'source_website'
@@ -17,19 +19,9 @@ PATTERNS = [
     (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/track\/[a-z0-9\-]+(\/)?"), "Bandcamp")
 ]
 
-def format_seconds(seconds: int) -> str:
-    """ This module has its own format_seconds() to fix a circular import issue. """
-
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    remaining_seconds = seconds % 60
-
-    return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
-
-@lru_cache(maxsize=16384)
 def get_query_type(query: str) -> tuple[re.Pattern | str, str]:
-    """ Match a pattern, so we know what kind of query we're working with. """
-    
+    """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. """
+
     for pattern in PATTERNS:
         if pattern[0].match(query):
             return pattern
@@ -71,10 +63,13 @@ def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | l
 
     return info
 
-@lru_cache(maxsize=16384)
 def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
     """ Search a webpage and find info about the query.\n
     Must be sent to a thread. """
+
+    cache = get_cache(EXTRACTOR_CACHE, query)
+    if cache:
+        return cache
     
     with YoutubeDL(YDL_OPTIONS) as yt:
         try:
@@ -90,6 +85,9 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
 
         if info is not None:
             info = parse_info(info, query_type)
+
+            store_cache(info, query, EXTRACTOR_CACHE)
+
             return info
         
         return None
