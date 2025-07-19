@@ -84,7 +84,7 @@ async def handle_not_found_error(interaction: Interaction, code: int):
     
     msgs = {
         RETURN_CODES["NOT_FOUND"]: "Could not find track(s) in queue.",
-        RETURN_CODES["NOT_A_NUMBER"]: "Index is not a number."
+        RETURN_CODES["NOT_A_NUMBER"]: "Index is not an integer number."
     }
 
     msg = msgs.get(code, None)
