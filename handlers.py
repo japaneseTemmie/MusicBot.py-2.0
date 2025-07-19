@@ -23,6 +23,7 @@ async def handle_generic_playlist_errors(interaction: Interaction,code: int | tu
         RETURN_CODES["PLAYLIST_EXISTS"]: f"Playlist **{playlist_name}** already exists.",
         RETURN_CODES["WRITE_FAIL"]: "Failed to update playlist contents.",
         RETURN_CODES["NOT_FOUND"]: f"Could not find track(s) in playlist **{playlist_name}**.",
+        RETURN_CODES["NOT_A_NUMBER"]: f"Index is not an integer number.",
         RETURN_CODES["INVALID_RANGE"]: f"Invalid `start_range` or `end_range`.",
         RETURN_CODES["SAME_INDEX_PLACEMENT"]: "Cannot place track because it already exists at the specified index.",
         RETURN_CODES["PLAYLIST_IS_FULL"]: f"Playlist **{playlist_name}** has reached the **{playlist_item_limit}** track limit!"
