@@ -2,7 +2,6 @@
 
 from settings import *
 from extractor import fetch, get_query_type
-from playlist import PlaylistManager
 
 """ Utilities """
 
@@ -577,7 +576,7 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
 
             log(f"[GUILDSTATE] Cleaned up guild ID {guild_id} from guild states, cache and locks.")
 
-async def check_users_in_channel(guild_states: dict, playlist: PlaylistManager, member: discord.Member | Interaction) -> bool:
+async def check_users_in_channel(guild_states: dict, playlist, member: discord.Member | Interaction) -> bool:
     """ Check if there are any users in a voice channel.
     Returns True if none are left and the bot is disconnected, else False. """
     
