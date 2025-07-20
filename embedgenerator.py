@@ -86,6 +86,7 @@ def generate_edited_tracks_embed(found: list[dict]):
 def generate_current_track_embed(info: dict,
                                 queue: list | list[dict],
                                 queue_to_loop: list | list[dict],
+                                track_to_loop: dict | None,
                                 elapsed_time: int,
                                 looping: bool,
                                 random: bool,
@@ -106,13 +107,13 @@ def generate_current_track_embed(info: dict,
     else:
         short_queue_val = "[ `Empty` ]"
 
-    embed.add_field(name="Title", value=f"[ `{info.get('title', 'Unknown')}` ]", inline=True)
-    embed.add_field(name="Author", value=f"[ `{info.get('uploader', 'Unknown')}` ]", inline=True)
-    embed.add_field(name="Upload date", value=f"[ `{info.get('upload_date', 'Unknown')}` ]", inline=False)
-    embed.add_field(name="Duration", value=f"[ `{info.get('duration', '00:00:00')}` ]", inline=True)
+    embed.add_field(name="Title", value=f"[ `{info.get('title')}` ]", inline=True)
+    embed.add_field(name="Author", value=f"[ `{info.get('uploader')}` ]", inline=True)
+    embed.add_field(name="Upload date", value=f"[ `{info.get('upload_date')}` ]", inline=False)
+    embed.add_field(name="Duration", value=f"[ `{info.get('duration')}` ]", inline=True)
     embed.add_field(name="Elapsed time", value=f"[ `{elapsed_time}` ]", inline=True)
     if looping:
-        embed.add_field(name="Next track", value=f"[ `{info.get('title', 'Unknown')} (looping)` ]", inline=False)
+        embed.add_field(name="Next track", value=f"[ `{track_to_loop.get('title')} (looping)` ]", inline=False)
     elif random:
         embed.add_field(name="Next track", value="[ `Random` ]", inline=False)
     else:
@@ -122,7 +123,7 @@ def generate_current_track_embed(info: dict,
     embed.add_field(name="Loop", value="[ `Enabled` ]" if looping else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Randomization", value="[ `Enabled` ]" if random else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Queue loop", value="[ `Enabled` ]" if queueloop else "[ `Disabled` ]", inline=True)
-    embed.add_field(name="Source", value=f"[ `{info.get("source_website", "Unknown")}` ]", inline=False)
+    embed.add_field(name="Source", value=f"[ `{info.get('source_website')}` ]", inline=False)
     embed.add_field(name="Thumbnail", value="", inline=False)
     embed.set_image(url=info.get("thumbnail", None))
     embed.set_footer(text=f"Total tracks in queue: {len(queue)}")
