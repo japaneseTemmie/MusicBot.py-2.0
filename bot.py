@@ -3,7 +3,7 @@
 from settings import *
 from guild import check_guilds
 from handlers import handle_sync_error, handle_load_error
-from loader import Loader
+from loader import ModuleLoader
 
 class Bot(commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """
@@ -15,7 +15,7 @@ class Bot(commands.Bot):
 
     async def get_cogs(self) -> list[commands.Cog]:
         """ Get cogs from all modules and their respective enable value from config.json """
-        loader = Loader("modules")
+        loader = ModuleLoader("modules")
         classes = loader.get_classes()
         values = loader.get_enable_values_from_config([obj.__name__ for obj in classes])
         cogs = []

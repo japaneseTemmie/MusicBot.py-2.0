@@ -3,7 +3,7 @@ Helper module to dynamically load all modules found in a specified directory. ""
 
 from settings import *
 
-class Loader:
+class ModuleLoader:
     """ Loader class\n
     Dynamically load all modules found in modules_dir. """
     def __init__(self, modules_dir: str):
