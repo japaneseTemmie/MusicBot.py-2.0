@@ -46,6 +46,8 @@ class PlaylistManager:
         
         if content is None or content == RETURN_CODES["READ_FAIL"]:
             return
+        
+        playlist_name = await sanitize_name(playlist_name)
 
         # Ensure the target playlist exists or a command that creates one is used.
         if  (await self.exists(content, playlist_name) or\
@@ -55,6 +57,7 @@ class PlaylistManager:
     async def unlock(self, locked: dict, content: dict | None, playlist_name: str) -> None:
         """ Unlocks a playlist. """
         
+        playlist_name = await sanitize_name(playlist_name)
         if playlist_name in locked:
             locked[playlist_name] = False
         
@@ -121,6 +124,8 @@ class PlaylistManager:
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
 
+        playlist_name = await sanitize_name(playlist_name)
+
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
         
@@ -179,6 +184,8 @@ class PlaylistManager:
         if content is None or content == RETURN_CODES["READ_FAIL"]:
             return RETURN_CODES["READ_FAIL"]
         
+        playlist_name = await sanitize_name(playlist_name)
+
         if len(playlist_name) > self.max_name_length:
             return RETURN_CODES["NAME_TOO_LONG"]
 
@@ -193,7 +200,6 @@ class PlaylistManager:
         if len(content) >= self.max_limit:
             return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
 
-        playlist_name = await sanitize_name(playlist_name)
         content[playlist_name] = []
 
         success = await self.write(interaction, content, backup)
@@ -211,6 +217,8 @@ class PlaylistManager:
 
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
+
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
@@ -241,6 +249,8 @@ class PlaylistManager:
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
     
+        playlist_name = await sanitize_name(playlist_name)
+
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
 
@@ -271,6 +281,8 @@ class PlaylistManager:
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
         
+        playlist_name = await sanitize_name(playlist_name)
+
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
 
@@ -297,6 +309,8 @@ class PlaylistManager:
 
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
+
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
@@ -325,6 +339,8 @@ class PlaylistManager:
 
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
+
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
@@ -374,6 +390,8 @@ class PlaylistManager:
 
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
+
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
@@ -463,6 +481,8 @@ class PlaylistManager:
         if content is None or content == RETURN_CODES["READ_FAIL"]:
             return RETURN_CODES["READ_FAIL"]
         
+        playlist_name = await sanitize_name(playlist_name)
+
         # Avoid returning these errors when using add_queue() to not waste bandwidth
         if await self.is_full(content, playlist_name):
             return RETURN_CODES["PLAYLIST_IS_FULL"]
@@ -513,13 +533,14 @@ class PlaylistManager:
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
 
+        new_playlist_name = await sanitize_name(new_playlist_name)
+        orig_playlist_name = orig_playlist_name.strip()
+
         if not await self.exists(content, orig_playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
 
         if len(new_playlist_name) > self.max_name_length:
             return RETURN_CODES["NAME_TOO_LONG"]
-
-        new_playlist_name = await sanitize_name(new_playlist_name)
 
         if new_playlist_name == orig_playlist_name:
             return RETURN_CODES["SAME_NAME_RENAME"]
@@ -540,6 +561,8 @@ class PlaylistManager:
         
         if not await self.has_playlists(content):
             return RETURN_CODES["NO_PLAYLISTS"]
+
+        playlist_name = await sanitize_name(playlist_name)
 
         if not await self.exists(content, playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
