@@ -520,6 +520,10 @@ class PlaylistManager:
             return RETURN_CODES["NAME_TOO_LONG"]
 
         new_playlist_name = await sanitize_name(new_playlist_name)
+
+        if new_playlist_name == orig_playlist_name:
+            return RETURN_CODES["SAME_NAME_RENAME"]
+
         playlists = content.items()
         content = {new_playlist_name if key == orig_playlist_name else key: value for key, value in playlists}
 
