@@ -127,9 +127,6 @@ def main() -> None | NoReturn:
             install_dependencies()
     else:
         msg(f"venv found at {VENV_PYTHON}", 0.5)
-        msg("Checking for updates..", 0.5)
-        requirements_exist()
-        install_dependencies()
 
     try:
         msg("Running main.py")
