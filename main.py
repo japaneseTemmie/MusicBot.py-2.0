@@ -1,7 +1,7 @@
-""" main.py script for discord.py bot """
+""" main.py script for discord.py bot
 
-""" This software is provided "as-is", without any express or implied warranty. 
-The developer is not responsible for any damages or data loss resulting from its use or misuse.
+This software is provided "as-is", without any express or implied warranty.\n
+The developer is not responsible for any damages or data loss resulting from its use or misuse.\n
 Use at your own risk. """
 
 from settings import *
