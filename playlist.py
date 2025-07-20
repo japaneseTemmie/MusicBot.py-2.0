@@ -534,7 +534,7 @@ class PlaylistManager:
             return RETURN_CODES["NO_PLAYLISTS"]
 
         new_playlist_name = await sanitize_name(new_playlist_name)
-        orig_playlist_name = orig_playlist_name.strip()
+        orig_playlist_name = await sanitize_name(orig_playlist_name)
 
         if not await self.exists(content, orig_playlist_name):
             return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
