@@ -139,7 +139,7 @@ async def check_history(guild_states: dict, interaction: Interaction, msg: str="
         
         return True
 
-async def check_guild_state(guild_states: dict, interaction: Interaction, state="is_modifying", condition: bool=True, msg: str="The queue is currently being modified, please wait."):
+async def check_guild_state(guild_states: dict, interaction: Interaction, state="is_modifying", condition: Any=True, msg: str="The queue is currently being modified, please wait."):
     if interaction.guild.id in guild_states:
         value = guild_states[interaction.guild.id][state]
         if value == condition:
