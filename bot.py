@@ -122,7 +122,7 @@ class Bot(commands.Bot):
         start_time = get_time() # Track elapsed time and continue anyways if it times out.
 
         while (any(playlist_lock.locked() for playlist_lock in PLAYLIST_LOCKS.values()) or\
-            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (get_time() - start_time < MAX_IO_WAIT_TIME):
+            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (get_time() - start_time < MAX_IO_SYNC_WAIT_TIME):
             
             await asyncio.sleep(0.1)
 

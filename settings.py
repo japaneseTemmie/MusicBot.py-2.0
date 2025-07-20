@@ -297,20 +297,20 @@ RETURN_CODES = {
     "SAME_INDEX_REPOSITION": 7,
     "NO_PLAYLISTS": 8,
     "PLAYLIST_DOES_NOT_EXIST": 9,
-    "PLAYLIST_EXISTS": 11,
-    "MAX_PLAYLIST_LIMIT_REACHED": 12,
-    "NAME_TOO_LONG": 13,
-    "PLAYLIST_IS_EMPTY": 14,
-    "INVALID_RANGE": 15,
-    "HISTORY_IS_EMPTY": 16,
-    "NOT_ENOUGH_TRACKS": 17,
-    "SAME_INDEX_PLACEMENT": 18,
-    "QUERY_IS_EMPTY": 19,
-    "PLAYLIST_IS_FULL": 20,
-    "NOT_A_NUMBER": 21,
-    "NEXT_IS_RANDOM": 22,
-    "QUEUE_IS_EMPTY": 23,
-    "SAME_NAME_RENAME": 24
+    "PLAYLIST_EXISTS": 10,
+    "MAX_PLAYLIST_LIMIT_REACHED": 11,
+    "NAME_TOO_LONG": 12,
+    "PLAYLIST_IS_EMPTY": 13,
+    "INVALID_RANGE": 14,
+    "HISTORY_IS_EMPTY": 15,
+    "NOT_ENOUGH_TRACKS": 16,
+    "SAME_INDEX_PLACEMENT": 17,
+    "QUERY_IS_EMPTY": 18,
+    "PLAYLIST_IS_FULL": 19,
+    "NOT_A_NUMBER": 20,
+    "NEXT_IS_RANDOM": 21,
+    "QUEUE_IS_EMPTY": 22,
+    "SAME_NAME_RENAME": 23
 }
 
 # System info and config
@@ -377,7 +377,7 @@ Use .wait() to block the event loop if a lock is acquired (should be used rarely
 Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
-MAX_IO_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
+MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff
 ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_api_data()
