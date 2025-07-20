@@ -192,9 +192,9 @@ async def update_guild_state(guild_states: dict, interaction: Interaction, value
     if interaction.guild.id in guild_states:
         guild_states[interaction.guild.id][state] = value
 
-# Possible function to bulk update n amount of states.
+# Possible function to bulk update n amount of states
 """async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]):
-    if interaction.guild.id in guild_states and   
+    if interaction.guild.id in guild_states and\
     len(values) == len(states):
         
         for state, value in zip(states, values):
@@ -254,8 +254,7 @@ async def fetch_queries(guild_states: dict,
         if isinstance(extracted_query, int): # Error
             return (extracted_query, query)
         elif isinstance(extracted_query, list): # Found playlist
-            for track in extracted_query:
-                found.append(track)
+            return extracted_query
         else: # Found single track
             found.append(extracted_query)
     
@@ -283,12 +282,13 @@ async def check_input_length(interaction: Interaction, max_limit: int, input_spl
 
     return input_split
 
-async def check_queue_length(interaction: Interaction, max_limit: int, queue: list) -> bool | int:
+async def check_queue_length(interaction: Interaction, max_limit: int, queue: list) -> bool:
     queue_length = len(queue)
     if queue_length >= max_limit:
         await interaction.followup.send(f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s).") if interaction.response.is_done() else\
         await interaction.response.send_message(f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s).")
-        return RETURN_CODES["QUEUE_TOO_LONG"]
+        
+        return False
     
     return True
 
@@ -299,8 +299,8 @@ async def sanitize_name(name: str) -> str:
 # Functions for finding items
 async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> tuple[dict, int] | int:
     """ Find a track given its name or index in an iterable.\n
-    returns a tuple with the track dictionary [0] and its index [1] or NOT_FOUND/NOT_A_NUMBER returncode\n
-    if not found or `track` is not an index number and `by_index` is True. """
+    Returns a tuple with the track hashmap [0] and its index [1] or NOT_FOUND if not found or NOT_A_NUMBER returncode\n
+    if `track` is not an index number and `by_index` is True. """
     
     if by_index:
         track = track.strip()
@@ -329,6 +329,21 @@ async def get_previous(current: dict | None, history: list[dict] | list) -> dict
         return RETURN_CODES["NOT_ENOUGH_TRACKS"]
     
     return history[length - 2] if current is not None else history[length - 1] # len - 1 = current, len - 2 = actual previous track
+
+async def get_next(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | int:
+    if is_random:
+        return RETURN_CODES["NEXT_IS_RANDOM"]
+
+    if is_looping and track_to_loop:
+        next_track = track_to_loop
+    elif queue:
+        next_track = queue[0]
+    elif queue_to_loop:
+        next_track = queue_to_loop[0]
+    else:
+        return RETURN_CODES["QUEUE_IS_EMPTY"]
+    
+    return next_track
 
 async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
     """ Test an index and see if it contains anything.
@@ -376,8 +391,8 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
         found_track = await find_track(track, queue, by_index)
 
         if found_track not in (RETURN_CODES["NOT_FOUND"], RETURN_CODES["NOT_A_NUMBER"]):
-            removed_track = queue[found_track[1]] # Add and remove later to fix an issue where if by_index is used, wrong items at selected indices are removed.
-            found.append(removed_track)
+            to_remove = queue[found_track[1]] # Add and remove later to fix an issue where if by_index is used, wrong items at selected indices are removed.
+            found.append(to_remove)
     
     for item in found:
         queue.remove(item)
@@ -417,7 +432,7 @@ async def replace_track_in_queue(guild_states: dict,
     extracted_track = await fetch_query(guild_states, interaction, new_track, 1, 1, None, "YouTube Playlist")
     if isinstance(extracted_track, int):
         return extracted_track
-    
+
     if playlist:
         extracted_track = {
             "title": extracted_track.get("title"),
