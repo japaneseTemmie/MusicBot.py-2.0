@@ -167,9 +167,6 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
 
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-
         await interaction.response.defer(thinking=True)
         
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
@@ -178,11 +175,14 @@ class MusicCog(commands.Cog):
 
         queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
 
-        is_queue_too_long = await check_queue_length(interaction, self.max_track_limit, queue) == RETURN_CODES["QUEUE_TOO_LONG"]
-        if is_queue_too_long:
+        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        if not is_queue_length_ok:
             await update_guild_state(self.guild_states, interaction, False)
             await update_guild_state(self.guild_states, interaction, False, "is_extracting")
             return
+
+        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         found = await fetch_queries(self.guild_states, interaction, queries_split)
 
@@ -350,7 +350,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
-        query="YouTube (video), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
+        query="YouTube (video only), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
         keep_current_track="Whether or not to keep the current track (if any) in the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -363,19 +363,20 @@ class MusicCog(commands.Cog):
             return
         
         if keep_current_track:
-            if await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"]) == RETURN_CODES["QUEUE_TOO_LONG"] or\
-            not await check_guild_state(self.guild_states, interaction):
+            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"])
+            if not is_queue_length_ok or\
+                not await check_guild_state(self.guild_states, interaction):
                 return
-
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-        await update_guild_state(self.guild_states, interaction, True)
 
         await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
-        
+
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        await update_guild_state(self.guild_states, interaction, True)
+
         extracted_track = await fetch_query(self.guild_states, interaction, query, 1, 1, None, "YouTube Playlist")
 
         await update_guild_state(self.guild_states, interaction, False)
@@ -479,28 +480,21 @@ class MusicCog(commands.Cog):
         not await check_guild_state(self.guild_states, interaction) or\
         not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="Queue is already being read, please wait.") or\
         not await check_guild_state(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
         
         is_random = self.guild_states[interaction.guild.id]["is_random"]
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
+        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         queue = self.guild_states[interaction.guild.id]["queue"]
-        if is_random:
+        
+        next_track = await get_next(is_random, is_looping, track_to_loop, queue, queue_to_loop)
+        if isinstance(next_track, int):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
-
-            await interaction.response.send_message("Next track will be random.")
-            return
-
-        if queue:
-            next_track = queue[0]
-        elif queue_to_loop:
-            next_track = queue_to_loop[0]
-        else:
-            await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
-
-            await interaction.response.send_message("Queue is empty. Nothing to preview.")
+            await handle_get_next_error(interaction, next_track)
             return
         
         embed = generate_yoink_embed(next_track)
@@ -532,7 +526,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
         not await check_channel(self.guild_states, interaction) or\
         not await check_guild_state(self.guild_states, interaction, state="is_reading_history", msg="Track history is already being read, please wait.") or\
-        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
@@ -716,8 +710,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="select", description="Selects a track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
-        track_name="The name of the track to select.",
-        by_index="Select track by its index. <track_name> must be a number."
+        track_name="Name (or index, in case <by_index> is True) of the track to select.",
+        by_index="Select track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -771,11 +765,58 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
+    @app_commands.command(name="select-random", description="Selects a random track from the queue and plays it. See entry in /help for more info.")
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def select_random_track(self, interaction: Interaction):
+        if not await user_has_role(interaction) or\
+        not await check_channel(self.guild_states, interaction) or\
+        not await check_queue(self.guild_states, interaction) or\
+        not await check_guild_state(self.guild_states, interaction) or\
+        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            return
+        
+        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
+        queue = self.guild_states[interaction.guild.id]["queue"]
+        voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        random_track = choice(queue)
+
+        if voice_client.is_playing() or voice_client.is_paused():
+            await update_guild_state(self.guild_states, interaction, True, "stop_flag")
+        await self.play_track(interaction, voice_client, random_track)
+
+        queue.remove(random_track)
+
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_state(self.guild_states, interaction, False)
+
+        await interaction.response.send_message(f"Now playing: **{random_track['title']}**")
+
+    @select_random_track.error
+    async def handle_select_random_error(self, interaction: Interaction, error):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+
+        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
+
+        await interaction.followup.send("An unknown error occurred.") if interaction.response.is_done() else\
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+
     @app_commands.command(name="replace", description="Replaces a track with another one. See entry in /help for more info.")
     @app_commands.describe(
-        track_name="Name of the track to replace.",
-        new_track_query="YouTube (video), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
-        by_index="Replace a track by its index. <track_name> must be a number."
+        track_name="Name (or index, in case <by_index> is True) of the track to replace.",
+        new_track_query="YouTube (video only), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
+        by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -787,11 +828,11 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
-        
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         await interaction.response.defer(thinking=True)
+
+        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         result = await replace_track_in_queue(self.guild_states, interaction, track_name, new_track_query, by_index=by_index)
         if isinstance(result, int):
@@ -833,19 +874,40 @@ class MusicCog(commands.Cog):
         await interaction.followup.send("An unknown error occurred.") if interaction.response.is_done() else\
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="loop", description="Loops the current track. Functions as a toggle.")
+    @app_commands.command(name="loop", description="Loops the current or specified track. Functions as a toggle.")
+    @app_commands.describe(
+        track_name="The track to loop's name or index. (if <by_index> is True)",
+        by_index="Whether or not to search for track by its index."
+    )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def loop_track(self, interaction: Interaction):
+    async def loop_track(self, interaction: Interaction, track_name: str=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction):
+            (not track_name and not await check_current_track(self.guild_states, interaction)) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        queue = self.guild_states[interaction.guild.id]["queue"]
 
         if not is_looping:
-            self.guild_states[interaction.guild.id]["track_to_loop"] = self.guild_states[interaction.guild.id]["current_track"]
+            if track_name:
+
+                if not await check_guild_state(self.guild_states, interaction) or\
+                    not await check_queue(self.guild_states, interaction):
+                    return
+
+                found_track = await find_track(track_name, queue, by_index)
+
+                if isinstance(found_track, int):
+                    await handle_not_found_error(interaction, found_track)
+                    return
+                
+                self.guild_states[interaction.guild.id]["track_to_loop"] = found_track[0]
+            else:
+                self.guild_states[interaction.guild.id]["track_to_loop"] = current_track
             self.guild_states[interaction.guild.id]["is_looping"] = True
             
             await interaction.response.send_message(f"Loop enabled!\nWill loop track: **{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**")
@@ -874,7 +936,8 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def randomize_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-            not await check_channel(self.guild_states, interaction):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
         is_random = self.guild_states[interaction.guild.id]["is_random"]
@@ -909,7 +972,8 @@ class MusicCog(commands.Cog):
     async def loop_queue(self, interaction: Interaction, include_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction):
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
         queue = self.guild_states[interaction.guild.id]["queue"]
@@ -952,8 +1016,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="clear", description="Removes every track from the queue (and/or history or loop queue).")
     @app_commands.describe(
-        clear_history="Include track history in deletion.",
-        clear_loop_queue="Include the loop queue in deletion."
+        clear_history="Include track history in removal.",
+        clear_loop_queue="Include the loop queue in removal."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -964,14 +1028,18 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
-        track_count = len(self.guild_states[interaction.guild.id]["queue"])
-        history_track_count = len(self.guild_states[interaction.guild.id]["queue_history"])
+        queue = self.guild_states[interaction.guild.id]["queue"]
+        queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
+        track_history = self.guild_states[interaction.guild.id]["queue_history"]
 
-        self.guild_states[interaction.guild.id]["queue"].clear()
+        track_count = len(queue)
+        history_track_count = len(track_history)
+
+        queue.clear()
         if clear_history:
-            self.guild_states[interaction.guild.id]["queue_history"].clear()
+            track_history.clear()
         if clear_loop_queue:
-            self.guild_states[interaction.guild.id]["queue_to_loop"].clear()
+            queue_to_loop.clear()
 
         await interaction.response.send_message(f"The queue is now empty.\nRemoved **{track_count}** items from queue{f' and **{history_track_count}** items from track history' if clear_history else ''}.")
 
@@ -992,8 +1060,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="remove", description="Removes user-given tracks from the queue. See entry in /help for more info.")
     @app_commands.describe(
-        track_names="A semicolon separated list of name(s) of the track(s) to remove.",
-        by_index="Remove tracks by their index. <track_names> must be a semicolon separated list of indices."
+        track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
+        by_index="Remove tracks by their index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1043,9 +1111,9 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="reposition", description="Repositions a track from its original position to a new index. See entry in /help for more info.")
     @app_commands.describe(
-        track_name="The name of the track to reposition.",
+        track_name="The name (or index, if <by_index> is True) of the track to reposition.",
         new_index="The new index of the track. Must be > 0 and <= maximum queue index.",
-        by_index="Reposition a track by its index. <track_name> must be a number."
+        by_index="Reposition a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1516,6 +1584,7 @@ class MusicCog(commands.Cog):
         info = self.guild_states[interaction.guild.id]["current_track"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
+        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         queue_state_being_modified = self.guild_states[interaction.guild.id]["is_reading_queue"] or self.guild_states[interaction.guild.id]["is_modifying"]
         
         if voice_client.is_playing():
@@ -1532,6 +1601,7 @@ class MusicCog(commands.Cog):
                                         info=info,
                                         queue=queue,
                                         queue_to_loop=queue_to_loop,
+                                        track_to_loop=track_to_loop,
                                         elapsed_time=elapsed_time,
                                         looping=is_looping,
                                         random=is_random,
@@ -1619,7 +1689,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-save", description="Creates a new playlist with the current queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The new playlist's name.",
-        add_current_track="Whether or not to add the currently playing track."
+        add_current_track="Whether or not to add the current track, if any. (default True)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1687,8 +1757,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playlist-save-current", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
-        index="The index at which the track should be placed. Must be > 0. Ignore this field for last one.",
-        playlist_name="The playlist to modify's name."
+        playlist_name="The playlist to modify or create's name.",
+        index="The index at which the track should be placed. Must be > 0. Ignore this field for last one."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1768,8 +1838,8 @@ class MusicCog(commands.Cog):
             queue.clear()
             queue_to_loop.clear()
 
-        is_queue_too_long = await check_queue_length(interaction, self.max_track_limit, queue) == RETURN_CODES["QUEUE_TOO_LONG"]
-        if is_queue_too_long:
+        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        if not is_queue_length_ok:
             return
 
         if await self.playlist.is_locked(locked):
@@ -1824,7 +1894,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playlist-create", description="Creates a new empty playlist. See entry in /help for more info.")
     @app_commands.describe(
-        playlist_name="The new playlist's name. Muse be under 100 (default) characters."
+        playlist_name="The new playlist's name. Must be < 50 (default) characters."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1926,8 +1996,8 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-remove", description="Remove specified track(s) from a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to remove tracks from's name.",
-        track_names="A semicolon separated list of name(s) of the track(s) to remove.",
-        by_index="Remove tracks by their index. <track_names> must be a semicolon separated list of indices."
+        track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
+        by_index="Remove tracks by their index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2024,7 +2094,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-rename", description="Renames a playlist to a new user-specified name. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to rename's name.",
-        new_playlist_name="New name to assign to the playlist."
+        new_playlist_name="New name to assign to the playlist. Must be < 50 (default) characters."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2077,9 +2147,9 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-replace", description="Replaces a track with a new one in a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
-        old="The track name of the track to replace.",
+        old="The name (or index, if <by_index> is True) of the track to replace.",
         new="YouTube (video only), Newgrounds, Soundcloud, Bandcamp URL or a YouTube search query.",
-        by_index="Replace a track by its index. <old> must be a number."
+        by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2090,20 +2160,19 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
 
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
         if await self.playlist.is_locked(locked):
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
             content = await self.playlist.get_content(interaction)
             await self.playlist.lock(interaction, content, locked, playlist_name)
-        
+
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         success = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old, new, by_index)
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
@@ -2144,9 +2213,9 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-reposition", description="Repositions a playlist track to a new index. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
-        track_name="The track name of the track to reposition.",
-        new_index="The new index of the track.",
-        by_index="Reposition a track by its index. <track_name> must be a number."
+        track_name="The name (or index, in case <by_index> is True) of the track to reposition.",
+        new_index="The new index of the track. Must be > 0 and < maximum playlist index.",
+        by_index="Reposition a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2210,14 +2279,11 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
 
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
         if await self.playlist.is_locked(locked):
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
@@ -2225,6 +2291,9 @@ class MusicCog(commands.Cog):
             await self.playlist.lock(interaction, content, locked, playlist_name)
 
         queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
+
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, False, "YouTube Playlist")
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
@@ -2272,9 +2341,9 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playlist-fetch-track", description="Adds a track from a playlist. See entry in /help for more info.")
     @app_commands.describe(
-        playlist_name="The playlist to fetch track(s) from's name.",
-        tracks="The name(s) of the track(s) to fetch in a semicolon separated list.",
-        by_index="Fetch tracks by their index. <tracks> must be a semicolon separated list of indices."
+        playlist_name="The playlist to fetch tracks from's name.",
+        tracks="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
+        by_index="Fetch tracks by their index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2285,9 +2354,6 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
-        
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-        await update_guild_state(self.guild_states, interaction, True)
 
         await interaction.response.defer(thinking=True)
 
@@ -2296,21 +2362,19 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         queries_split = await check_input_length(interaction, self.max_query_limit, split(tracks))
-        is_queue_too_long = await check_queue_length(interaction, self.max_track_limit, queue) == RETURN_CODES["QUEUE_TOO_LONG"]
-        if is_queue_too_long:
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-            await update_guild_state(self.guild_states, interaction, False)
+        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        if not is_queue_length_ok:
             return
 
         if await self.playlist.is_locked(locked):
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-            await update_guild_state(self.guild_states, interaction, False)
-            
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
             content = await self.playlist.get_content(interaction)
             await self.playlist.lock(interaction, content, locked, playlist_name)
+
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        await update_guild_state(self.guild_states, interaction, True)
 
         success = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, queries_split, by_index=by_index)
 
@@ -2354,7 +2418,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playlist-fetch-random-track", description="Fetches random track(s) from specified playlist. See entry in /help for more info.")
     @app_commands.describe(
-        playlist_name="The name of the playlist to search in.",
+        playlist_name="The playlist to get tracks from's name.",
         amount="The amount of random tracks to fetch, must be <= 25 (default)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -2374,18 +2438,12 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         amount = max(1, min(amount, 25))
-        is_queue_too_long = await check_queue_length(interaction, self.max_track_limit, queue) == RETURN_CODES["QUEUE_TOO_LONG"]
+        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
         
-        if is_queue_too_long:
+        if not is_queue_length_ok:
             return
 
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-
         if await self.playlist.is_locked(locked):
-            await update_guild_state(self.guild_states, interaction, False)
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
@@ -2394,13 +2452,14 @@ class MusicCog(commands.Cog):
 
         result = await self.playlist.read(content, playlist_name)
         if isinstance(result, int):
-            await update_guild_state(self.guild_states, interaction, False)
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
             await self.playlist.unlock(locked, content, playlist_name)
 
             await handle_generic_playlist_errors(interaction, result, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
             return
         
+        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         random_tracks = await get_random_tracks_from_playlist(result, amount)
         success = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, random_tracks, True)
 
@@ -2442,8 +2501,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playlist-add-yt-playlist", description="Adds a YouTube playlist to a playlist. See entry in /help for more info.")
     @app_commands.describe(
-        query="A YouTube playlist URL.",
-        playlist_name="The playlist to add the tracks to's name."
+        playlist_name="The playlist to add the tracks to's name.",
+        query="A YouTube playlist URL."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2454,19 +2513,18 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
         
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
         if await self.playlist.is_locked(locked):
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-            
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
             content = await self.playlist.get_content(interaction)
             await self.playlist.lock(interaction, content, locked, playlist_name)
+        
+        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], False, None, "YouTube Playlist")
 
@@ -2516,9 +2574,9 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-edit-track", description="Modifies the specified track's name. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
-        old_track_names="A semicolon separated list of the tracks to rename.",
-        new_track_names=f"A semicolon separated list of new names.",
-        by_index="Rename tracks by their index. <old_track_names> must be a semicolon separated list of indices."
+        old_track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to rename.",
+        new_track_names=f"A semicolon separated list of new names to assign to each old name.",
+        by_index="Rename tracks by their index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
