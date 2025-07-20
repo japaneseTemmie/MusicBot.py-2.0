@@ -60,12 +60,15 @@ async def handle_generic_extraction_errors(interaction: Interaction, code: int |
 async def handle_rename_error(interaction: Interaction, code: int, new_name: str, max_rename_length: int):
     """ Error handler for NAME_TOO_LONG error code. """
     
-    if code == RETURN_CODES["NAME_TOO_LONG"]:
-        if len(new_name) > 1024:
-            new_name = new_name[:975] + "..."
+    msgs = {
+        RETURN_CODES["NAME_TOO_LONG"]: f"Name **`{new_name[:950]}`** is too long. Must be < **{max_rename_length}** characters.",
+        RETURN_CODES["SAME_NAME_RENAME"]: f"Cannot rename a playlist to the same name."
+    }
 
-        await interaction.followup.send(f"Name **`{new_name}`** is too long. Must be < **{max_rename_length}** characters.") if interaction.response.is_done() else\
-        await interaction.response.send_message(f"Name **`{new_name}`** is too long. Must be < **{max_rename_length}** characters.")
+    msg = msgs.get(code, None)
+    if msg is not None:
+        await interaction.followup.send(msg) if interaction.response.is_done() else\
+        await interaction.response.send_message(msg)
         return False
     
     return True
@@ -109,6 +112,21 @@ async def handle_get_previous_error(interaction: Interaction, code: int):
         await interaction.followup.send(msg) if interaction.response.is_done() else\
         await interaction.response.send_message(msg)
 
+        return False
+    
+    return True
+
+async def handle_get_next_error(interaction: Interaction, code: int):
+    msgs = {
+        RETURN_CODES["NEXT_IS_RANDOM"]: "Next track will be random.",
+        RETURN_CODES["QUEUE_IS_EMPTY"]: "Queue is empty. Nothing to preview."
+    }
+
+    msg = msgs.get(code, None)
+    if msg is not None:
+        await interaction.followup.send(msg) if interaction.response.is_done() else\
+        await interaction.response.send_message(msg)
+        
         return False
     
     return True
