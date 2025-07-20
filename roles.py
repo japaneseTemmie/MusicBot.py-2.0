@@ -7,8 +7,7 @@ from helpers import ensure_lock, store_cache, get_cache
 async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     """ Check role ownership """
     """ If the role isn't in the guild or not in the config file or the user has it, allow command execution.
-    if none of the below conditions are met, return False. (Role exists in config file and in guild but
-    user does not have it.) """
+    if none of the above conditions are met, return False. """
 
     roles = await open_roles(interaction)
     if roles == RETURN_CODES["READ_FAIL"]:
