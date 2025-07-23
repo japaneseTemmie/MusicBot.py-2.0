@@ -58,7 +58,7 @@ async def handle_generic_extraction_errors(interaction: Interaction, code: int |
     return True
 
 async def handle_rename_error(interaction: Interaction, code: int, new_name: str, max_rename_length: int):
-    """ Error handler for NAME_TOO_LONG error code. """
+    """ Error handler for NAME_TOO_LONG and SAME_NAME_RENAME error code. """
     
     msgs = {
         RETURN_CODES["NAME_TOO_LONG"]: f"Name **`{new_name[:950]}`** is too long. Must be < **{max_rename_length}** characters.",
