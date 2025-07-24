@@ -13,7 +13,7 @@ class Bot(commands.Bot):
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
         self.cog_objs = {}
 
-    async def get_cogs(self) -> list[commands.Cog]:
+    async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
         loader = ModuleLoader("modules")
         classes = loader.get_classes()
