@@ -8,25 +8,25 @@ from datetime import datetime
 
 def check_python_ver() -> None | NoReturn:
     if version_info < (3, 10):
-        msg(f"Python 3.10+ is required for this project.", 2)
+        log(f"Python 3.10+ is required for this project.", 2)
         sysexit(1)
 
 def is_in_venv() -> None | NoReturn:
     if prefix != base_prefix:
-        msg("This script cannot be executed inside a venv.")
+        log("This script cannot be executed inside a venv.")
         sysexit(1)
 
 PATH = dirname(__file__)
 OS = system()
 VENV_PYTHON = join(PATH, "bin", "python3") if OS in ("Linux", "Darwin") else join(PATH, "Scripts", "python.exe")
 VENV_PIP = join(PATH, "bin", "pip") if OS in ("Linux", "Darwin") else join(PATH, "Scripts", "pip.exe")
-DEFAULT_DEPENDENCIES = "discord\nPyNaCl\nyt_dlp\npsutil\npython-dotenv\ncachetools"
+DEFAULT_DEPENDENCIES = "discord\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
 
 cmd_install_venv = ["python3", "-m", "venv", PATH] if OS in ("Linux", "Darwin") else ["python", "-m", "venv", PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
-def msg(content: str, sleep_for: float=0) -> None:
+def log(content: str, sleep_for: float=0) -> None:
     print(f"[runner] | {datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')} | {content}")
     if sleep_for > 0:
         sleep(sleep_for)
@@ -55,7 +55,7 @@ def run(command: list[str], sep_process: bool=False) -> int:
                         preexec_fn=preexec_fn
                         )
     except SubprocessError as e:
-        msg(f"An error occured while spawning subprocess with command '{' '.join(command)}'")
+        log(f"An error occured while spawning subprocess with command '{' '.join(command)}'")
         sysexit(1) # No point in continuing
     
     try:
@@ -81,12 +81,12 @@ def write(fp: str, content: str) -> bool:
             f.write(content)
         return True
     except OSError as e:
-        msg(f"An error occured while writing to {fp}.\nErr: {e}")
+        log(f"An error occured while writing to {fp}.\nErr: {e}")
         return False
 
 def handle_return_code(code: int, command: str) -> None | NoReturn:
     if code != 0:
-        msg(f"Running command '{command}' failed. Exiting...")
+        log(f"Running command '{command}' failed. Exiting...")
         sysexit(1)
 
 def venv_exists() -> bool:
@@ -94,7 +94,7 @@ def venv_exists() -> bool:
 
 def requirements_exist() -> None | NoReturn:
     if not exists(join(PATH, "requirements.txt")):
-        msg("requirements.txt file not found. Creating file..")
+        log("requirements.txt file not found. Creating file..")
         sleep(1)
 
         success = write(join(PATH, "requirements.txt"), DEFAULT_DEPENDENCIES)
@@ -114,22 +114,22 @@ def main() -> None | NoReturn:
     check_python_ver()
     is_in_venv()
     
-    msg(f"Verifying venv installation in {PATH}",0.5)
+    log(f"Verifying venv installation in {PATH}",0.5)
     if not venv_exists():
-        msg(f"venv not found! Creating a new venv in {PATH}",1.5)
+        log(f"venv not found! Creating a new venv in {PATH}",1.5)
         install_venv()
 
         if venv_exists():
-            msg("Checking requirements.txt",0.5)
+            log("Checking requirements.txt",0.5)
             requirements_exist()
 
-            msg("Installing dependencies through requirements.txt",0.5)
+            log("Installing dependencies through requirements.txt",0.5)
             install_dependencies()
     else:
-        msg(f"venv found at {VENV_PYTHON}", 0.5)
+        log(f"venv found at {VENV_PYTHON}", 0.5)
 
     try:
-        msg("Running main.py")
+        log("Running main.py")
         separator()
         run(cmd_run_main)
     except KeyboardInterrupt:
