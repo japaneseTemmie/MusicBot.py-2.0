@@ -11,13 +11,13 @@ in case of a bad write. Requires double the memory needed to open the file for e
 - enable_logging: Enables logging of discord.py errors/debug messages/warnings depending
 on the selected log_level.\n
 - log_level: Level of log verbosity. Can be:\n
-    normal: Simple info about various bot actions.\n
+    normal: Info about some bot actions.\n
     verbose: Log everything.\n
     warning: Logs only warnings.\n
     errors: Logs only errors.\n
     critical: Logs critical errors.\n
-    fatal: Logs fatal errors (crashes).\n
 - skip_ffmpeg_check: Does not run the ffmpeg check if set to true. Not recommended if you don't have ffmpeg installed.\n
+- use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
 
 Module settings\n
 These settings allow to control which module gets enabled, useful to limit features
@@ -40,8 +40,7 @@ from discord import app_commands
 # Misc imports
 from yt_dlp import YoutubeDL
 from logging import FileHandler, Formatter, Logger, getLogger, ERROR, DEBUG, WARNING, INFO, FATAL, CRITICAL
-from random import choice, randint, shuffle, random
-from functools import lru_cache
+from random import choice, randint, shuffle
 from cachetools import TTLCache
 from importlib import import_module
 from inspect import getmembers, isclass
@@ -50,18 +49,16 @@ from time import time as get_time, sleep
 from copy import deepcopy
 
 # OS imports
-from subprocess import Popen, PIPE
 from platform import system, python_implementation, python_version
-from psutil import virtual_memory
 from os.path import join, dirname, exists, isdir
-from os import listdir, remove, makedirs, getenv
+from os import listdir, remove, makedirs, getenv, name
 from shutil import rmtree, which
 from sys import exit as sysexit
 from dotenv import load_dotenv
 from json import load, dump, JSONDecodeError
 
 # Types
-from typing import NoReturn, Callable, Any
+from typing import NoReturn, Callable, Any, Iterable
 from types import ModuleType
 
 def log(msg: str) -> None:
@@ -73,16 +70,16 @@ def separator() -> None:
 log("Finished importing libraries")
 separator()
 sleep(0.5)
+log(f"Running discord.py version {discord.__version__}")
+separator()
 
 def open_file_settings(file_path: str, json_mode: bool, returnlines: bool=False) -> dict | str | list[str] | None:
     with open(file_path) as f:
         try:
-            content = load(f) if json_mode else f.read() if not returnlines else f.readlines()
+            return load(f) if json_mode else f.read() if not returnlines else f.readlines()
         except Exception as e:
-            log(f"An error occured while opening file {file_path}\nErr: {e}")
+            log(f"An error occurred while opening {file_path}\nErr: {e}")
             return None
-        
-        return content
 
 def write_file_settings(file_path: str, content: dict | str, json_mode: bool) -> bool:
     with open(file_path, "w") as f:
@@ -93,12 +90,12 @@ def write_file_settings(file_path: str, content: dict | str, json_mode: bool) ->
 
             dump(content, f, indent=4) if json_mode else f.write(content)
         except Exception as e:
-            log(f"An error occured while writing to file {file_path}\nErr: {e}")
+            log(f"An error occurred while writing to {file_path}\nErr: {e}")
             return False
         
         return True
 
-def get_working_directory() -> str:
+def get_directory() -> str:
     path = dirname(__file__)
     log(f"Working directory: {path}")
     separator()
@@ -115,25 +112,20 @@ def get_python() -> tuple[str, str]:
 
 def get_os() -> str:
     os = system()
-    mem = virtual_memory()
-    if os in ("Linux", "Darwin"):
+
+    if name == "posix":
         from os import uname
         kernel = uname()
     else:
         kernel = None
 
-    log("======HARDWARE======")
-    log(f"Memory: {mem.total // 1024 // 1024}MB")
-    log(f"Available memory: {mem.available // 1024 // 1024}MB")
-    separator()
-    log("======SYSTEM======")
-    log(f"OS: {os}")
+    log(f"OS: {name} Pretty name: {os}")
     log(f"Kernel: {os + ' ' + kernel.release if kernel is not None else 'Unknown'}")
     separator()
 
     return os
 
-def get_api_data() -> tuple[str | None, str, str | None]:
+def get_activity_data() -> tuple[str | None, str, str | None, str | None]:
     """ Get data to send to the API. """
     
     activity_enabled = CONFIG.get("enable_activity", False)
@@ -208,34 +200,40 @@ def get_defaults() -> dict:
         },
         "command_prefix": "?",
         "enable_activity": False,
-        "activity_name": "With the API",
+        "activity_name": "with the API",
         "activity_type": "playing",
         "default_status": None,
         "enable_file_backups": True,
         "enable_logging": True,
         "log_level": "normal",
         "skip_ffmpeg_check": False,
+        "use_sharding": False,
         "enable_ModerationCog": True,
         "enable_UtilsCog": True, 
         "enable_MusicCog": True,
         "enable_MyCog": False
     }
 
-def check_config_exists(path: str, default_data: dict) -> None | NoReturn:
+def check_config_exists(path: str, default_data: dict) -> bool:
     if not exists(path):
         log(f"Creating config file because config.json does not exist at {path}")
         success = write_file_settings(path, default_data, True)
 
         if not success:
-            sysexit(1)
+            return False
 
         log(f"Created config file at {path}")
+
+    return True
 
 def get_config_data() -> dict | NoReturn:
     path = join(PATH, "config.json")
     default_data = get_defaults()
 
-    check_config_exists(path, default_data)
+    success = check_config_exists(path, default_data)
+
+    if not success:
+        sysexit(1)
 
     log(f"Found config file at {path}")
     log(f"Opening config file at {path}")
@@ -279,45 +277,19 @@ def remove_log() -> tuple[None, None, None, None]:
             remove(path)
             log(f"Removed {path}")
         except (Exception, OSError) as e:
-            log(f"An error occured while removing {path}.\nErr: {e}")
+            log(f"An error occurred while removing {path}.\nErr: {e}")
     separator()
 
     return None, None, None, None
 
-VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings": WARNING, "critical": CRITICAL, "fatal": FATAL}
+VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings": WARNING, "critical": CRITICAL}
 VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching, "listening": discord.ActivityType.listening}
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
-RETURN_CODES = {
-    "NOT_FOUND": 1,
-    "BAD_EXTRACTION": 2,
-    "READ_FAIL": 3,
-    "WRITE_FAIL": 4,
-    "WRITE_SUCCESS": 5,
-    "QUERY_NOT_SUPPORTED": 6,
-    "SAME_INDEX_REPOSITION": 7,
-    "NO_PLAYLISTS": 8,
-    "PLAYLIST_DOES_NOT_EXIST": 9,
-    "PLAYLIST_EXISTS": 10,
-    "MAX_PLAYLIST_LIMIT_REACHED": 11,
-    "NAME_TOO_LONG": 12,
-    "PLAYLIST_IS_EMPTY": 13,
-    "INVALID_RANGE": 14,
-    "HISTORY_IS_EMPTY": 15,
-    "NOT_ENOUGH_TRACKS": 16,
-    "SAME_INDEX_PLACEMENT": 17,
-    "QUERY_IS_EMPTY": 18,
-    "PLAYLIST_IS_FULL": 19,
-    "NOT_A_NUMBER": 20,
-    "NEXT_IS_RANDOM": 21,
-    "QUEUE_IS_EMPTY": 22,
-    "SAME_NAME_RENAME": 23
-}
 
 # System info and config
-PATH = get_working_directory()
+PATH = get_directory()
 PYTHON = get_python()
 SYSTEM = get_os()
-
 CONFIG = get_config_data()
 load_dotenv()
 sleep(0.2)
@@ -327,10 +299,12 @@ CAN_LOG = CONFIG.get("enable_logging", True)
 SKIP_FFMPEG_CHECK = CONFIG.get("skip_ffmpeg_check", False)
 YDL_OPTIONS = CONFIG.get("yt_dlp_options", {"quiet": True, "noplaylist": True, "format": "bestaudio/best", "extractaudio": True, "no_warnings": True})
 COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
+USE_SHARDING = CONFIG.get("use_sharding", False)
+ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
 HELP = open_help_file()
 COOLDOWNS = {
     "MUSIC_COMMANDS_COOLDOWN": 10.0,
-    "EXTRACTOR_MUSIC_COMMANDS_COOLDOWN": 30.0, # prevents spam and bandwidth waste to an extent
+    "EXTRACTOR_MUSIC_COMMANDS_COOLDOWN": 30.0,
     "HELP_COMMAND_COOLDOWN": 5.0,
     "ROLE_COMMANDS_COOLDOWN": 60.0,
     "PURGE_CHANNEL_COMMAND_COOLDOWN": 45.0,
@@ -380,7 +354,7 @@ VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff
-ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_api_data()
+ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data()
 
 INTENTS = Intents.all()
 ACTIVITY = get_activity()

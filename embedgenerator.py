@@ -83,15 +83,17 @@ def generate_edited_tracks_embed(found: list[dict]):
 
     return embed
 
-def generate_current_track_embed(info: dict,
-                                queue: list | list[dict],
-                                queue_to_loop: list | list[dict],
-                                track_to_loop: dict | None,
-                                elapsed_time: int,
-                                looping: bool,
-                                random: bool,
-                                queueloop: bool,
-                                is_modifying_queue: bool) -> discord.Embed:
+def generate_current_track_embed(
+        info: dict,
+        queue: list | list[dict],
+        queue_to_loop: list | list[dict],
+        track_to_loop: dict | None,
+        elapsed_time: int,
+        looping: bool,
+        random: bool,
+        queueloop: bool,
+        is_modifying_queue: bool
+    ) -> discord.Embed:
     embed = discord.Embed(
         title="Now Playing",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -117,7 +119,14 @@ def generate_current_track_embed(info: dict,
     elif random:
         embed.add_field(name="Next track", value="[ `Random` ]", inline=False)
     else:
-        embed.add_field(name="Next track", value=f"[ `{queue[0]['title']}` ]" if len(queue) > 0 else f"[ `{queue_to_loop[0]['title']}` ]" if queue_to_loop else "[ `None` ]", inline=False)
+        embed.add_field(
+            name="Next track",
+            value=f"[ `Unable to read next track` ]" if is_modifying_queue else\
+            f"[ `{queue[0]['title']}` ]" if len(queue) > 0 else\
+            f"[ `{queue_to_loop[0]['title']}` ]" if queue_to_loop else\
+            "[ `None` ]",
+            inline=False
+        )
     embed.add_field(name="Short queue", value=short_queue_val if len(short_queue_val) <= 1024 else short_queue_val[:1021] + "...", inline=False)
     embed.add_field(name="Extra options:", value="", inline=False)
     embed.add_field(name="Loop", value="[ `Enabled` ]" if looping else "[ `Disabled` ]", inline=True)

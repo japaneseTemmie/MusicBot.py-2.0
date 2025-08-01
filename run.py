@@ -1,7 +1,7 @@
 from os.path import dirname, exists, join
+from os import name
 from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix
-from platform import system
 from typing import NoReturn
 from time import sleep
 from datetime import datetime
@@ -17,12 +17,11 @@ def is_in_venv() -> None | NoReturn:
         sysexit(1)
 
 PATH = dirname(__file__)
-OS = system()
-VENV_PYTHON = join(PATH, "bin", "python3") if OS in ("Linux", "Darwin") else join(PATH, "Scripts", "python.exe")
-VENV_PIP = join(PATH, "bin", "pip") if OS in ("Linux", "Darwin") else join(PATH, "Scripts", "pip.exe")
+VENV_PYTHON = join(PATH, "bin", "python3") if name == "posix" else join(PATH, "Scripts", "python.exe")
+VENV_PIP = join(PATH, "bin", "pip") if name == "posix" else join(PATH, "Scripts", "pip.exe")
 DEFAULT_DEPENDENCIES = "discord\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
 
-cmd_install_venv = ["python3", "-m", "venv", PATH] if OS in ("Linux", "Darwin") else ["python", "-m", "venv", PATH]
+cmd_install_venv = ["python3", "-m", "venv", PATH] if name == "posix" else ["python", "-m", "venv", PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
@@ -36,7 +35,7 @@ def separator() -> None:
 
 def run(command: list[str], sep_process: bool=False) -> int:
     """ Spawn the process in a separate group so it's not affected by the runner script. """
-    if OS in ("Linux", "Darwin"):
+    if name == "posix":
         from os import setsid
 
         creationflags = 0
@@ -55,13 +54,13 @@ def run(command: list[str], sep_process: bool=False) -> int:
                         preexec_fn=preexec_fn
                         )
     except SubprocessError as e:
-        log(f"An error occured while spawning subprocess with command '{' '.join(command)}'")
+        log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'")
         sysexit(1) # No point in continuing
     
     try:
         return process.wait()
     except KeyboardInterrupt:
-        if OS in ("Linux", "Darwin"):
+        if name == "posix":
             from os import killpg, getpgid
             from signal import SIGINT
 
@@ -81,7 +80,7 @@ def write(fp: str, content: str) -> bool:
             f.write(content)
         return True
     except OSError as e:
-        log(f"An error occured while writing to {fp}.\nErr: {e}")
+        log(f"An error occurred while writing to {fp}.\nErr: {e}")
         return False
 
 def handle_return_code(code: int, command: str) -> None | NoReturn:

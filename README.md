@@ -36,6 +36,8 @@ _*Playlist support may depend on command._
 - Visit the [Discord Developer Portal](https://discord.com/developers/applications), log in, and create a new app. You may customize it if you wish.
 
 ## Set up a Bot
+- If you already have a bot, this section can be skipped. Visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
+
 - Go to the `Bot` section.
   
   (Optional) Modify the name, avatar and banner to your liking.
@@ -51,7 +53,7 @@ _*Playlist support may depend on command._
   | Server Management   | Manage Server, Manage Roles, Manage Channels |
   | Moderation          | Kick, Ban and Moderate Members |
   | Messaging           | View, Send, Manage Messages & Threads |
-  | Voice               | Connect, Speak, Move and Mute Members |
+  | Voice               | Connect, Speak, Move and Mute Members, Set Voice Channel Status |
   | Other               | Embed Links, Mention Everyone |
 
 - Save the changes. Copy the link provided in the `Install link` box.
@@ -97,7 +99,7 @@ _*Playlist support may depend on command._
 
 - (Optional, but preferred) A system with lots of RAM (>= 32GB) for many guilds.
 
-  The Bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
+  The bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
 
 Project was tested on the following software: `Python 3.12.3`, `FFmpeg 6.1` and `Linux Mint 22.1`
 
@@ -109,11 +111,11 @@ More up to date versions should be able to work fine.
 
   On Windows:
 
-  CMD is preferred. PowerShell will break most commands in this guide.
+  `CMD` is necessary. `PowerShell` will break almost every command in this guide.
 
   On Linux/macOS:
 
-  Bash/Zsh is preferred. Fish might break some commands.
+  `Bash`/`Zsh` is preferred. `Fish` might break some commands.
 
 - Create a `.env` file with the following contents by running:
 
@@ -190,14 +192,14 @@ You can modify the `enable_activity`, `activity_name`, `activity_type` and `defa
 
 Documentation for every key can be found at the top of the `settings.py` file. Modify values at your own risk.
 
-Note: Changing any value will require a restart to take effect.
+Note: Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
 
 # Extending the bot (For devs)
 To add your own modules, simply create a new **.py** file in the `modules` directory, in that file, import everything from the `settings.py`
 module, which contains useful variables and other modules to help writing your custom module.
 
 Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter in its
-constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot`.
+constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot` or `commands.AutoShardedBot`.
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
@@ -206,9 +208,8 @@ Best practices:
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
 - Avoid interacting with core modules, they were not written with an API-like system in mind.
-  Note: Interacting with core Cogs is still possible through `client.cog_objs.get("class_name")`, but only for reading attributes.
-- Check the `CAN_LOG` constant before logging custom exceptions with `LOGGER`.
-- Do _not_ use the `TOKEN` constant anywhere.
+- Check the `CAN_LOG` constant before logging exceptions with `LOGGER`.
+- Do _not_ use the `TOKEN` constant anywhere unless explicitly required (like running the bot).
 - If custom Cogs need other non-default permissions, make sure to enable them in  [your application's Installation section](https://discord.com/applications)
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow quick enable/disable of the module, and set its value to `true`, or else the bot won't load your Cog.
@@ -244,11 +245,19 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 
   Open a terminal in the project directory and run:
   
-  `./bin/pip install -r requirements.txt` (Linux/macOS)
+  `./bin/pip install --upgrade -r requirements.txt` (Linux/macOS)
   
-  `.\Scripts\pip.exe install -r requirements.txt` (Windows)
+  `.\Scripts\pip.exe install --upgrade -r requirements.txt` (Windows)
+
+  if the current terminal is **_not_** in the _venv_. Otherwise:
+
+  `pip install --upgrade -r requirements.txt` (Windows/macOS/Linux)
   
   Then, try again.
+
+- If you have an existing bot that's in over 2500 guilds, ensure the `use_sharding` key is set to `true` in `config.json`
+
+  'Sharding' allows multiple instances of this bot to manage multiple guilds and is required by Discord after a bot reaches 2500 guilds.
 
 # Licensing
 This project is licensed under MIT. See [LICENSE](./LICENSE) for more information.

@@ -3,7 +3,6 @@ Includes a class with methods for managing a queue and track playback."""
 
 from settings import *
 from helpers import *
-from handlers import *
 from roles import *
 from embedgenerator import *
 from playlist import PlaylistManager
@@ -12,7 +11,7 @@ from bot import Bot
 class MusicCog(commands.Cog):
     def __init__(self, client: Bot):
         self.client = client
-        self.guild_states = {}
+        self.guild_states = self.client.guild_states
         self.max_track_limit = 100
         self.max_history_track_limit = 200
         self.max_query_limit = 25
@@ -27,11 +26,20 @@ class MusicCog(commands.Cog):
         
         log("Closing voice clients..")
         
-        async def _close(vc):
+        async def _close(vc: discord.VoiceClient):
             log(f"Closing connection to channel ID {vc.channel.id}")
             
-            await update_guild_state(self.guild_states, vc, True, "stop_flag")
-            vc.stop()
+            can_edit_status = self.guild_states[vc.guild.id]["allow_voice_status_edit"]
+
+            await update_guild_states(self.guild_states, vc, (True, True), ("handling_disconnect_action", "pending_cleanup"))
+            
+            if vc.is_playing() or vc.is_paused():
+                await update_guild_state(self.guild_states, vc, True, "stop_flag")
+                vc.stop()
+
+            if can_edit_status:
+                await update_guild_state(self.guild_states, vc, None, "voice_status")
+                await set_voice_status(self.guild_states, vc)
 
             try:
                 await asyncio.wait_for(vc.disconnect(force=True), timeout=3) # API responds near immediately but the loop hangs for good 10 seconds if we don't pass a minimum timeout
@@ -52,7 +60,7 @@ class MusicCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        bot_voice_channel = member.guild.voice_client.channel if member.guild.voice_client is not None else None
+        bot_voice_channel = member.guild.voice_client.channel if member.guild.voice_client else None
         
         if member.id != self.client.user.id:
             if (bot_voice_channel is not None and before.channel == bot_voice_channel) and\
@@ -60,13 +68,13 @@ class MusicCog(commands.Cog):
                 member.guild.id in self.guild_states:
                 """ User left, check member count in voice channel. """
                 
-                await check_users_in_channel(self.guild_states, self.playlist, member)
+                await check_users_in_channel(self.guild_states, member)
             elif (before.channel is None or before.channel is not None) and\
                 (bot_voice_channel is not None and after.channel == bot_voice_channel) and\
                 member.guild.id in self.guild_states:
                 """ New user joined, why not greet them? """
                 
-                await greet_new_user_in_vc(self.guild_states, bot_voice_channel, member)
+                await greet_new_user_in_vc(self.guild_states, member)
         else:
             if before.channel is not None and\
                 after.channel is None and\
@@ -80,7 +88,7 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def join_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-        VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+            VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
             return
 
         channel = interaction.user.voice.channel if interaction.user.voice else None
@@ -101,20 +109,20 @@ class MusicCog(commands.Cog):
         (not permissions.connect or not permissions.speak):
             await interaction.response.send_message(f"I don't have permission to join your channel!")
         else:
-            log(f"[CONNECT] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
+            log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
-            voice_client = await channel.connect()
+            voice_client = await channel.connect(reconnect=False)
             self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
             
             log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
 
             await interaction.response.send_message(f"Connected to **{channel.name}**!")
 
-            await check_users_in_channel(self.guild_states, self.playlist, interaction) # awful fix to avoid users trapping the bot in a vc when using the join command
+            await check_users_in_channel(self.guild_states, interaction) # awful fix to avoid users trapping the bot in a vc when using the join command
 
     @join_channel.error
     async def handle_join_error(self, interaction: Interaction, error):
-        if isinstance(error, asyncio.TimeoutError):
+        if isinstance(error, (asyncio.TimeoutError, discord.errors.ConnectionClosed)):
             await interaction.response.send_message("Connection timed out.", ephemeral=True)
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
@@ -131,14 +139,14 @@ class MusicCog(commands.Cog):
             return
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.response.send_message(f"A playlist is currently locked, please wait.")
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
         if voice_client.is_connected():
-            log(f"[DISCONNECT] Requested to leave channel ID {voice_client.channel.id} in guild ID {interaction.guild.id}")
+            log(f"[DISCONNECT][SHARD ID {interaction.guild.shard_id}] Requested to leave channel ID {voice_client.channel.id} in guild ID {interaction.guild.id}")
 
             if voice_client.is_playing() or voice_client.is_paused():
                 await update_guild_state(self.guild_states, interaction, True, "stop_flag")
@@ -149,7 +157,7 @@ class MusicCog(commands.Cog):
 
     @leave_channel.error
     async def handle_leave_error(self, interaction: Interaction, error):
-        if isinstance(error, asyncio.TimeoutError):
+        if isinstance(error, (asyncio.TimeoutError, discord.ConnectionClosed)):
             await interaction.response.send_message("Connection timed out.", ephemeral=True)
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
@@ -164,7 +172,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
+            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Please wait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -177,21 +186,17 @@ class MusicCog(commands.Cog):
 
         is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
         if not is_queue_length_ok:
-            await update_guild_state(self.guild_states, interaction, False)
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
             return
 
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
         found = await fetch_queries(self.guild_states, interaction, queries_split)
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         if isinstance(found, list):
-            await add_results_to_queue(interaction, found, queue, self.max_track_limit)
+            added = await add_results_to_queue(interaction, found, queue, self.max_track_limit)
             
             if is_looping_queue:
                 await update_loop_queue_add(self.guild_states, interaction)
@@ -200,13 +205,11 @@ class MusicCog(commands.Cog):
                 not voice_client.is_paused():
                 await self.play_next(interaction)
             
-            embed = generate_added_track_embed(results=found)
+            embed = generate_added_track_embed(results=added)
 
-            await interaction.channel.send(embed=embed) if interaction.is_expired()\
-            else await interaction.followup.send(embed=embed)
-        elif isinstance(found, tuple):
-            await handle_generic_extraction_errors(interaction, found)
-            await check_users_in_channel(self.guild_states, self.playlist, interaction)
+            await interaction.followup.send(embed=embed)
+        elif isinstance(found, Error):
+            await interaction.followup.send(found.msg)
 
     @add_track.error
     async def handle_add_error(self, interaction: Interaction, error):
@@ -225,20 +228,27 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.followup.send("An unknown error occured.") if interaction.response.is_done() else\
+        await interaction.followup.send("An unknown error occurred.") if interaction.response.is_done() else\
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     async def play_track(self, interaction: Interaction, voice_client: discord.VoiceClient, track: dict, position: int=0, state: str | None=None):
-        if not voice_client or not voice_client.is_connected() or track is None:
+        if not voice_client or\
+            not voice_client.is_connected() or\
+            track is None:
             return
-        
+
+        history = self.guild_states[interaction.guild.id]["queue_history"]
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
+        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
+        general_start_time, general_start_date = self.guild_states[interaction.guild.id]["general_start_time"], self.guild_states[interaction.guild.id]["general_start_date"]
+        can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+
         position = max(0, min(position, format_minutes(track["duration"])))
         options = await get_ffmpeg_options(position)
         
@@ -246,25 +256,19 @@ class MusicCog(commands.Cog):
 
         try:
             voice_client.stop()
-            voice_client.play(source, after=lambda _:self.client.loop.create_task(self.play_next(interaction)))
+            voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:
             if CAN_LOG and LOGGER is not None:
                 LOGGER.exception(e)
             
-            await interaction.followup.send("An error occured while reading audio stream.")
+            await interaction.followup.send("An error occurred while reading audio stream.") if interaction.response.is_done() else\
+            await interaction.response.send_message("An error occured while reading audio stream.")
             return
 
-        history = self.guild_states[interaction.guild.id]["queue_history"]
-        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
-        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
-        general_start_time, general_start_date = self.guild_states[interaction.guild.id]["general_start_time"], self.guild_states[interaction.guild.id]["general_start_date"]
-
         if not general_start_time or not general_start_date:
-            await update_guild_state(self.guild_states, interaction, get_time(), "general_start_time")
-            await update_guild_state(self.guild_states, interaction, datetime.now(), "general_start_date")
+            await update_guild_states(self.guild_states, interaction, (get_time(), datetime.now()), ("general_start_time", "general_start_date"))
 
-        await update_guild_state(self.guild_states, interaction, get_time() - position, "start_time")
-        await update_guild_state(self.guild_states, interaction, position, "elapsed_time")
+        await update_guild_states(self.guild_states, interaction, (get_time() - position, position), ("start_time", "elapsed_time"))
         
         """Update track to loop if looping is enabled
         Cases in which this is useful:
@@ -288,40 +292,49 @@ class MusicCog(commands.Cog):
 
             history.append(track)
 
-    async def play_next(self, interaction: Interaction):
-        if self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif self.guild_states[interaction.guild.id]["stop_flag"]:
-            await update_guild_state(self.guild_states, interaction, False, "stop_flag")
-            return
-        elif self.guild_states[interaction.guild.id]["voice_client_locked"]:
-            return
+        if can_edit_status:
+            await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
+            await set_voice_status(self.guild_states, interaction)
 
+    async def play_next(self, interaction: Interaction):
+        if interaction.guild.id not in self.guild_states:
+            return
+        
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
+        can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
+        voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
 
-        if await check_users_in_channel(self.guild_states, self.playlist, interaction):
+        if stop_flag:
+            await update_guild_state(self.guild_states, interaction, False, "stop_flag")
+            return
+        elif voice_client_locked:
             return
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+        no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
+        if no_users_in_channel:
+            return
         
         if not queue and not\
             is_looping and not\
             queue_to_loop:
+            await update_guild_states(self.guild_states, interaction, (None, 0, 0), ("current_track", "start_time", "elapsed_time"))
             
-            await update_guild_state(self.guild_states, interaction, None, "current_track")
-            await update_guild_state(self.guild_states, interaction, 0, "start_time")
-            await update_guild_state(self.guild_states, interaction, 0, "elapsed_time")
-            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            if can_update_status:
+                await update_guild_state(self.guild_states, interaction, None, "voice_status")
+                await set_voice_status(self.guild_states, interaction)
 
             await interaction.channel.send("Queue is empty.") if interaction.is_expired()\
             else await interaction.followup.send("Queue is empty.")
             return
-        
+
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         if not queue and queue_to_loop:
             queue = deepcopy(queue_to_loop)
             await update_guild_state(self.guild_states, interaction, queue, "queue")
@@ -336,17 +349,24 @@ class MusicCog(commands.Cog):
         if track and voice_client:
             await self.play_track(interaction, voice_client, track)
 
-            if not is_looping:
-                try:
-                    await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
-                    else await interaction.followup.send(f"Now playing: **{track['title']}**")
-                except Exception:
-                    pass
-        else:
-            await interaction.channel.send("An error occured while getting track from the queue.") if interaction.is_expired()\
-            else await interaction.followup.send("An error occured while getting track from the queue.")
+            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            if not is_looping:
+                await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
+                else await interaction.followup.send(f"Now playing: **{track['title']}**")
+        else:
+            await interaction.channel.send("An error occurred while getting track from the queue.") if interaction.is_expired()\
+            else await interaction.followup.send("An error occurred while getting track from the queue.")
+
+    def handle_playback_end(self, error: Exception | None, interaction: Interaction):
+        if error is not None:
+            asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end.") if interaction.response.is_done() else\
+                                            interaction.response.send_message("An error occurred while handling playback end."), self.client.loop)
+            
+            if CAN_LOG and LOGGER is not None:
+                LOGGER.exception(error)
+
+        asyncio.run_coroutine_threadsafe(self.play_next(interaction), self.client.loop)
 
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
@@ -362,30 +382,30 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nPlease wait for the current action first."):
             return
         
-        if keep_current_track:
-            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"])
-            if not is_queue_length_ok or\
-                not await check_guild_state(self.guild_states, interaction):
-                return
-
         await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
+        if current_track is not None and keep_current_track:
+            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"])
+            if not is_queue_length_ok or\
+                not await check_guild_state(self.guild_states, interaction):
+                return
+            await update_guild_state(self.guild_states, interaction, True)
+
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-        await update_guild_state(self.guild_states, interaction, True)
 
         extracted_track = await fetch_query(self.guild_states, interaction, query, 1, 1, None, "YouTube Playlist")
 
-        await update_guild_state(self.guild_states, interaction, False)
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         if isinstance(extracted_track, dict):
             if current_track is not None and keep_current_track:
                 queue.insert(0, current_track)
+                await update_guild_state(self.guild_states, interaction, False)
 
             await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
             if voice_client.is_playing() or voice_client.is_paused():
@@ -396,22 +416,19 @@ class MusicCog(commands.Cog):
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
             await interaction.followup.send(f"Now playing: **{extracted_track["title"]}**")
-        elif isinstance(extracted_track, int):
-            await handle_generic_extraction_errors(interaction, extracted_track)
-            await check_users_in_channel(self.guild_states, self.playlist, interaction)
+        elif isinstance(extracted_track, Error):
+            await interaction.followup.send(extracted_track.msg)
 
     @play_track_now.error
     async def handle_playnow_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) and\
-              self.guild_states.get(interaction.guild.id, None) is None:
+            self.guild_states.get(interaction.guild.id, None) is None:
             return
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "is_extracting", "voice_client_locked"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         if CAN_LOG and LOGGER is not None:
@@ -437,6 +454,8 @@ class MusicCog(commands.Cog):
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
+        await update_guild_state(self.guild_states, interaction, True)
+
         skipped = []
         if amount > 1 and not is_random:
             for _ in range(1, min(amount, 25)):
@@ -448,6 +467,8 @@ class MusicCog(commands.Cog):
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         voice_client.stop()
+
+        await update_guild_state(self.guild_states, interaction, False)
 
         if skipped:
             embed = generate_skipped_tracks_embed(skipped)
@@ -464,7 +485,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_state(self.guild_states, interaction, False)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -476,11 +497,11 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def show_next_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-        not await check_channel(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="Queue is already being read, please wait.") or\
-        not await check_guild_state(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="Queue is already being read, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
@@ -492,9 +513,10 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
         
         next_track = await get_next(is_random, is_looping, track_to_loop, queue, queue_to_loop)
-        if isinstance(next_track, int):
+        if isinstance(next_track, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
-            await handle_get_next_error(interaction, next_track)
+            
+            await interaction.response.send_message(next_track.msg)
             return
         
         embed = generate_yoink_embed(next_track)
@@ -512,12 +534,12 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
-
-        await interaction.response.send_message("An unknown error occured.", ephemeral=True)
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="previousinfo", description="Shows information about the previous track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -535,10 +557,10 @@ class MusicCog(commands.Cog):
         history = self.guild_states[interaction.guild.id]["queue_history"]
         
         previous = await get_previous(current_track, history)
-        if isinstance(previous, int):
+        if isinstance(previous, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
             
-            await handle_get_previous_error(interaction, previous)
+            await interaction.response.send_message(previous.msg)
             return
         
         embed = generate_yoink_embed(previous)
@@ -555,12 +577,12 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
-        
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        await interaction.response.send_message("An unknown error occured.", ephemeral=True)
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
+
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="pause", description="Pauses track playback.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -568,18 +590,29 @@ class MusicCog(commands.Cog):
     async def pause_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        start_time = self.guild_states[interaction.guild.id]["start_time"]
 
         if voice_client.is_paused():
             await interaction.response.send_message("I'm already paused!")
             return
 
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         voice_client.pause()
-        self.guild_states[interaction.guild.id]["elapsed_time"] = int(get_time() - self.guild_states[interaction.guild.id]["start_time"])
+        await update_guild_state(self.guild_states, interaction, int(get_time() - start_time), "elapsed_time")
+
+        if can_update_status:
+            await update_guild_state(self.guild_states, interaction, f"Listening to '{current_track['title']}' (paused)", "voice_status")
+            await set_voice_status(self.guild_states, interaction)
+
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         await interaction.response.send_message("Paused track playback.")
 
@@ -591,6 +624,8 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
+
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -603,18 +638,29 @@ class MusicCog(commands.Cog):
     async def resume_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
         
         if not voice_client.is_paused():
             await interaction.response.send_message("I'm not paused!")
             return
 
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         voice_client.resume()
-        self.guild_states[interaction.guild.id]["start_time"] = int(get_time() - self.guild_states[interaction.guild.id]["elapsed_time"])
+        await update_guild_state(self.guild_states, interaction, int(get_time() - elapsed_time), "start_time")
+
+        if can_update_status:
+            await update_guild_state(self.guild_states, interaction, f"Listening to '{current_track['title']}'", "voice_status")
+            await set_voice_status(self.guild_states, interaction)
+
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         await interaction.response.send_message("Resumed track playback.")
 
@@ -627,6 +673,8 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
@@ -638,19 +686,22 @@ class MusicCog(commands.Cog):
     async def stop_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
+        can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
+        voice_client.stop()
+
+        if can_update_status:
+            await update_guild_state(self.guild_states, interaction, None, "voice_status")
+            await set_voice_status(self.guild_states, interaction)
 
         self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
-        
-        await update_guild_state(self.guild_states, interaction, True, "stop_flag")
-        voice_client.stop()
 
         await interaction.response.send_message(f"Stopped track **{current_track['title']}** and reset bot state.")
 
@@ -663,7 +714,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -676,22 +727,21 @@ class MusicCog(commands.Cog):
     async def restart_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
-        
-        await interaction.response.defer(thinking=True)
-
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+        if voice_client.is_playing() or voice_client.is_paused():
+            await update_guild_state(self.guild_states, interaction, True, "stop_flag")
         
-        await update_guild_state(self.guild_states, interaction, True, "stop_flag")
         await self.play_track(interaction, voice_client, current_track, state="restart")
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send(f"Restarted track **{current_track['title']}**.")
+        await interaction.response.send_message(f"Restarted track **{current_track['title']}**.")
 
     @restart_track.error
     async def handle_restart_error(self, interaction: Interaction, error):
@@ -702,11 +752,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
+        await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="select", description="Selects a track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
@@ -718,32 +770,30 @@ class MusicCog(commands.Cog):
     async def select_track(self, interaction: Interaction, track_name: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
-        
-        await update_guild_state(self.guild_states, interaction, True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
+        await update_guild_state(self.guild_states, interaction, True)
+
         found = await find_track(track_name, queue, by_index)
-        if isinstance(found, int):
+        if isinstance(found, Error):
             await update_guild_state(self.guild_states, interaction, False)
 
-            await handle_not_found_error(interaction, found)
+            await interaction.response.send_message(found.msg)
             return
         
         track_dict = queue.pop(found[1])
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
+        await update_guild_states(self.guild_states, interaction, (False, True), ("is_modifying", "voice_client_locked"))
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(self.guild_states, interaction, True, "stop_flag")
+        
         await self.play_track(interaction, voice_client, track_dict)
-
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         await interaction.response.send_message(f"Selected track **{found[0]['title']}**.")
@@ -757,8 +807,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -770,27 +819,24 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def select_random_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-        not await check_channel(self.guild_states, interaction) or\
-        not await check_queue(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
-        
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
         queue = self.guild_states[interaction.guild.id]["queue"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
-        random_track = choice(queue)
+
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "voice_client_locked"))
+
+        random_track = queue.pop(queue.index(choice(queue)))
 
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(self.guild_states, interaction, True, "stop_flag")
+        
         await self.play_track(interaction, voice_client, random_track)
-
-        queue.remove(random_track)
-
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "voice_client_locked"))
 
         await interaction.response.send_message(f"Now playing: **{random_track['title']}**")
 
@@ -803,8 +849,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -823,7 +868,7 @@ class MusicCog(commands.Cog):
     async def replace_track(self, interaction: Interaction, track_name: str, new_track_query: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to replace.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
@@ -831,29 +876,30 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
+        queue = self.guild_states[interaction.guild.id]["queue"]
 
-        result = await replace_track_in_queue(self.guild_states, interaction, track_name, new_track_query, by_index=by_index)
-        if isinstance(result, int):
-            await update_guild_state(self.guild_states, interaction, False)
-            await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+
+        result = await replace_track_in_queue(self.guild_states, interaction, queue, track_name, new_track_query, by_index=by_index)
+        if isinstance(result, Error):
+            await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-            await handle_not_found_error(interaction, result)
-            await handle_generic_extraction_errors(interaction, result)
-            
+            await interaction.followup.send(result.msg)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        if is_looping_queue:
+            await update_loop_queue_replace(self.guild_states, interaction, result[1], result[0])
+
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         await interaction.followup.send(
-            f"Replaced track **{result[1]["title"]}** with **{result[0]["title"]}**."
+            f"Replaced track **{result[1]['title']}** with **{result[0]['title']}**."
         )
 
-        await check_users_in_channel(self.guild_states, self.playlist, interaction)
+        await check_users_in_channel(self.guild_states, interaction)
 
     @replace_track.error
     async def handle_replace_error(self, interaction: Interaction, error):
@@ -864,8 +910,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
         if CAN_LOG and LOGGER is not None:
@@ -884,7 +929,7 @@ class MusicCog(commands.Cog):
     async def loop_track(self, interaction: Interaction, track_name: str=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            (not track_name and not await check_current_track(self.guild_states, interaction)) or\
+            (not track_name and not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!")) or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
@@ -896,25 +941,23 @@ class MusicCog(commands.Cog):
             if track_name:
 
                 if not await check_guild_state(self.guild_states, interaction) or\
-                    not await check_queue(self.guild_states, interaction):
+                    not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to loop."):
                     return
 
                 found_track = await find_track(track_name, queue, by_index)
 
-                if isinstance(found_track, int):
-                    await handle_not_found_error(interaction, found_track)
+                if isinstance(found_track, Error):
+                    await interaction.response.send_message(found_track.msg)
                     return
                 
-                self.guild_states[interaction.guild.id]["track_to_loop"] = found_track[0]
+                await update_guild_state(self.guild_states, interaction, found_track[0], "track_to_loop")
             else:
-                self.guild_states[interaction.guild.id]["track_to_loop"] = current_track
-            self.guild_states[interaction.guild.id]["is_looping"] = True
+                await update_guild_state(self.guild_states, interaction, current_track, "track_to_loop")
+            await update_guild_state(self.guild_states, interaction, True, "is_looping")
             
-            await interaction.response.send_message(f"Loop enabled!\nWill loop track: **{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**")
+            await interaction.response.send_message(f"Loop enabled!\nWill loop **{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**.")
         else:
-            self.guild_states[interaction.guild.id]["track_to_loop"] = None
-            self.guild_states[interaction.guild.id]["is_looping"] = False
-
+            await update_guild_states(self.guild_states, interaction, (None, False), ("track_to_loop", "is_looping"))
             await interaction.response.send_message("Loop disabled!")
 
     @loop_track.error
@@ -934,7 +977,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="random", description="Randomizes track selection. Functions as a toggle.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def randomize_track(self, interaction: Interaction):
+    async def randomize_track_selection(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
@@ -943,14 +986,14 @@ class MusicCog(commands.Cog):
         is_random = self.guild_states[interaction.guild.id]["is_random"]
 
         if not is_random:
-            self.guild_states[interaction.guild.id]["is_random"] = True
+            await update_guild_state(self.guild_states, interaction, True, "is_random")
             await interaction.response.send_message("Track randomization enabled!\nWill choose a random track from the queue at next playback.")
         else:
-            self.guild_states[interaction.guild.id]["is_random"] = False
+            await update_guild_state(self.guild_states, interaction, False, "is_random")
             await interaction.response.send_message("Track randomization disabled!")
 
-    @randomize_track.error
-    async def handle_randomize_track_error(self, interaction: Interaction, error):
+    @randomize_track_selection.error
+    async def handle_randomize_track_selection_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return  
@@ -977,26 +1020,25 @@ class MusicCog(commands.Cog):
             return
 
         queue = self.guild_states[interaction.guild.id]["queue"]
-        looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
+        is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
+        queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
 
-        if not queue and not looping_queue:
+        if not queue and not is_looping_queue:
             await interaction.response.send_message("Queue is empty, cannot enable queue loop!")
             return
 
-        if not looping_queue:
-            self.guild_states[interaction.guild.id]["is_looping_queue"] = True
-
-            queue = self.guild_states[interaction.guild.id]["queue"]
-            current_track = self.guild_states[interaction.guild.id]["current_track"]
-
-            self.guild_states[interaction.guild.id]["queue_to_loop"] = deepcopy(queue)
+        if not is_looping_queue:
+            new_queue = deepcopy(queue)
             if current_track is not None and include_current_track:
-                self.guild_states[interaction.guild.id]["queue_to_loop"].insert(0, current_track)
+                new_queue.insert(0, current_track)
+
+            await update_guild_states(self.guild_states, interaction, (True, new_queue), ("is_looping_queue", "queue_to_loop"))
             
             await interaction.response.send_message("Queue loop enabled!")
         else:
-            self.guild_states[interaction.guild.id]["is_looping_queue"] = False
-            self.guild_states[interaction.guild.id]["queue_to_loop"].clear()
+            await update_guild_state(self.guild_states, interaction, False, "is_looping_queue")
+            queue_to_loop.clear()
             
             await interaction.response.send_message("Queue loop disabled!")
 
@@ -1033,7 +1075,9 @@ class MusicCog(commands.Cog):
         track_history = self.guild_states[interaction.guild.id]["queue_history"]
 
         track_count = len(queue)
-        history_track_count = len(track_history)
+        track_history_count = len(track_history)
+
+        await update_guild_state(self.guild_states, interaction, True)
 
         queue.clear()
         if clear_history:
@@ -1041,7 +1085,10 @@ class MusicCog(commands.Cog):
         if clear_loop_queue:
             queue_to_loop.clear()
 
-        await interaction.response.send_message(f"The queue is now empty.\nRemoved **{track_count}** items from queue{f' and **{history_track_count}** items from track history' if clear_history else ''}.")
+        await update_guild_state(self.guild_states, interaction, False)
+
+        await interaction.response.send_message(f"The queue is now empty.\n"
+                                                f"Removed **{track_count}** items from queue{f' and **{track_history_count}** items from track history' if clear_history else ''}.")
 
     @clear_queue.error
     async def handle_clear_error(self, interaction: Interaction, error):
@@ -1052,6 +1099,8 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
+
+        await update_guild_state(self.guild_states, interaction, False)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -1068,23 +1117,21 @@ class MusicCog(commands.Cog):
     async def remove_track(self, interaction: Interaction, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to remove.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
-        await update_guild_state(self.guild_states, interaction, True)
-
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
-        tracks = split(track_names)
-        found = await remove_track_from_queue(tracks, queue, by_index)
+        await update_guild_state(self.guild_states, interaction, True)
 
-        if isinstance(found, int):
+        found = await remove_track_from_queue(split(track_names), queue, by_index)
+        if isinstance(found, Error):
             await update_guild_state(self.guild_states, interaction, False)
-            await handle_not_found_error(interaction, found)
-
+            
+            await interaction.response.send_message(found.msg)
             return
 
         if is_looping_queue:
@@ -1103,6 +1150,8 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
+        
+        await update_guild_state(self.guild_states, interaction, False)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -1120,29 +1169,25 @@ class MusicCog(commands.Cog):
     async def reposition_track(self, interaction: Interaction, track_name: str, new_index: int, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to reposition.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
-        await update_guild_state(self.guild_states, interaction, True)
-    
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        new_index -= 1
-        new_index = max(0, min(new_index, len(queue) - 1))
+        await update_guild_state(self.guild_states, interaction, True)
 
         result = await reposition_track_in_queue(track_name, new_index, queue, by_index)
-        if isinstance(result, int):
+        if isinstance(result, Error):
             await update_guild_state(self.guild_states, interaction, False)
 
-            await handle_reposition_error(interaction, result)
-            await handle_not_found_error(interaction, result)
+            await interaction.response.send_message(result.msg)
             return
 
         await update_guild_state(self.guild_states, interaction, False)
         
-        await interaction.response.send_message(f"Repositioned track **{result[0]['title']}**\nFrom index **{result[1][1] + 1}** to **{new_index + 1}**.")
+        await interaction.response.send_message(f"Repositioned track **{result[0]['title']}** from index **{result[1]}** to **{result[2]}**.")
 
     @reposition_track.error
     async def handle_reposition_error(self, interaction: Interaction, error):
@@ -1152,6 +1197,8 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
+        
+        await update_guild_state(self.guild_states, interaction, False)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -1164,17 +1211,17 @@ class MusicCog(commands.Cog):
     async def shuffle_queue(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to shuffle.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
-
-        await update_guild_state(self.guild_states, interaction, True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
         if len(queue) < 2:
             await interaction.response.send_message("There are not enough tracks to shuffle! (Need 2 atleast)")
             return
+
+        await update_guild_state(self.guild_states, interaction, True)
 
         shuffle(queue)
 
@@ -1190,13 +1237,15 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
+        
+        await update_guild_state(self.guild_states, interaction, False)
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="seek", description="Seeks to another position in current track. See entry in /help for more info.")
+    @app_commands.command(name="seek", description="Seeks to specified position in current track. See entry in /help for more info.")
     @app_commands.describe(
         time="The time to seek to. Must be HH:MM:SS or shorter version (ex. 1:30)"
     )
@@ -1205,34 +1254,30 @@ class MusicCog(commands.Cog):
     async def seek_to(self, interaction: Interaction, time: str):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
-        await interaction.response.defer(thinking=True) # If the connection is too slow, responding takes goddamn ages, so we need to defer and followup.
-
+        # We may want to keep this as a fallback in case the 'current_track' state is not clean. (unlikely but possible)
         if not voice_client.is_playing() and\
-        not voice_client.is_paused():
-            await interaction.followup.send("I'm not playing anything!")
+            not voice_client.is_paused():
+            await interaction.response.send_message("No track is currently playing!")
             return
 
         position_seconds = format_minutes(time.strip())
         
         if position_seconds is None:
-            await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
+            await interaction.response.send_message("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-        await update_guild_state(self.guild_states, interaction, True, "stop_flag")
-
+        await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
         await self.play_track(interaction, voice_client, current_track, position_seconds, "seek")
-
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_seconds(position_seconds)}**.")
+        await interaction.response.send_message(f"Set track (**{current_track['title']}**) position to **{format_seconds(position_seconds)}**.")
 
     @seek_to.error
     async def handle_seek_error(self, interaction: Interaction, error):
@@ -1243,13 +1288,12 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="rewind", description="Rewinds the track by the specified time. See entry in /help for more info.")
     @app_commands.describe(
@@ -1260,24 +1304,22 @@ class MusicCog(commands.Cog):
     async def rewind_track(self, interaction: Interaction, time: str):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
-        await interaction.response.defer(thinking=True)
-
         if not voice_client.is_playing() and\
         not voice_client.is_paused():
-            await interaction.followup.send("I'm not playing anything!")
+            await interaction.response.send_message("No track is currently playing!")
             return
 
         time_seconds = format_minutes(time.strip())
         
         if time_seconds is None:
-            await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
+            await interaction.response.send_message("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
         if not voice_client.is_paused():
@@ -1285,15 +1327,12 @@ class MusicCog(commands.Cog):
         
         rewind_time = self.guild_states[interaction.guild.id]["elapsed_time"] - time_seconds
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-        await update_guild_state(self.guild_states, interaction, True, "stop_flag")
-        
+        await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))        
         await self.play_track(interaction, voice_client, current_track, rewind_time, "rewind")
-
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
-        await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_seconds(time_seconds)}**. Now at **{format_seconds(elapsed_time)}**")
+        await interaction.response.send_message(f"Rewound track (**{current_track['title']}**) by **{format_seconds(time_seconds)}**. Now at **{format_seconds(elapsed_time)}**")
 
     @rewind_track.error
     async def handle_rewind_error(self, interaction: Interaction, error):
@@ -1304,13 +1343,12 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="forward", description="Forwards the track by the specified time. See entry in /help for more info.")
     @app_commands.describe(
@@ -1321,24 +1359,22 @@ class MusicCog(commands.Cog):
     async def forward_track(self, interaction: Interaction, time: str):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
-        await interaction.response.defer(thinking=True)
-
         if not voice_client.is_playing() and\
         not voice_client.is_paused():
-            await interaction.followup.send("I'm not playing anything!")
+            await interaction.response.send_message("I'm not playing anything!")
             return
 
         time_in_seconds = format_minutes(time.strip())
         
         if time_in_seconds is None:
-            await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
+            await interaction.response.send_message("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
         start_time = self.guild_states[interaction.guild.id]["start_time"]
@@ -1347,14 +1383,11 @@ class MusicCog(commands.Cog):
 
         position = self.guild_states[interaction.guild.id]["elapsed_time"] + time_in_seconds
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-        await update_guild_state(self.guild_states, interaction, True, "stop_flag")
-
+        await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
         await self.play_track(interaction, voice_client, current_track, position, "forward")
-        
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send(f"Forwarded track (**{current_track['title']}**) by **{format_seconds(time_in_seconds)}**. Now at **{format_seconds(position)}**.")
+        await interaction.response.send_message(f"Forwarded track (**{current_track['title']}**) by **{format_seconds(time_in_seconds)}**. Now at **{format_seconds(position)}**.")
 
     @forward_track.error
     async def handle_forward_error(self, interaction: Interaction, error):
@@ -1365,13 +1398,12 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="queue", description="Shows the tracks in the queue.")
     @app_commands.describe(
@@ -1382,23 +1414,24 @@ class MusicCog(commands.Cog):
     async def show_queue(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_queue(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to view.") or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="I'm already reading the queue!"):
             return
         
+        queue = self.guild_states[interaction.guild.id]["queue"]
+
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
-        await asyncio.to_thread(update_queue_pages, self.guild_states, interaction)
 
-        queue_pages = self.guild_states[interaction.guild.id]["queue_pages"]
+        queue_pages = await asyncio.to_thread(get_pages, queue)
 
+        page = max(1, min(page, len(queue_pages)))
         page -= 1
-        fixed_page = max(0, min(page, len(queue_pages) - 1))
 
-        embed = generate_queue_embed(queue_pages[fixed_page], fixed_page, len(queue_pages))
-        queue_pages.clear()
+        embed = generate_queue_embed(queue_pages[page], page, len(queue_pages))
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
+        
         await interaction.response.send_message(embed=embed)
 
     @show_queue.error
@@ -1426,22 +1459,24 @@ class MusicCog(commands.Cog):
     async def show_history(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_history(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "queue_history", [], "Track history is empty. Nothing to view.") or\
             not await check_guild_state(self.guild_states, interaction, state="is_reading_history", msg="I'm already reading track history!"):
             return
         
+        track_history = self.guild_states[interaction.guild.id]["queue_history"]
+        
         await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
-        await asyncio.to_thread(update_history_pages, self.guild_states, interaction)
+        
+        history_pages = await asyncio.to_thread(get_pages, track_history)
 
-        history_pages = self.guild_states[interaction.guild.id]["history_pages"]
-
+        
+        page = max(1, min(page, len(history_pages)))
         page -= 1
-        fixed_page = max(0, min(page, len(history_pages) - 1))
-        embed = generate_queue_embed(history_pages[fixed_page], fixed_page, len(history_pages), True)
 
-        history_pages.clear()
+        embed = generate_queue_embed(history_pages[page], page, len(history_pages), True)
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
+
         await interaction.response.send_message(embed=embed)
 
     @show_history.error
@@ -1539,11 +1574,9 @@ class MusicCog(commands.Cog):
     async def dm_track_info(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
-
-        await interaction.response.defer(ephemeral=True)
 
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         user = interaction.user
@@ -1551,7 +1584,7 @@ class MusicCog(commands.Cog):
         embed = generate_yoink_embed(current_track)
         
         await user.send(embed=embed)
-        await interaction.followup.send("Message sent!")
+        await interaction.response.send_message("Message sent!", ephemeral=True)
 
     @dm_track_info.error
     async def handle_dm_error(self, interaction: Interaction, error):
@@ -1559,7 +1592,7 @@ class MusicCog(commands.Cog):
             self.guild_states.get(interaction.guild.id, None) is None:
             return
         elif isinstance(error, discord.errors.Forbidden):
-            await interaction.followup.send("I cannot send a message to you! Check your privacy settings and try again.")
+            await interaction.response.send_message("I cannot send a message to you! Check your privacy settings and try again.", ephemeral=True)
             return
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
@@ -1576,7 +1609,7 @@ class MusicCog(commands.Cog):
     async def show_current_track_info(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_current_track(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
@@ -1624,6 +1657,83 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
+    @app_commands.command(name="allow-greetings", description="Allows the bot to greet users that join the current voice channel. (if active)")
+    @app_commands.describe(
+        enable="New value of the flag."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    async def set_allow_greetings(self, interaction: Interaction, enable: bool):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="allow_greetings", condition=enable, msg=f"Setting is already {'enabled' if enable else 'disabled'}.") or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            return
+        
+        await update_guild_state(self.guild_states, interaction, enable, "allow_greetings")
+
+        await interaction.response.send_message("Settings updated!")
+
+    @set_allow_greetings.error
+    async def handle_set_allow_greetings_error(self, interaction: Interaction, error):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
+
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+
+    @app_commands.command(name="allow-voice-status-edit", description="Allows the bot to change the voice status to 'Listening to...'")
+    @app_commands.describe(
+        enable="New value of the flag."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    async def set_allow_voice_status_edit(self, interaction: Interaction, enable: bool):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="allow_voice_status_edit", condition=enable, msg=f"Setting is already {'enabled' if enable else 'disabled'}.") or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            return
+        
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        voice_status = self.guild_states[interaction.guild.id]["voice_status"]
+        voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+
+        await update_guild_states(self.guild_states, interaction, (True, enable), ("voice_client_locked", "allow_voice_status_edit"))
+        
+        if not enable and voice_status is not None:
+            await update_guild_state(self.guild_states, interaction, None, "voice_status")
+            await set_voice_status(self.guild_states, interaction)
+        elif current_track is not None and voice_status is None:
+            status = f"Listening to '{current_track['title']}' {'(paused)' if voice_client.is_paused() else ''}"
+            
+            await update_guild_state(self.guild_states, interaction, status, "voice_status")
+            await set_voice_status(self.guild_states, interaction)
+
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
+        await interaction.response.send_message("Settings updated!")
+
+    @set_allow_voice_status_edit.error
+    async def handle_set_voice_status_edit_error(self, interaction: Interaction, error):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
+
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+
     """ Playlist commands """
 
     @app_commands.command(name="playlist-view", description="Shows the tracks in a playlist.")
@@ -1643,30 +1753,27 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        result = await self.playlist.read(content, playlist_name)
-        if isinstance(result, int):
-            await self.playlist.unlock(locked, content, playlist_name)
-
-            await handle_generic_playlist_errors(interaction, result, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+        result = await self.playlist.get_playlist(content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
+        
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
             return
 
-        await asyncio.to_thread(update_playlist_pages, self.guild_states, interaction, result, playlist_name)
+        playlist_pages = await asyncio.to_thread(get_pages, result)
 
-        playlist_pages = self.guild_states[interaction.guild.id]["playlist_pages"][playlist_name]
-
+        page = max(1, min(page, len(playlist_pages)))
         page -= 1
-        page = max(0, min(page, len(playlist_pages) - 1))
-        embed = generate_queue_embed(playlist_pages[page], page, len(playlist_pages), False, True)
-        playlist_pages.clear()
 
-        await self.playlist.unlock(locked, content, playlist_name)
+        embed = generate_queue_embed(playlist_pages[page], page, len(playlist_pages), False, True)
+
         await interaction.followup.send(embed=embed)
 
     @show_playlist.error
@@ -1678,15 +1785,15 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
-
-    @app_commands.command(name="playlist-save", description="Creates a new playlist with the current queue. See entry in /help for more info.")
+    @app_commands.command(name="playlist-save", description="Creates or updates a playlist with the current queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The new playlist's name.",
         add_current_track="Whether or not to add the current track, if any. (default True)"
@@ -1695,48 +1802,44 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def save_queue_in_playlist(self, interaction: Interaction, playlist_name: str, add_current_track: bool=True):
         if not await user_has_role(interaction) or\
-        not await user_has_role(interaction, playlist=True) or\
-        not await check_channel(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction):
+            not await user_has_role(interaction, playlist=True) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction):
             return
         
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         queue = deepcopy(self.guild_states[interaction.guild.id]["queue"])
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         if not queue and not current_track:
-            await self.playlist.unlock(locked, content, playlist_name)
+            await unlock_playlist(locked, content, playlist_name)
 
             await interaction.followup.send("Queue is empty. Nothing to add.")
             return
         
-        if current_track and add_current_track:
+        if current_track is not None and add_current_track:
             queue.insert(0, current_track)
 
-        success = await self.playlist.add_queue(interaction, content, playlist_name, queue, True)
-        await self.playlist.unlock(locked, content, playlist_name)
+        success = await self.playlist.add_queue(interaction, content, playlist_name, queue)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
-                if success[2]:
-                    await interaction.followup.send(f"Maximum playlist track limit of **{self.playlist.max_item_limit}** tracks reached. Cannot add other track(s).")
-
+            if success[0]:
                 embed = generate_added_track_embed(success[1], True)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_rename_error(interaction, success, playlist_name, self.playlist.max_name_length)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @save_queue_in_playlist.error
     async def handle_save_queue_in_playlist_error(self, interaction: Interaction, error):
@@ -1747,13 +1850,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-save-current", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -1766,32 +1869,31 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
         not await user_has_role(interaction, playlist=True) or\
         not await check_channel(self.guild_states, interaction) or\
-        not await check_current_track(self.guild_states, interaction):
+        not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!"):
             return
         
         await interaction.response.defer(thinking=True)
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+
+        if await is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
-
-        current_track = self.guild_states[interaction.guild.id]["current_track"]
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         success = await self.playlist.place(interaction, content, playlist_name, current_track, index)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
+            if success[0]:
                 await interaction.followup.send(f"Placed track **{success[1]['title']}** at index **{success[2]}** of playlist **{playlist_name}**.")
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_rename_error(interaction, success, playlist_name, self.playlist.max_name_length)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @save_current_in_playlist.error
     async def handle_save_current_in_playlist_error(self, interaction: Interaction, error):
@@ -1802,13 +1904,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-select", description="Selects tracks in a playlist and adds them to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -1842,22 +1944,20 @@ class MusicCog(commands.Cog):
         if not is_queue_length_ok:
             return
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
         success = await self.playlist.select(self.guild_states, self.max_track_limit, interaction, content, playlist_name, range_start, range_end)
         
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
         
         if isinstance(success, list):
             if not voice_client.is_playing() and\
@@ -1866,10 +1966,8 @@ class MusicCog(commands.Cog):
 
             embed = generate_added_track_embed(success)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, tuple):
-            await handle_generic_extraction_errors(interaction, success)
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @select_playlist.error
     async def handle_select_playlist_error(self, interaction: Interaction, error):
@@ -1880,17 +1978,15 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-create", description="Creates a new empty playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -1907,22 +2003,19 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        code = await self.playlist.create(interaction, content, playlist_name)
-        await self.playlist.unlock(locked, content, playlist_name)
-
-        if code == RETURN_CODES["NAME_TOO_LONG"]:
-            success = await handle_rename_error(interaction, code, playlist_name, self.playlist.max_name_length)
-        else:
-            success = await handle_generic_playlist_errors(interaction, code, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+        result = await self.playlist.create(interaction, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
             
-        if success:
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+        else:
             await interaction.followup.send(f"Playlist **{playlist_name}** has been created.")
 
     @create_playlist.error
@@ -1934,13 +2027,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-delete", description="Deletes a saved playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -1958,21 +2051,21 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        code = await self.playlist.delete(interaction, content, playlist_name, erase_contents_only)
-        await self.playlist.unlock(locked, content, playlist_name)
+        success = await self.playlist.delete(interaction, content, playlist_name, erase_contents_only)
+        await unlock_playlist(locked, content, playlist_name)
 
-        success = await handle_generic_playlist_errors(interaction, code, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-
-        if success:
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        else:
             msg = f'Playlist **{playlist_name}** has been deleted.' if not erase_contents_only else\
-            f'**{len(code[1])}** tracks have been deleted from playlist **{playlist_name}**.'
+            f'**{len(success[1])}** tracks have been deleted from playlist **{playlist_name}**.'
 
             await interaction.followup.send(msg)
 
@@ -1985,13 +2078,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-remove", description="Remove specified track(s) from a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2011,21 +2104,21 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         success = await self.playlist.remove(interaction, content, playlist_name, track_names, by_index)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, list):
             embed = generate_removed_tracks_embed(success, True)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @remove_playlist_track.error
     async def handle_remove_playlist_track_error(self, interaction: Interaction, error):
@@ -2036,13 +2129,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-delete-all", description="Deletes all playlists saved in the current guild. See entry in /help for more info.")
     @app_commands.describe(
@@ -2060,18 +2153,17 @@ class MusicCog(commands.Cog):
         
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         
-        content = await self.playlist.get_content(interaction) if not rewrite else {}
+        content = await self.playlist.read(interaction) if not rewrite else {}
+        success = await self.playlist.delete_all(interaction, content, locked, rewrite)
 
-        code = await self.playlist.delete_all(interaction, content, locked, rewrite)
-
-        success = await handle_generic_playlist_errors(interaction, code, playlist_limit=self.playlist.max_limit, playlist_item_limit=self.playlist.max_item_limit)
-        if success:
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        else:
             msg = f'Deleted **{len(content)}** playlist(s).' if not rewrite else 'Structure rewritten successfully.'
-
             await interaction.followup.send(msg)
 
     @delete_all_playlists.error
@@ -2083,13 +2175,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-rename", description="Renames a playlist to a new user-specified name. See entry in /help for more info.")
     @app_commands.describe(
@@ -2108,24 +2200,23 @@ class MusicCog(commands.Cog):
         
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         success = await self.playlist.rename(interaction, content, playlist_name, new_playlist_name)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
+            if success[0]:
                 await interaction.followup.send(f"Renamed playlist **{success[1]}** to **{success[2]}**")
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_rename_error(interaction, success, new_playlist_name, self.playlist.max_name_length)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @rename_playlist.error
     async def handle_rename_playlist_error(self, interaction: Interaction, error):
@@ -2135,14 +2226,14 @@ class MusicCog(commands.Cog):
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
-        
+
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-replace", description="Replaces a track with a new one in a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2164,12 +2255,12 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
@@ -2177,18 +2268,17 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
+            if success[0]:
                 await interaction.followup.send(f"Replaced track **{success[1]["title"]}** with track **{success[2]["title"]}**")
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_generic_extraction_errors(interaction, success)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
-        await check_users_in_channel(self.guild_states, self.playlist, interaction)
+        await check_users_in_channel(self.guild_states, interaction)
 
     @replace_playlist_track.error
     async def handle_replace_playlist_track_error(self, interaction: Interaction, error):
@@ -2201,14 +2291,13 @@ class MusicCog(commands.Cog):
             
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-reposition", description="Repositions a playlist track to a new index. See entry in /help for more info.")
     @app_commands.describe(
@@ -2229,24 +2318,23 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         success = await self.playlist.reposition(interaction, content, playlist_name, track_name, new_index, by_index)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
+            if success[0]:
                 await interaction.followup.send(f"Repositioned track **{success[1]["title"]}** from index **{success[2]}** to **{success[3]}**")
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_reposition_error(interaction, success)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @reposition_playlist_track.error
     async def handle_reposition_playlist_track(self, interaction: Interaction, error):
@@ -2257,13 +2345,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-add", description="Adds track(s) to the specified playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2283,41 +2371,33 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, False, "YouTube Playlist")
+        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, "YouTube Playlist")
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            is_not_extraction_error = await handle_generic_extraction_errors(interaction, success)
-            if not is_not_extraction_error:
-                return
-
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
-                if success[2]:
-                    await interaction.followup.send(f"Maximum playlist track limit of **{self.playlist.max_item_limit}** tracks reached. Cannot add other track(s).")
-            
+            if success[0]:
                 embed = generate_added_track_embed(success[1], True)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_rename_error(interaction, success, playlist_name, self.playlist.max_name_length)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
-        await check_users_in_channel(self.guild_states, self.playlist, interaction)
+        await check_users_in_channel(self.guild_states, interaction)
 
     @add_playlist_track.error
     async def handle_add_playlist_track_error(self, interaction: Interaction, error):
@@ -2330,24 +2410,23 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-fetch-track", description="Adds a track from a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to fetch tracks from's name.",
-        tracks="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
+        track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
         by_index="Fetch tracks by their index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def fetch_playlist_track(self, interaction: Interaction, playlist_name: str, tracks: str, by_index: bool=False):
+    async def fetch_playlist_track(self, interaction: Interaction, playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -2361,27 +2440,25 @@ class MusicCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        queries_split = await check_input_length(interaction, self.max_query_limit, split(tracks))
+        queries_split = await check_input_length(interaction, self.max_query_limit, split(track_names))
         is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
         if not is_queue_length_ok:
             return
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))        
 
         success = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, queries_split, by_index=by_index)
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, list):
             if not voice_client.is_playing() and\
@@ -2390,10 +2467,8 @@ class MusicCog(commands.Cog):
 
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-        elif isinstance(success, tuple):
-            await handle_generic_extraction_errors(interaction, success)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @fetch_playlist_track.error
     async def handle_fetch_playlist_track_error(self, interaction: Interaction, error):
@@ -2404,17 +2479,15 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-fetch-random-track", description="Fetches random track(s) from specified playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2425,10 +2498,10 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def choose_random_playlist_tracks(self, interaction: Interaction, playlist_name: str, amount: int=1):
         if not await user_has_role(interaction) or\
-        not await user_has_role(interaction, playlist=True) or\
-        not await check_channel(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction) or\
-        not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
+            not await user_has_role(interaction, playlist=True) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -2443,30 +2516,28 @@ class MusicCog(commands.Cog):
         if not is_queue_length_ok:
             return
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
-        result = await self.playlist.read(content, playlist_name)
-        if isinstance(result, int):
-            await self.playlist.unlock(locked, content, playlist_name)
+        result = await self.playlist.get_playlist(content, playlist_name)
+        if isinstance(result, Error):
+            await unlock_playlist(locked, content, playlist_name)
 
-            await handle_generic_playlist_errors(interaction, result, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+            await interaction.followup.send(result.msg)
             return
         
-        await update_guild_state(self.guild_states, interaction, True)
-        await update_guild_state(self.guild_states, interaction, True, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
         random_tracks = await get_random_tracks_from_playlist(result, amount)
         success = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, random_tracks, True)
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, list):
             if not voice_client.is_playing() and\
@@ -2475,8 +2546,8 @@ class MusicCog(commands.Cog):
 
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, tuple):
-            await handle_generic_extraction_errors(interaction, success)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @choose_random_playlist_tracks.error
     async def handle_choose_random_playlist_tracks(self, interaction: Interaction, error):
@@ -2487,17 +2558,15 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
+        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-add-yt-playlist", description="Adds a YouTube playlist to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2517,39 +2586,31 @@ class MusicCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
         
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], False, None, "YouTube Playlist")
+        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], None, "YouTube Playlist")
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            is_not_extraction_error = await handle_generic_extraction_errors(interaction, success)
-            if not is_not_extraction_error:
-                return
-
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
-                if success[2]:
-                    await interaction.followup.send(f"Maximum playlist track limit of **{self.playlist.max_item_limit}** tracks reached. Cannot add other track(s).")
-                
+            if success[0]:
                 embed = generate_added_track_embed(success[1], True)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
-            await handle_rename_error(interaction, success, playlist_name, self.playlist.max_name_length)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
-        await check_users_in_channel(self.guild_states, self.playlist, interaction)
+        await check_users_in_channel(self.guild_states, interaction)
 
     @add_playlist.error
     async def handle_add_playlist_error(self, interaction: Interaction, error):
@@ -2562,14 +2623,13 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-edit-track", description="Modifies the specified track's name. See entry in /help for more info.")
     @app_commands.describe(
@@ -2590,22 +2650,22 @@ class MusicCog(commands.Cog):
         
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         else:
-            content = await self.playlist.get_content(interaction)
-            await self.playlist.lock(interaction, content, locked, playlist_name)
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
 
         success = await self.playlist.edit(interaction, content, playlist_name, old_track_names, new_track_names, by_index)
-        await self.playlist.unlock(locked, content, playlist_name)
+        await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, tuple):
-            if success[0] == RETURN_CODES["WRITE_SUCCESS"]:
+            if success[0]:
                 embed = generate_edited_tracks_embed(success[1])
                 await interaction.followup.send(embed=embed)
-        elif isinstance(success, int):
-            await handle_generic_playlist_errors(interaction, success, playlist_name, self.playlist.max_limit, self.playlist.max_item_limit)
+        elif isinstance(success, Error):
+            await interaction.followup.send(success.msg)
 
     @edit_playlist_track.error
     async def handle_edit_playlist_track_error(self, interaction: Interaction, error):
@@ -2616,13 +2676,13 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
+        await unlock_all_playlists(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await self.playlist.unlock_all(self.guild_states, interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')
 
     @app_commands.command(name="playlist-get-saved", description="Shows the saved playlists for this guild.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -2636,21 +2696,21 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if await self.playlist.is_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
 
-        content = await self.playlist.get_content(interaction)
+        content = await self.playlist.read(interaction)
 
         result = await self.playlist.get_available(content)
-        if isinstance(result, int):
-            await handle_generic_playlist_errors(interaction, result, playlist_limit=self.playlist.max_limit, playlist_item_limit=self.playlist.max_item_limit)
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
             return
 
-        playlists_string = ", ".join([f"`{key}`" for key in result])
+        playlists_string = "".join([f"- **{key}**\n" for key in result])
         remaining_slots = self.playlist.max_limit - len(result)
 
-        await interaction.followup.send(f"Saved playlists: {playlists_string}.\nRemaining slots: **{remaining_slots}**.")
+        await interaction.followup.send(f"Saved playlists\n{playlists_string}Remaining slots: **{remaining_slots}**.")
 
     @show_saved_playlists.error
     async def handle_show_saved_playlists_error(self, interaction: Interaction, error):
@@ -2664,5 +2724,5 @@ class MusicCog(commands.Cog):
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
-        await interaction.response.send_message('An unknown error occured.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occured.')
+        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send('An unknown error occurred.')

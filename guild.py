@@ -28,7 +28,7 @@ def delete_guild_tree(path: str) -> None:
 
             log(f"Removed tree {path}")
     except OSError as e:
-        log(f"An OS error occurred while deleting path {path}\nErr: {e}")
+        log(f"An error occurred while deleting {path}\nErr: {e}")
 
 def delete_guild_dirs(to_delete: list[str]) -> bool:
     for path in to_delete:
@@ -48,23 +48,15 @@ def check_guild_data_path(path: str) -> None:
         log(f"Found guild data at {path}.")
 
 async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
-    """ Compare the guilds the bot's currently in\n
-    with the guild IDs in the guild_data directory\n
+    """ Compare the guilds the bot's currently in
+    with the guild IDs in the guild_data directory
     and delete any that aren't in the `guilds` parameter list. """
-
-    if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
-        return
-    
-    """ 
-    Lock VoiceClient and file operations first to prevent
-    any changes made by users during deletion.
-    Then, release the locks.
-    """
-
-    VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
-    FILE_OPERATIONS_LOCKED_PERMANENTLY.set()
     
     guild_count = len(guilds)
+
+    if guild_count > 2400 and guild_count < 2500:
+        log(f"{bot_user} is close to 2500 guilds ({guild_count} guilds). Consider enabling sharding in config.json")
+        await asyncio.sleep(5)
 
     check_guild_data_path(join(PATH, "guild_data"))
     log(f"{bot_user} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
@@ -75,6 +67,3 @@ async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
         delete_guild_dirs(to_delete)
     else:
         log("Success! No issues found.")
-
-    VOICE_OPERATIONS_LOCKED_PERMANENTLY.clear()
-    FILE_OPERATIONS_LOCKED_PERMANENTLY.clear()

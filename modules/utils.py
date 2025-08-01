@@ -1,4 +1,5 @@
-""" Utilities module for discord.py bot """
+""" Utilities module for discord.py bot.\n
+Includes a class with methods to manage music and playlist permissions. """
 
 from settings import *
 from roles import *
@@ -64,8 +65,8 @@ class UtilsCog(commands.Cog):
     @app_commands.guild_only
     async def set_music_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool=False, show: bool=False):
         roles = await open_roles(interaction)
-        if roles == RETURN_CODES["READ_FAIL"]:
-            await interaction.response.send_message("Failed to read roles.", ephemeral=True)
+        if isinstance(roles, Error):
+            await interaction.response.send_message(roles.msg, ephemeral=True)
             return
         
         role_to_set = "playlist" if playlist else "music"
@@ -79,8 +80,8 @@ class UtilsCog(commands.Cog):
         roles[role_to_set] = str(role.id) # Store ID instead of name so the bot doesn't pick the wrong role to check when there's 2 or more roles with the same name
 
         success = await write_roles(interaction, roles, backup)
-        if success == RETURN_CODES["WRITE_FAIL"]:
-            await interaction.response.send_message("Failed to apply changes to roles.", ephemeral=True)
+        if isinstance(success, Error):
+            await interaction.response.send_message(success.msg, ephemeral=True)
         else:
             await interaction.response.send_message(f"Set **{role_to_set}** role to **{role.name}** for this guild.", ephemeral=not show)
 
@@ -106,10 +107,10 @@ class UtilsCog(commands.Cog):
     @app_commands.guild_only
     async def get_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
         roles = await open_roles(interaction)
-        if roles == RETURN_CODES["READ_FAIL"]:
-            await interaction.response.send_message("Failed to read roles.", ephemeral=True)
+        if isinstance(roles, Error):
+            await interaction.response.send_message(roles.msg, ephemeral=True)
             return
-        
+
         role_to_look_for = "playlist" if playlist else "music"
         if role_to_look_for not in roles:
             await interaction.response.send_message(f"Default **{role_to_look_for}** role has not been set for this guild yet!", ephemeral=True)
@@ -144,10 +145,10 @@ class UtilsCog(commands.Cog):
     @app_commands.guild_only
     async def wipe_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
         roles = await open_roles(interaction)
-        if roles == RETURN_CODES["READ_FAIL"]:
-            await interaction.response.send_message("Failed to read roles.", ephemeral=True)
+        if isinstance(roles, Error):
+            await interaction.response.send_message(roles.msg, ephemeral=True)
             return
-        
+
         backup = None if not CONFIG["enable_file_backups"] else deepcopy(roles)
         role_to_delete = "playlist" if playlist else "music"
         if role_to_delete not in roles:
@@ -160,8 +161,8 @@ class UtilsCog(commands.Cog):
         del roles[role_to_delete]
 
         success = await write_roles(interaction, roles, backup)
-        if success == RETURN_CODES["WRITE_FAIL"]:
-            await interaction.response.send_message("Failed to apply changes to roles.", ephemeral=True)
+        if isinstance(success, Error):
+            await interaction.response.send_message(success.msg, ephemeral=True)
         else:
             await interaction.response.send_message(f"Removed **{role_to_delete}** role for this guild.", ephemeral=not show)
 
@@ -187,8 +188,8 @@ class UtilsCog(commands.Cog):
     async def reset_roles(self, interaction: Interaction, show: bool=False):
         success = await write_roles(interaction, {}, None)
 
-        if success == RETURN_CODES["WRITE_FAIL"]:
-            await interaction.response.send_message("Failed to rewrite role structure.", ephemeral=not show)
+        if isinstance(success, Error):
+            await interaction.response.send_message(success.msg, ephemeral=True)
         else:
             await interaction.response.send_message("Successfully rewritten role structure.", ephemeral=not show)
 

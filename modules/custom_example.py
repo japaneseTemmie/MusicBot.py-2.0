@@ -54,6 +54,8 @@ class MyCog(commands.Cog): # Add the Cog subclass
     # Optionally, register an error handler for the command.
     @say_hi.error
     async def handle_say_hi_error(self, interaction: Interaction, error: Exception):
+        """ This function will be called when an exception in say_hi() is raised. """
+        
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 

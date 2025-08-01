@@ -4,12 +4,49 @@ a Discord guild and its users. """
 
 from settings import *
 from helpers import *
-from handlers import handle_moderation_command_error
 from bot import Bot
 
 class ModerationCog(commands.Cog):
     def __init__(self, client: Bot):
         self.client = client
+        self.max_channel_name_length = 100
+        self.max_topic_length = 1024
+        self.max_slowmode = 21600
+        self.max_bitrate = 96000
+        self.max_stage_bitrate = 64000
+        self.max_user_limit = 99
+        self.max_announcement_length = 2000
+        self.max_purge_limit = 1000
+
+    async def handle_moderation_command_error(interaction: Interaction, error: Exception):
+        if isinstance(error, app_commands.errors.BotMissingPermissions):
+            await interaction.response.send_message("I don't have the necessary permissions to perform that operation!", ephemeral=True) if not interaction.response.is_done() else\
+            await interaction.followup.send("I don't have the necessary permissions to perform that operation!")
+            return
+        elif isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message("You don't have the necessary permissions to perform that operation!", ephemeral=True) if not interaction.response.is_done() else\
+            await interaction.followup.send("You don't have the necessary permissions to perform that operation!")
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True) if not interaction.response.is_done() else\
+            await interaction.followup.send(str(error))
+            return
+        
+        if isinstance(error, app_commands.errors.CommandInvokeError):
+            if isinstance(error.original, discord.errors.Forbidden):
+                await interaction.response.send_message("I'm unable to do that!", ephemeral=True) if not interaction.response.is_done() else\
+                await interaction.followup.send("I'm unable to do that!")
+            elif isinstance(error.original, discord.errors.HTTPException):
+                await interaction.response.send_message("Something went wrong while requesting changes.", ephemeral=True) if not interaction.response.is_done() else\
+                await interaction.followup.send("Something went wrong while requesting changes.")
+
+            return
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
+
+        await interaction.response.send_message(f"An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
+        await interaction.followup.send("An unknown error occurred.")
 
     @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel.")
     @app_commands.describe(
@@ -27,7 +64,7 @@ class ModerationCog(commands.Cog):
         await interaction.response.defer(ephemeral=True) # This will take ages so we need to defer
 
         channel = interaction.channel if channel is None else channel
-        amount = max(1, min(1000, amount))
+        amount = max(1, min(self.max_purge_limit, amount))
 
         deleted = await channel.purge(limit=amount, check=await get_purge_check(user, word))
         message_amount = len(deleted)
@@ -46,7 +83,7 @@ class ModerationCog(commands.Cog):
 
     @purge_channel.error
     async def handle_purge_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="kick", description="Kicks a member from the guild.")
     @app_commands.describe(
@@ -79,7 +116,7 @@ class ModerationCog(commands.Cog):
 
     @kick_member.error
     async def handle_kick_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="ban", description="Bans a member from the guild.")
     @app_commands.describe(
@@ -113,7 +150,7 @@ class ModerationCog(commands.Cog):
 
     @ban_member.error
     async def handle_ban_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="unban", description="Unbans a member from the guild. See entry in /help for more info.")
     @app_commands.describe(
@@ -145,7 +182,7 @@ class ModerationCog(commands.Cog):
 
     @unban_member.error
     async def handle_unban_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="timeout", description="Times out a member.")
     @app_commands.describe(
@@ -167,7 +204,9 @@ class ModerationCog(commands.Cog):
         current_time = get_time()
 
         if duration_in_seconds is None:
-            await interaction.response.send_message("Invalid duration, must be **DD:HH:MM:SS**.\nExample: /timeout duration:**00:03:00:00**", ephemeral=True)
+            await interaction.response.send_message("Invalid duration. Be sure to format it to **DD:HH:MM:SS**.\n"+
+                                                    "Example: **00:03:00:00**.\n"+
+                                                    "Additionally, **DD** must not be > 28 and **HH** and **MM** must not be > 59.", ephemeral=True)
             return
         elif member in (interaction.user, interaction.guild.me):
             await interaction.response.send_message("Member cannot be yourself or me.", ephemeral=True)
@@ -194,9 +233,9 @@ class ModerationCog(commands.Cog):
 
     @time_out_member.error
     async def handle_time_out_member_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="deltimeout", description="Removes a timeout from a user.")
+    @app_commands.command(name="remove-timeout", description="Removes a timeout from a user.")
     @app_commands.describe(
         member="The member to remove the timeout from.",
         reason="Reason for removing the timeout. (defaults to 'None')",
@@ -220,7 +259,7 @@ class ModerationCog(commands.Cog):
 
     @remove_timeout_from_member.error
     async def handle_remove_timeout_from_member_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="add-role", description="Adds a role to a member.")
     @app_commands.describe(
@@ -253,7 +292,7 @@ class ModerationCog(commands.Cog):
 
     @add_role.error
     async def handle_add_role_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="remove-role", description="Removes a role from a member.")
     @app_commands.describe(
@@ -286,35 +325,24 @@ class ModerationCog(commands.Cog):
 
     @remove_role.error
     async def handle_remove_role_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
-    @app_commands.command(name="delchannel", description="Deletes a channel from the current guild. See entry in /help for more info.")
+    @app_commands.command(name="remove-channel", description="Deletes a channel from the current guild. See entry in /help for more info.")
     @app_commands.describe(
-        channel="The channel to delete's name or ID.",
-        type="The channel type. Can be text, voice, news, forum, category or stage.",
+        channel="The channel to delete.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["DELETE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def delete_channel(self, interaction: Interaction, channel: str, type: discord.ChannelType, show: bool=False):
-        if len(channel) > 100:
-            await interaction.response.send_message(f"`channel` field is too long! Must be < **100** characters.", ephemeral=True)
-            return
-        
-        channel_to_delete = await get_channel(interaction.guild.channels, channel, type)
-        
-        if channel_to_delete is None:
-            await interaction.response.send_message(f"Could not find channel **{channel}** that matches type **{type}**.", ephemeral=True)
-            return
-        
-        await channel_to_delete.delete()
-        await interaction.response.send_message(f"Deleted channel **{channel_to_delete.name}** (**{channel_to_delete.id}**) of type **{channel_to_delete.type.name}**", ephemeral=not show)
+    async def delete_channel(self, interaction: Interaction, channel: discord.abc.GuildChannel, show: bool=False):
+        await channel.delete()
+        await interaction.response.send_message(f"Deleted channel **{channel.name}** (**{channel.id}**) of type **{channel.type.name}**.", ephemeral=not show)
 
     @delete_channel.error
     async def handle_delete_channel_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="make-text-channel", description="Creates a text channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -332,36 +360,31 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
     async def create_text_channel(self,
-        interaction: Interaction,
-        name: str,
-        topic: str="",
-        category: discord.CategoryChannel=None,
-        announcement: bool=False,
-        slowmode_delay: int=0,
-        nsfw: bool=False,
-        position: int=0,
-        show: bool=False
+            interaction: Interaction,
+            name: str,
+            topic: str="",
+            category: discord.CategoryChannel=None,
+            announcement: bool=False,
+            slowmode_delay: int=0,
+            nsfw: bool=False,
+            position: int=0,
+            show: bool=False
         ):
         
         guild_features = interaction.guild.features
         topic = topic.strip()
         name = name.strip()
-        if len(name) > 100:
-            await interaction.response.send_message("`name` field is too long! Must be < **100** characters.", ephemeral=True)
+        if len(name) > self.max_channel_name_length:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
             return
-
-        if len(topic) > 1024:
-            await interaction.response.send_message("`topic` field is too long! Must be < **1024** characters.", ephemeral=True)
+        elif len(topic) > self.max_topic_length:
+            await interaction.response.send_message(f"`topic` field is too long! Must be < **{self.max_topic_length}** characters.", ephemeral=True)
             return
 
         position = max(0, min(position, len(interaction.guild.channels)))
-        slowmode_delay = max(0, min(slowmode_delay, 21600))
+        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
 
-        channel = await get_channel(interaction.guild.channels, name)
-        if channel is not None:
-            await interaction.response.send_message(f"A channel named **{channel.name}** of type **{channel.type.name}** already exists!", ephemeral=True)
-            return
-        elif announcement and "NEWS" not in guild_features:
+        if announcement and "NEWS" not in guild_features:
             await interaction.response.send_message(f"News channels require a community-enabled guild.", ephemeral=True)
             return
 
@@ -377,7 +400,7 @@ class ModerationCog(commands.Cog):
 
     @create_text_channel.error
     async def handle_create_channel_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="make-voice-channel", description="Creates a voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -394,28 +417,23 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
     async def create_voice_channel(self,
-        interaction: Interaction,
-        name: str,
-        category: discord.CategoryChannel=None,
-        position: int=0,
-        bitrate: int=64000,
-        user_limit: int=0,
-        video_quality_mode: discord.VideoQualityMode=discord.VideoQualityMode.auto,
-        show: bool=False
+            interaction: Interaction,
+            name: str,
+            category: discord.CategoryChannel=None,
+            position: int=0,
+            bitrate: int=64000,
+            user_limit: int=0,
+            video_quality_mode: discord.VideoQualityMode=discord.VideoQualityMode.auto,
+            show: bool=False
         ):
         
         position = max(0, min(position, len(interaction.guild.channels)))
-        bitrate = max(8000, min(bitrate, 96000))
-        user_limit = max(0, min(99, user_limit))
+        bitrate = max(8000, min(bitrate, self.max_bitrate))
+        user_limit = max(0, min(self.max_user_limit, user_limit))
         name = name.strip()
 
-        if len(name) > 100:
-            await interaction.response.send_message("`name` field is too long! Must be < **100** characters.", ephemeral=True)
-            return
-
-        channel = await get_channel(interaction.guild.channels, name, discord.ChannelType.voice)
-        if channel is not None:
-            await interaction.response.send_message(f"Channel **{channel.name}** matching type **{channel.type.name}** already exists.", ephemeral=True)
+        if len(name) > self.max_channel_name_length:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
             return
         
         created_channel = await interaction.guild.create_voice_channel(name, category=category, position=position, bitrate=bitrate, user_limit=user_limit, video_quality_mode=video_quality_mode)
@@ -429,7 +447,7 @@ class ModerationCog(commands.Cog):
 
     @create_voice_channel.error
     async def handle_create_voice_channel_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="make-category", description="Creates a category. See entry in /help for more info.")
     @app_commands.describe(
@@ -445,12 +463,8 @@ class ModerationCog(commands.Cog):
         position = max(0, min(position, len(interaction.guild.channels)))
         name = name.strip()
 
-        category = await get_channel(interaction.guild.channels, name, discord.ChannelType.category)
-        if category is not None:
-            await interaction.response.send_message(f"A category named **{category.name}** already exists.", ephemeral=True)
-            return
-        elif len(name) > 100:
-            await interaction.response.send_message("`name` field is too long! Must be < **100** characters.", ephemeral=True)
+        if len(name) > self.max_channel_name_length:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
             return
 
         created_category = await interaction.guild.create_category(name=name, position=position)
@@ -459,7 +473,7 @@ class ModerationCog(commands.Cog):
 
     @create_category.error
     async def handle_create_category_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="make-forum", description="Creates a forum channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -476,32 +490,27 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
     async def create_forum_channel(self,
-        interaction: Interaction,
-        name: str,
-        post_guidelines: str="",
-        position: int=0,
-        category: discord.CategoryChannel=None,
-        slowmode_delay: int=0,
-        nsfw: bool=False,
-        show: bool=False
+            interaction: Interaction,
+            name: str,
+            post_guidelines: str="",
+            position: int=0,
+            category: discord.CategoryChannel=None,
+            slowmode_delay: int=0,
+            nsfw: bool=False,
+            show: bool=False
         ):
 
         guild_features = interaction.guild.features
         position = max(0, min(len(interaction.guild.channels), position))
-        slowmode_delay = max(0, min(slowmode_delay, 21600))
+        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
         name = name.strip()
         post_guidelines = post_guidelines.strip()
 
-        if len(name) > 100:
-            await interaction.response.send_message("`name` field is too long! Must be < **100** characters.", ephemeral=True)
+        if len(name) > self.max_channel_name_length:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
             return
-        if len(post_guidelines) > 1024:
-            await interaction.response.send_message("`post_guidelines` field is too long! Must be < **1024** characters.", ephemeral=True)
-            return
-
-        channel = await get_channel(interaction.guild.channels, name, discord.ChannelType.forum)
-        if channel is not None:
-            await interaction.response.send_message(f"Channel named **{channel.name}** that matches type {channel.type.name} already exists.", ephemeral=True)
+        elif len(post_guidelines) > self.max_topic_length:
+            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be < **{self.max_topic_length}** characters.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Forum channels require a community-enabled guild.", ephemeral=True)
@@ -517,7 +526,7 @@ class ModerationCog(commands.Cog):
 
     @create_forum_channel.error
     async def handle_create_forum_channel_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="make-stage", description="Creates a stage channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -544,18 +553,14 @@ class ModerationCog(commands.Cog):
         
         guild_features = interaction.guild.features
         position = max(0, min(len(interaction.guild.channels), position))
-        bitrate = max(8000, min(64000, bitrate))
+        bitrate = max(8000, min(self.max_stage_bitrate, bitrate))
         name = name.strip()
 
-        channel = await get_channel(interaction.guild.channels, name, discord.ChannelType.stage_voice)
-        if channel is not None:
-            await interaction.response.send_message(f"Channel named **{channel.name}** that matches type **{channel.type.name}** already exists.", ephemeral=True)
+        if len(name) > self.max_channel_name_length:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Stage channels require a community-enabled guild.", ephemeral=True)
-            return
-        elif len(name) > 100:
-            await interaction.response.send_message("`name` field is too long! Must be < **100** characters.", ephemeral=True)
             return
 
         created_channel = await interaction.guild.create_stage_channel(name=name, category=category, position=position, bitrate=bitrate, video_quality_mode=video_quality_mode)
@@ -567,7 +572,7 @@ class ModerationCog(commands.Cog):
     
     @create_stage_channel.error
     async def handle_create_stage_channel_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -581,7 +586,7 @@ class ModerationCog(commands.Cog):
     @app_commands.guild_only
     async def change_slowmode(self, interaction: Interaction, slowmode_delay: int, channel: discord.TextChannel=None, show: bool=False):
         channel = interaction.channel if channel is None else channel
-        slowmode_delay = max(0, min(slowmode_delay, 21600))
+        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
         old_delay = int(channel.slowmode_delay) # Make a copy of the integer
 
         if slowmode_delay == old_delay:
@@ -596,7 +601,7 @@ class ModerationCog(commands.Cog):
 
     @change_slowmode.error
     async def handle_change_slowmode_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="announce", description="Announce a message in the current/specified channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -613,19 +618,19 @@ class ModerationCog(commands.Cog):
         channel = interaction.channel if channel is None else channel
         message = message.strip()
 
-        if len(message) > 2000:
-            await interaction.response.send_message("Message exceeds **2000** characters.", ephemeral=True)
+        if len(message) > self.max_announcement_length:
+            await interaction.response.send_message(f"Message exceeds **{self.max_announcement_length}** characters.", ephemeral=True)
             return
         
         if no_markdown or no_mentions:
             message = await remove_markdown_or_mentions(message, no_markdown, no_mentions)
 
         await channel.send(message)
-        await interaction.response.send_message(f"Message announced in channel **{interaction.channel.name}**.", ephemeral=True)
+        await interaction.response.send_message(f"Message announced in channel **{channel.name}**.", ephemeral=True)
 
     @announce_message.error
     async def handle_announce_message_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="vckick", description="Kicks a user from a voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -665,7 +670,7 @@ class ModerationCog(commands.Cog):
 
     @kick_user_from_vc.error
     async def handle_kick_user_from_vc_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="vcmove", description="Moves member to target voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -708,7 +713,7 @@ class ModerationCog(commands.Cog):
     
     @move_user_to_vc.error
     async def handle_move_user_to_vc(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)
 
     @app_commands.command(name="vcmute", description="Mutes a member in voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -749,4 +754,4 @@ class ModerationCog(commands.Cog):
         
     @vc_mute_member.error
     async def handle_vc_mute_member_error(self, interaction: Interaction, error):
-        await handle_moderation_command_error(interaction, error)
+        await self.handle_moderation_command_error(interaction, error)

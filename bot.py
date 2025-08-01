@@ -2,16 +2,17 @@
 
 from settings import *
 from guild import check_guilds
-from handlers import handle_sync_error, handle_load_error
+from helpers import Error
 from loader import ModuleLoader
 
-class Bot(commands.Bot):
+class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """
     
     def __init__(self, command_prefix: str, **options) -> None:
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
-        self.cog_objs = {}
+        self.is_sharded = issubclass(Bot, commands.AutoShardedBot)
+        self.guild_states = {}
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
@@ -28,12 +29,11 @@ class Bot(commands.Bot):
 
         return cogs
 
-    async def load_cog(self, cog: commands.Cog) -> bool | tuple[bool, Exception]:
+    async def load_cog(self, cog: commands.Cog) -> bool | Error:
         try:
             await self.add_cog(cog)
-            self.cog_objs[cog.__class__.__name__] = cog
         except Exception as e:
-            return (False, e)
+            return Error(f"An error occurred while loading {cog.__class__.__name__}\nErr: {e}")
         
         log(f"Successfully loaded cog {cog.__class__.__name__}")
         return True
@@ -46,8 +46,8 @@ class Bot(commands.Bot):
             obj = cog(self)
             result = await self.load_cog(obj)
         
-            if isinstance(result, tuple):
-                await handle_load_error(obj, result[1])
+            if isinstance(result, Error):
+                log(result.msg)
 
     async def set_activity(self) -> None:
         """ Set up an activity, if configured. """
@@ -57,7 +57,7 @@ class Bot(commands.Bot):
             log(f"Setting activity type to '{ACTIVITY.type.name}'")
 
         if STATUS:
-            log(f"Setting{' (random) ' if STATUS_TYPE is None else ''}status to '{STATUS.name}'")
+            log(f"Setting {'(random)' if STATUS_TYPE is None else ''} status to '{STATUS.name}'")
 
         await self.change_presence(activity=ACTIVITY, status=STATUS)
 
@@ -69,7 +69,10 @@ class Bot(commands.Bot):
             synced_commands = await self.tree.sync()
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
         except Exception as e:
-            await handle_sync_error(e)
+            if CAN_LOG and LOGGER:
+                LOGGER.exception(e)
+            
+            log(f"An error occurred while syncing app commands to Discord.\nErr: {e}")
 
     async def post_login_tasks(self) -> None:
         """ Handle any post-login tasks.\n
@@ -101,15 +104,27 @@ class Bot(commands.Bot):
         if self.has_finished_on_ready:
             log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
             return
+        
+        VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
+        FILE_OPERATIONS_LOCKED_PERMANENTLY.set()
 
         log(f"Logged in as {self.user}")
         separator()
         await self.post_login_tasks()
 
+        log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
+        separator()
+
         log(f"Ready :{'3' * randint(1, 10)}")
         separator()
 
         self.has_finished_on_ready = True
+
+        VOICE_OPERATIONS_LOCKED_PERMANENTLY.clear()
+        FILE_OPERATIONS_LOCKED_PERMANENTLY.clear()
+
+    async def on_shard_ready(self, shard_id: int) -> None:
+        log(f"Shard {shard_id} is ready.")
 
     async def wait_for_read_write_sync(self) -> None:
         """ Wait for any write/reads to finish before closing to keep data safe. """

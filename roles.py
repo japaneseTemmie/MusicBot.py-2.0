@@ -1,17 +1,18 @@
-""" Role helper checks and I/O operations for discord.py bot """
+""" Role helper checks and I/O operations for discord.py bot. """
 
 from settings import *
-from iohelpers import open_file, write_file, ensure_paths
-from helpers import ensure_lock, store_cache, get_cache
+from iohelpers import *
+from helpers import *
 
 async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
-    """ Check role ownership """
-    """ If the role isn't in the guild or not in the config file or the user has it, allow command execution.
+    """ Check role ownership\n
+    If the role is in the guild or in the config file and the user has it, return True.\n
     if none of the above conditions are met, return False. """
 
     roles = await open_roles(interaction)
-    if roles == RETURN_CODES["READ_FAIL"]:
-        return True
+    if isinstance(roles, Error):
+        await interaction.response.send_message("I cannot verify your roles temporarily.", ephemeral=True) # A corrupted file can be abused to get access, therefore we cannot return True here.
+        return False
 
     role_to_look_for = "playlist" if playlist else "music"
     role_id = roles.get(role_to_look_for, None)
@@ -26,14 +27,15 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     if role in user_roles:
         return True
     
-    await interaction.response.send_message(f"You do not have the required **{role_to_look_for}** role to use this command!")
+    await interaction.response.send_message(f"You do not have the required **{role_to_look_for}** role to use this command!", ephemeral=True)
     return False
 
-async def open_roles(interaction: Interaction) -> int | dict:
-    """ Open the roles.json file safely. Return cache if content is cached, cache the content if not. """
+async def open_roles(interaction: Interaction) -> dict | Error:
+    """ Open the roles.json file safely and return content.\n
+    Return cache if content is cached, cache the content if not. """
     
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
-        return RETURN_CODES["READ_FAIL"]
+        return Error("Role reading temporarily disabled.")
     
     await ensure_lock(interaction, ROLE_LOCKS)
     file_lock = ROLE_LOCKS[interaction.guild.id]
@@ -47,22 +49,22 @@ async def open_roles(interaction: Interaction) -> int | dict:
         file = join(path, "roles.json")
         
         success = await asyncio.to_thread(ensure_paths, path, file)
-        if success == RETURN_CODES["WRITE_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if success == False:
+            return Error("Failed to create guild data.")
 
         content = await asyncio.to_thread(open_file, file, True)
-        if content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if content == False:
+            return Error("Failed to read role contents.")
     
         store_cache(content, interaction.guild.id, ROLE_FILE_CACHE)
 
         return content
 
-async def write_roles(interaction: Interaction, content: dict, backup: dict | None) -> int:
+async def write_roles(interaction: Interaction, content: dict, backup: dict | None) -> bool | Error:
     """ Write content to roles.json. Cache new content if successful. """
     
-    if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
-        return RETURN_CODES["WRITE_FAIL"]
+    if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+        return Error("Role writing temporarily disabled.")
     
     await ensure_lock(interaction, ROLE_LOCKS)
     file_lock = ROLE_LOCKS[interaction.guild.id]
@@ -72,17 +74,17 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
         file = join(path, "roles.json")
 
         success = await asyncio.to_thread(ensure_paths, path, file)
-        if success == RETURN_CODES["WRITE_FAIL"]:
-            return RETURN_CODES["WRITE_FAIL"]
+        if success == False:
+            return Error("Failed to create guild data.")
 
         result = await asyncio.to_thread(write_file, file, content, True)
 
-        if result == RETURN_CODES["WRITE_FAIL"]:
+        if result == False:
             if backup is not None:
                 await asyncio.to_thread(write_file, file, backup, True)
 
-            return RETURN_CODES["WRITE_FAIL"]
+            return Error("Failed to apply changes to roles.")
         
         store_cache(content, interaction.guild.id, ROLE_FILE_CACHE)
 
-        return RETURN_CODES["WRITE_SUCCESS"]
+        return True

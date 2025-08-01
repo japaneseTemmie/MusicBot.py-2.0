@@ -5,7 +5,7 @@ def store_cache(content: Any, id: str | int, cache: dict) -> None:
     if content:
         cache[id] = content
     else:
-        invalidate_cache(id, cache) # Don't cache empty hashmaps
+        invalidate_cache(id, cache) # Don't cache empty content
 
 def get_cache(cache: dict, id: str | int) -> Any | None:
     if id in cache:

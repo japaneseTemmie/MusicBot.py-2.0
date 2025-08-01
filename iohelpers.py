@@ -1,40 +1,43 @@
 """ I/O Helpers for discord.py bot """
 
 from settings import *
+from helpers import *
 
-def open_file(file_path: str, json_mode: bool) -> dict | str | int:
+def open_file(file_path: str, json_mode: bool) -> dict | str | bool:
     """ Open a file and return its contents.\n
     Use `json_mode` to work with json files.\n
-    Returns: file contents (either in plain text or hashmap depending on mode) or READ_FAIL return code.\n
+    Returns: file contents (either in plain text or hashmap depending on mode) or False on read fail.\n
     Must be sent to a thread. """
     
-    with open(file_path) as f:
-        try:
+    try:
+        with open(file_path) as f:
             content = load(f) if json_mode else f.read()
             
             return content
-        except Exception as e:
+    except Exception as e:
             if CAN_LOG and LOGGER is not None:
                 LOGGER.exception(e)
 
-            return RETURN_CODES["READ_FAIL"]
+            return False
 
-def write_file(file_path: str, content: dict | str, json_mode: bool) -> None | int:
+def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
     """ Write to a file and return None.\n
     Use json mode to work with JSON files.\n
-    Returns: None (success) or WRITE_FAIL return code.\n
-    Must be sent to a thread """
+    Returns a boolean.\n
+    Must be sent to a thread. """
     
-    with open(file_path, "w") as f:
-        try:
+    try:
+        with open(file_path, "w") as f:
             dump(content, f, indent=4) if json_mode else f.write(content)
-        except Exception as e:
+
+            return True
+    except Exception as e:
             if CAN_LOG and LOGGER is not None:
                 LOGGER.exception(e)
 
-            return RETURN_CODES["WRITE_FAIL"]
-        
-def ensure_paths(path: str, file: str | None) -> int:
+            return False
+
+def ensure_paths(path: str, file: str | None, file_content_on_creation: str | dict={}) -> bool:
     if not exists(path):
         try:
             makedirs(path, exist_ok=True)
@@ -42,11 +45,12 @@ def ensure_paths(path: str, file: str | None) -> int:
             if CAN_LOG and LOGGER is not None:
                 LOGGER.exception(e)
 
-            return RETURN_CODES["WRITE_FAIL"]
+            return False
 
     if file and not exists(file):
-        result = write_file(file, {}, True)
-        if result == RETURN_CODES["WRITE_FAIL"]:
-            return RETURN_CODES["WRITE_FAIL"]
+        json_mode = isinstance(file_content_on_creation, dict)
+        result = write_file(file, file_content_on_creation, json_mode)
+        if not result:
+            return False
         
-    return RETURN_CODES["WRITE_SUCCESS"]
+    return True

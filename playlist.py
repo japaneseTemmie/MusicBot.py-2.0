@@ -1,5 +1,5 @@
-""" Playlist module for discord.py bot.
-Includes a few methods for managing playlists\n
+""" Playlist module for discord.py bot.\n
+Includes a few methods for managing playlists
 and fetching tracks from them. """
 
 from settings import *
@@ -15,82 +15,12 @@ class PlaylistManager:
         self.max_item_limit = 100
         self.max_name_length = 50
 
-    async def exists(self, content: dict, playlist_name: str) -> bool:
-        """ Checks if a playlist exists in a JSON structure.\n
-        Returns a boolean. """
-        
-        return playlist_name in content
-
-    async def is_full(self, content: dict, playlist_name: str) -> bool:
-        """ Checks if the given playlist is full.\n
-        Returns a boolean. """
-        
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return False # go to error handler
-        
-        playlist = content.get(playlist_name, [])
-
-        if not playlist:
-            return False
-        
-        return len(playlist) >= self.max_item_limit
-
-    async def has_playlists(self, content: dict) -> bool:
-        """ Checks if a JSON structure has any playlists saved.\n
-         Returns a boolean. """
-        
-        return len(content) > 0
-
-    async def lock(self, interaction: Interaction, content: dict, locked: dict, playlist_name: str) -> None:
-        """ Locks a playlist. """
-        
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return
-        
-        playlist_name = await sanitize_name(playlist_name)
-
-        # Ensure the target playlist exists or a command that creates one is used.
-        if  (await self.exists(content, playlist_name) or\
-                interaction.command.name in ("playlist-save", "playlist-add-yt-playlist", "playlist-add", "playlist-create")):
-            locked[playlist_name] = True
-
-    async def unlock(self, locked: dict, content: dict | None, playlist_name: str) -> None:
-        """ Unlocks a playlist. """
-        
-        playlist_name = await sanitize_name(playlist_name)
-        if playlist_name in locked:
-            locked[playlist_name] = False
-        
-        await self.cleanup_locked(content, locked)
-
-    async def unlock_all(self, guild_states: dict, interaction: Interaction, locked: dict) -> None:
-        """ Unlocks every playlist.\n
-        Used only in case of errors. """
-        
-        locked = guild_states[interaction.guild.id]["locked_playlists"]
-        locked.clear()
-
-    async def is_locked(self, locked: dict) -> bool:
-        """ Checks if any playlist is locked in 'locked' parameter.\n
-        Returns a boolean. """
-        
-        return any(locked.values())
-
-    async def cleanup_locked(self, content: dict, locked: dict) -> None:
-        """ Cleans up leftover playlists. """
-        
-        if content is not None and content != RETURN_CODES["READ_FAIL"]:
-            to_remove = [key for key in locked if key not in content]
-                
-            for key in to_remove:
-                del locked[key]
-
-    async def get_content(self, interaction: Interaction) -> dict | int:
+    async def read(self, interaction: Interaction) -> dict | Error:
         """ Safely read the content of a guild's playlist file.\n
         Cache the content of a successful read.\n
-        If successful, returns the JSON structure. """
+        If successful, returns a hashmap, Error otherwise. """
         if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
-            return RETURN_CODES["READ_FAIL"]
+            return Error("Playlist reading temporarily disabled.")
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)
         file_lock = PLAYLIST_LOCKS[interaction.guild.id]
@@ -104,44 +34,24 @@ class PlaylistManager:
             file = join(path, "playlists.json")
 
             success = await asyncio.to_thread(ensure_paths, path, file)
-            if success == RETURN_CODES["WRITE_FAIL"]:
-                return RETURN_CODES["READ_FAIL"]
+            if success == False:
+                return Error("Failed to create guild data.")
 
             content = await asyncio.to_thread(open_file, file, True)
 
-            if content != RETURN_CODES["READ_FAIL"]:
+            if content != False:
                 store_cache(content, interaction.guild.id, PLAYLIST_FILE_CACHE)
+            else:
+                return Error("Failed to read playlist contents.")
 
             return content
 
-    async def read(self, content: dict, playlist_name: str) -> list[dict] | int:
-        """ Reads the given playlist.\n
-        If successful, returns a list of tracks. """
-        
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
-        
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
-
-        playlist_name = await sanitize_name(playlist_name)
-
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
-        
-        playlist = content[playlist_name]
-
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
-
-        return playlist
-
-    async def write(self, interaction: Interaction, content: dict, backup: dict=None) -> int:
-        """ Safely write the modified content of a playlist function to a file.\n
+    async def write(self, interaction: Interaction, content: dict, backup: dict=None) -> bool | Error:
+        """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.\n
         Cache new content if written successfully.\n
-        Returns a write success status. """
+        Returns a boolean [True] or Error. """
         if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
-            return RETURN_CODES["WRITE_FAIL"]
+            return Error("Playlist writing temporarily disabled.")
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)
         file_lock = PLAYLIST_LOCKS[interaction.guild.id]
@@ -151,54 +61,74 @@ class PlaylistManager:
             file = join(path, "playlists.json")
                 
             success = await asyncio.to_thread(ensure_paths, path, file)
-            if success == RETURN_CODES["WRITE_FAIL"]:
-                return RETURN_CODES["WRITE_FAIL"]
+            if success == False:
+                return Error("Failed to create guild data.")
 
             result = await asyncio.to_thread(write_file, file, content, True)
 
-            if result == RETURN_CODES["WRITE_FAIL"]:
+            if result == False:
                 if backup is not None:
                     await asyncio.to_thread(write_file, file, backup, True)
 
-                return RETURN_CODES["WRITE_FAIL"]
+                return Error("Failed to apply changes to playlist.")
             
             store_cache(content, interaction.guild.id, PLAYLIST_FILE_CACHE)
             
-            return RETURN_CODES["WRITE_SUCCESS"]
+            return True
 
-    async def get_available(self, content: dict) -> list[str] | int:
-        """ Returns the available playlists' names in a list. """
+    async def get_playlist(self, content: dict | Error, playlist_name: str) -> list[dict] | Error:
+        """ Reads the given playlist.\n
+        If successful, returns a list of tracks, otherwise, Error. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
+        
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        playlist_name = await sanitize_name(playlist_name)
+
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist.")
+        
+        playlist = content[playlist_name]
+
+        if await is_playlist_empty(playlist):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty.")
+
+        return playlist
+
+    async def get_available(self, content: dict | Error) -> list[str] | Error:
+        """ Get all available playlists' names.
+        If successful, returns a list of strings, otherwise Error. """
+        
+        if isinstance(content, Error):
+            return content
+
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
 
         return [key for key in content.keys()]
 
-    async def create(self, interaction: Interaction, content: dict, playlist_name: str) -> int:
+    async def create(self, interaction: Interaction, content: dict | Error, playlist_name: str) -> bool | Error:
         """ Creates a playlist.\n
-        If successful, returns a successful write status. """
+        If successful, returns a boolean, otherwise, Error. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
         playlist_name = await sanitize_name(playlist_name)
 
-        if len(playlist_name) > self.max_name_length:
-            return RETURN_CODES["NAME_TOO_LONG"]
+        if await name_exceeds_length(self.max_name_length, playlist_name):
+            return Error(f"Playlist name is too long! Must be <= **{self.max_name_length}** characters.")
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            content = {}
+        if await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** already exists!")
 
-        if await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_EXISTS"]
-
-        if len(content) >= self.max_limit:
-            return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
+        if await is_content_full(self.max_limit, content):
+            return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
 
         content[playlist_name] = []
 
@@ -206,30 +136,31 @@ class PlaylistManager:
         
         return success
 
-    async def delete(self, interaction: Interaction, content: dict, playlist_name: str, contents_only: bool) -> int | tuple[int, list[dict]]:
+    async def delete(self, interaction: Interaction, content: dict | Error, playlist_name: str, contents_only: bool) -> bool | tuple[bool, list[dict]] | Error:
         """ Deletes a playlist.\n
-        If successful, returns a successful write status. """
+        If successful, returns a boolean or a tuple with a boolean indicating write success and removed tracks. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
 
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
 
         if contents_only:
+            playlist = content[playlist_name]
 
-            if not content[playlist_name]:
-                return RETURN_CODES["PLAYLIST_IS_EMPTY"]
+            if await is_playlist_empty(playlist):
+                return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot delete contents.")
             
-            previous_contents = deepcopy(content[playlist_name])
-            content[playlist_name].clear()
+            previous_contents = deepcopy(playlist)
+            playlist.clear()
         else:
             del content[playlist_name]
 
@@ -237,175 +168,146 @@ class PlaylistManager:
 
         return success if not contents_only else (success, previous_contents)
 
-    async def remove(self, interaction: Interaction, content: dict, playlist_name: str, tracks: str, by_index: bool=False) -> list[dict] | int:
+    async def remove(self, interaction: Interaction, content: dict | Error, playlist_name: str, tracks: str, by_index: bool=False) -> list[dict] | Error:
         """ Removes given tracks from a playlist.\n
-        If successful, returns the list of removed tracks. """
+        If successful, returns the list of removed tracks. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
     
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
 
         playlist = content[playlist_name]
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
+        if await is_playlist_empty(playlist):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot remove tracks.")
 
         found = await remove_track_from_queue(split(tracks), playlist, by_index)
-        if isinstance(found, int):
+        if isinstance(found, Error):
             return found
         
         success = await self.write(interaction, content, backup)
         
-        if success == RETURN_CODES["WRITE_SUCCESS"]:
+        if success == True:
             return found
         else:
             return success
 
-    async def replace(self, guild_states: dict, interaction: Interaction, content: dict, playlist_name: str, old: str, new: str, by_index: bool=False) -> tuple[int, dict, dict] | int:
-        """ Replaces a playlist track with a given query.\n
-        If successful, returns a tuple with the write success status [0], the old track [1] and the new track [2]."""
+    async def replace(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, old: str, new: str, by_index: bool=False) -> tuple[bool, dict, dict] | Error:
+        """ Replaces a playlist track with an extracted track from a given query.\n
+        If successful, returns a tuple with a boolean indicating write success [0], the old track [1] and the new track [2]. Error otherwise."""
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
         
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
 
         playlist = content[playlist_name]
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
+        if await is_playlist_empty(playlist):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot replace track.")
 
-        result = await replace_track_in_queue(guild_states, interaction, old, new, True, playlist, by_index)
-        if isinstance(result, int):
+        result = await replace_track_in_queue(guild_states, interaction, playlist, old, new, True, by_index)
+        if isinstance(result, Error):
             return result
 
         success = await self.write(interaction, content, backup)
 
         return (success, result[1], result[0])
 
-    async def reposition(self, interaction: Interaction, content: dict, playlist_name: str, track: str, index: int, by_index: bool=False) -> tuple[int, dict, int, int] | int:
+    async def reposition(self, interaction: Interaction, content: dict | Error, playlist_name: str, track: str, index: int, by_index: bool=False) -> tuple[bool, dict, int, int] | Error:
         """ Repositions a playlist track from its current index to the given index.\n
-        If successful, returns a tuple with the write success status [0], the repositioned track in a hashmap [1], old index [2], and new index [3]."""
+        If successful, returns a tuple with a boolean indicating write success [0], the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
 
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
         
         playlist = content[playlist_name]
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
-
-        index -= 1
-        index = max(0, min(index, len(playlist) - 1))
+        if await is_playlist_empty(playlist):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot reposition track.")
         
         result = await reposition_track_in_queue(track, index, playlist, by_index)
-        if isinstance(result, int):
+        if isinstance(result, Error):
             return result
 
         success = await self.write(interaction, content, backup)
 
-        return (success, result[0], result[1][1]+1, index+1)
+        return (success, result[0], result[1], result[2])
 
-    async def select(self, guild_states: dict, max_track_limit: int, interaction: Interaction, content: dict, playlist_name: str, range_start: int=0, range_end: int=0) -> list[dict] | tuple[int, str] | int:
-        """ Adds all playlist tracks from range_start to range_end to the queue.\n
-        If successful, returns a list of added tracks. """
+    async def select(self, guild_states: dict, max_track_limit: int, interaction: Interaction, content: dict | Error, playlist_name: str, range_start: int=0, range_end: int=0) -> list[dict] | Error:
+        """ Adds all playlist tracks from `range_start` to `range_end` to the queue.\n
+        If successful, returns a list of added tracks. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        playlist = await self.get_playlist(content, playlist_name)
+        if isinstance(playlist, Error):
+            return playlist
+        
+        if range_end == 0:
+            range_end = len(playlist)
+        range_start = max(1, min(range_start, len(playlist)))
+        range_end = max(1, min(range_end, len(playlist)))
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
-
-        playlist_name = await sanitize_name(playlist_name)
-
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
-
-        playlist = content[playlist_name]
-
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
-
-        range_start -= 1 # decrement from 1-index to 0-index
+        range_start -= 1
         range_end -= 1
-        
-        # Both variables are -1, nothing user-specified, so set them to 0 and content length.
-        if range_start == -1:
-            range_start = 0
-        if range_end == -1:
-            range_end = len(playlist) - 1
-        range_start = max(0, min(range_start, len(playlist) - 1))
-        range_end = max(0, min(range_end, len(playlist) - 1))
 
         if range_start > range_end:
-            return RETURN_CODES["INVALID_RANGE"]
+            return Error("Invalid `range_start` or `range_end`.\n`range_start` must be < `range_end`.")
         
         query_names = [track["title"] for track in playlist[range_start:range_end+1]]
         found = await fetch_queries(guild_states, interaction, playlist[range_start:range_end+1], query_names)
-        
+
         if isinstance(found, list):
             queue = guild_states[interaction.guild.id]["queue"]
             is_looping_queue = guild_states[interaction.guild.id]["is_looping_queue"]
 
             await replace_data_with_playlist_data(found, playlist[range_start:range_end+1])
-            await add_results_to_queue(interaction, found, queue, max_track_limit)
+            added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
                 await update_loop_queue_add(guild_states, interaction)
 
-            return found
-        elif isinstance(found, tuple): # fetch_queries() returns a tuple in case of an error with the return code at index 0 and what failed at index 1
+            return added
+        elif isinstance(found, Error):
             return found
 
-    async def fetch(self, guild_states: dict, max_track_limit: int, interaction: Interaction, content: dict, playlist_name: str, tracks: list[str | dict], use_dict: bool=False, by_index: bool=False) -> list[dict] | tuple[int, str] | int:
+    async def fetch(self, guild_states: dict, max_track_limit: int, interaction: Interaction, content: dict | Error, playlist_name: str, tracks: list[str | dict], use_dict: bool=False, by_index: bool=False) -> list[dict] | Error:
         """ Adds requested queries from a given playlist to the queue.\n
-        If successful, returns a list of added tracks. """
+        If successful, returns a list of added tracks. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
-
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
-
-        playlist_name = await sanitize_name(playlist_name)
-
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
-        
-        playlist = content[playlist_name]
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
+        playlist = await self.get_playlist(content, playlist_name)
+        if isinstance(playlist, Error):
+            return playlist
 
         if not use_dict:
             queries = await get_tracks_from_playlist(tracks, playlist, by_index)
         else:
             queries = tracks
         
-        if queries == RETURN_CODES["NOT_FOUND"]:
+        if isinstance(queries, Error):
             return queries
         
         query_names = [track["title"] for track in queries]
@@ -416,134 +318,118 @@ class PlaylistManager:
             is_looping_queue = guild_states[interaction.guild.id]["is_looping_queue"]
 
             await replace_data_with_playlist_data(found, queries)
-            await add_results_to_queue(interaction, found, queue, max_track_limit)
+            added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
                 await update_loop_queue_add(guild_states, interaction)
 
-            return found
-        elif isinstance(found, tuple):
+            return added
+        elif isinstance(found, Error):
             return found
 
-    async def add_queue(self, interaction: Interaction, content: dict, playlist_name: str, queue: list[dict], cancel_if_playlist_exists: bool=False) -> tuple[int, list[dict], bool] | int:
-        """ Adds a list of extracted queries to a playlist.
-        If successful, returns a tuple with the write success status [0], a list containing the added tracks [1], and a boolean indicating if the track limit has been exceeded [2]."""
+    async def add_queue(self, interaction: Interaction, content: dict | Error, playlist_name: str, queue: list[dict]) -> tuple[bool, list[dict]] | Error:
+        """ Adds a list of extracted queries to a playlist.\n
+        If successful, returns a tuple with a boolean indicating write success [0], and a list containing the added tracks [1]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.has_playlists(content):
-            content = {}
+        if not await playlist_exists(content, playlist_name):
+            if await is_content_full(self.max_limit, content):
+                return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
 
-        if not await self.exists(content, playlist_name):
-            if len(content) < self.max_limit:
-                if len(playlist_name) <= self.max_name_length:
-                    content[playlist_name] = []
-                else:
-                    return RETURN_CODES["NAME_TOO_LONG"]
-            else:
-                return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
-        elif cancel_if_playlist_exists and len(content[playlist_name]) > 0:
-            return RETURN_CODES["PLAYLIST_EXISTS"]
+            if await name_exceeds_length(self.max_name_length, playlist_name):
+                return Error(f"Name **{playlist_name[:self.max_name_length]}**.. is too long! Must be <= **{self.max_name_length}** characters.")
 
-        found = []
-        exceeds_track_limit = False
-        playlist_queue = content[playlist_name]
-        
-        for i, track in enumerate(queue):
-            track = {
-                "title": track.get("title", "Unknown"),
-                "uploader": track.get("uploader", "Unknown"),
-                "duration": track.get("duration", "00:00:00"),
-                "webpage_url": track.get("webpage_url"),
-                "source_website": track.get("source_website", "Unknown")
-            }
-            if len(playlist_queue) < self.max_item_limit:
-                playlist_queue.append(track)
-                found.append(track)
-            else:
-                del found[i:]
-                exceeds_track_limit = True
+            content[playlist_name] = []
+        elif await is_playlist_full(self.max_item_limit, content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** has reached the **{self.max_item_limit}** track limit!\nCannot add more tracks.")
 
-                break
+        playlist = content[playlist_name]
+        to_add = [{
+                'title': track['title'],
+                'uploader': track["uploader"],
+                'duration': track['duration'],
+                'webpage_url': track["webpage_url"],
+                'source_website': track["source_website"]
+            } for track in queue]
+
+        added = await add_results_to_queue(interaction, to_add, playlist, self.max_item_limit)
 
         success = await self.write(interaction, content, backup)
         
-        return (success, found, exceeds_track_limit)
+        return (success, added)
 
-    async def add(self, guild_states: dict, interaction: Interaction, content: dict, playlist_name: str, queries: list[str], cancel_if_playlist_exists: bool=False, forbid_type: str=None, only_allow_type: str=None) -> tuple[int, list[dict], bool] | tuple[int, str] | int:
+    async def add(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, queries: list[str], forbid_type: str=None, only_allow_type: str=None) -> tuple[bool, list[dict]] | Error:
         """ Adds a list of queries to the given playlist.\n
-        If successful, returns a tuple with the write success status [0], a list containing the added tracks [1], and a boolean indicating if the track limit has been exceeded [2]."""
+        If successful, returns a tuple with a boolean indicating write success [0] and list containing the added tracks [1]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
         playlist_name = await sanitize_name(playlist_name)
 
         # Avoid returning these errors when using add_queue() to not waste bandwidth
-        if await self.is_full(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_IS_FULL"]
+        if await is_playlist_full(self.max_item_limit, content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** has reached the maximum track limit of **{self.max_item_limit}**!\nCannot add more tracks.")
         
-        if len(content) >= self.max_limit and playlist_name not in content:
-            return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
+        if await is_content_full(self.max_limit, content) and not await playlist_exists(content, playlist_name):
+            return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
 
         found = await fetch_queries(guild_states, interaction, queries, None, forbid_type, only_allow_type)
 
         if isinstance(found, list):
-            success = await self.add_queue(interaction, content, playlist_name, found, cancel_if_playlist_exists)
+            success = await self.add_queue(interaction, content, playlist_name, found)
 
-            if isinstance(success, tuple):
-                return (success[0], success[1], success[2])
-            else:
-                return success
+            return success
         else:
             return found
 
-    async def delete_all(self, interaction: Interaction, content: dict, locked: dict, erase: bool) -> int:
+    async def delete_all(self, interaction: Interaction, content: dict | Error, locked: dict, erase: bool) -> bool | Error:
         """ Deletes every playlist saved in the current guild.\n
-        If successful, returns a successful write status. """
+        Returns a boolean or Error. """
         
-        if (content is None or content == RETURN_CODES["READ_FAIL"]) and not erase:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error) and not erase:
+            return content
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content) and not erase:
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content) and not erase:
+            return Error("This guild has no saved playlists.")
         
         content = {}
 
         success = await self.write(interaction, content, backup)
-        await self.cleanup_locked(content, locked)
+        await cleanup_locked_playlists(content, locked)
 
         return success
 
-    async def rename(self, interaction: Interaction, content: dict, orig_playlist_name: str, new_playlist_name: str) -> tuple[int, str, str] | int:
-        """ Renames a playlist.\n
-        If successful, returns a tuple with write success status [0], old name [1], and new name [2]."""
+    async def rename(self, interaction: Interaction, content: dict | Error, orig_playlist_name: str, new_playlist_name: str) -> tuple[bool, str, str] | Error:
+        """ Renames a playlist to a new given name.\n
+        If successful, returns a tuple with a boolean indicating write success [0], old name [1], and new name [2]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild has no saved playlists.")
 
         new_playlist_name = await sanitize_name(new_playlist_name)
         orig_playlist_name = await sanitize_name(orig_playlist_name)
 
-        if not await self.exists(content, orig_playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, orig_playlist_name):
+            return Error(f"Playlist **{orig_playlist_name[:self.max_name_length]}** does not exist!")
 
-        if len(new_playlist_name) > self.max_name_length:
-            return RETURN_CODES["NAME_TOO_LONG"]
+        if await name_exceeds_length(self.max_name_length, new_playlist_name):
+            return Error(f"New name **{new_playlist_name[:self.max_name_length]}**.. is too long! Must be < **{self.max_name_length}** characters.")
 
-        if new_playlist_name == orig_playlist_name:
-            return RETURN_CODES["SAME_NAME_RENAME"]
+        if new_playlist_name.lower().replace(" ", "") == orig_playlist_name.lower().replace(" ", ""):
+            return Error(f"Cannot rename a playlist (**{orig_playlist_name[:self.max_name_length]}**) to the same name (**{new_playlist_name[:self.max_name_length]}**).")
 
         playlists = content.items()
         content = {new_playlist_name if key == orig_playlist_name else key: value for key, value in playlists}
@@ -552,64 +438,61 @@ class PlaylistManager:
 
         return (success, orig_playlist_name, new_playlist_name)
         
-    async def edit(self, interaction: Interaction, content: dict, playlist_name: str, tracks: str, new_names: str, by_index: bool) -> tuple[int, list[tuple[dict, str]]] | int:
-        """ Bulk edit track names.\n
-        if successful, returns a tuple with write success status [0], a tuple with old track's hashmap [0] and the new name [1]"""
+    async def edit(self, interaction: Interaction, content: dict | Error, playlist_name: str, names: str, new_names: str, by_index: bool) -> tuple[bool, list[tuple[dict, str]]] | Error:
+        """ Bulk edits track names to new given ones.\n
+        if successful, returns a tuple with a boolean indicating write success [0], and a list of tuples with old track [0] and the new name [1]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
-        if not await self.has_playlists(content):
-            return RETURN_CODES["NO_PLAYLISTS"]
+        if not await has_playlists(content):
+            return Error("This guild does not have any saved playlists.")
 
         playlist_name = await sanitize_name(playlist_name)
 
-        if not await self.exists(content, playlist_name):
-            return RETURN_CODES["PLAYLIST_DOES_NOT_EXIST"]
+        if not await playlist_exists(content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         playlist = content[playlist_name]
 
-        if not playlist:
-            return RETURN_CODES["PLAYLIST_IS_EMPTY"]
+        if await is_playlist_empty(playlist):
+            return Error(f"Playlist {playlist_name[:self.max_name_length]} is empty. Cannot rename tracks.")
 
-        found = await edit_tracks_in_queue(self.max_name_length, playlist, tracks, new_names, by_index)
-        if isinstance(found, int):
+        found = await edit_tracks_in_queue(self.max_name_length, playlist, names, new_names, by_index)
+        if isinstance(found, Error):
             return found
 
         success = await self.write(interaction, content, backup)
         
         return (success, found)
     
-    async def place(self, interaction: Interaction, content: dict, playlist_name: str, track: dict, index: int | None) -> tuple[int, dict, int] | int:
-        """ Place a track at a specific index (passing None will point to the last index of the given playlist).\n
-        if successful, returns a tuple with write success status [0], added track [1], and its new index [2]. """
+    async def place(self, interaction: Interaction, content: dict | Error, playlist_name: str, track: dict, index: int | None) -> tuple[bool, dict, int] | Error:
+        """ Place a track at a specific index. (passing None will point to the last index of the given playlist)\n
+        if successful, returns a tuple with a boolean indicating write success [0], added track [1], and its new index [2]. Error otherwise. """
         
-        if content is None or content == RETURN_CODES["READ_FAIL"]:
-            return RETURN_CODES["READ_FAIL"]
+        if isinstance(content, Error):
+            return content
         
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         playlist_name = await sanitize_name(playlist_name)
         
-        if not await self.exists(content, playlist_name):
-            if len(content) < self.max_limit:
-                if len(playlist_name) <= self.max_name_length:
-                    content[playlist_name] = []
-                else:
-                    return RETURN_CODES["NAME_TOO_LONG"]
-            else:
-                return RETURN_CODES["MAX_PLAYLIST_LIMIT_REACHED"]
+        if not await playlist_exists(content, playlist_name):
+            if await is_content_full(self.max_limit, content):
+                return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
+            
+            if await name_exceeds_length(self.max_name_length, playlist_name):
+                return Error(f"Name **{playlist_name[:self.max_name_length]}**.. is too long! Must be <= **{self.max_name_length}** characters.")
+
+            content[playlist_name] = []
             
         playlist = content[playlist_name]
-        
-        index = max(1, min(index, len(playlist) + 1)) if index is not None else len(playlist) + 1
-        index -= 1
 
         result = await place_track_in_playlist(playlist, index, track)
-        if isinstance(result, int):
+        if isinstance(result, Error):
             return result
 
         success = await self.write(interaction, content, backup)
 
-        return (success, track, index+1)
+        return (success, result[0], result[1])
     
