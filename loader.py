@@ -61,12 +61,11 @@ class ModuleLoader:
     
     def get_enable_values_from_config(self, class_names: list[str]) -> list[tuple[str, bool]]:
         return [
-            (key, CONFIG[key])
+            (name, CONFIG.get(f"enable_{name}", False))
             for name in class_names
-            if (key := f"enable_{name}") in CONFIG
         ]
 
-    def get_classes(self) -> list[commands.Cog]:
+    def get_classes(self) -> list[type[commands.Cog]]:
         classes = []
         all_modules = self.get_module_contents(self.get_module_file_paths())
 
