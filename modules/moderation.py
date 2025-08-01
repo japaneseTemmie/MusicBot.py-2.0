@@ -56,7 +56,7 @@ class ModerationCog(commands.Cog):
         word="Delete only messages that have this word.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_messages=True)
     @app_commands.checks.bot_has_permissions(manage_messages=True)
     @app_commands.guild_only
@@ -91,7 +91,7 @@ class ModerationCog(commands.Cog):
         reason="Reason for kick. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["KICK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["KICK_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(kick_members=True)
     @app_commands.checks.bot_has_permissions(kick_members=True)
     @app_commands.guild_only
@@ -124,7 +124,7 @@ class ModerationCog(commands.Cog):
         reason="The ban reason. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["BAN_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["BAN_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.bot_has_permissions(ban_members=True)
     @app_commands.guild_only
@@ -158,7 +158,7 @@ class ModerationCog(commands.Cog):
         reason="The unban reason. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["UNBAN_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["UNBAN_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.bot_has_permissions(ban_members=True)
     @app_commands.guild_only
@@ -191,7 +191,7 @@ class ModerationCog(commands.Cog):
         reason="Reason for timeout. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(moderate_members=True)
     @app_commands.checks.bot_has_permissions(moderate_members=True)
     @app_commands.guild_only
@@ -241,7 +241,7 @@ class ModerationCog(commands.Cog):
         reason="Reason for removing the timeout. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_TIMEOUT_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(moderate_members=True)
     @app_commands.checks.bot_has_permissions(moderate_members=True)
     @app_commands.guild_only
@@ -268,7 +268,7 @@ class ModerationCog(commands.Cog):
         reason="The reason for adding the role. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ADD_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ADD_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.checks.bot_has_permissions(manage_roles=True)
     @app_commands.guild_only
@@ -301,7 +301,7 @@ class ModerationCog(commands.Cog):
         reason="The reason for removing the role. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_ROLE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.checks.bot_has_permissions(manage_roles=True)
     @app_commands.guild_only
@@ -332,7 +332,7 @@ class ModerationCog(commands.Cog):
         channel="The channel to delete.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["DELETE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["DELETE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -355,7 +355,7 @@ class ModerationCog(commands.Cog):
         position="The new channel's position relative to all channels. (defaults to 0)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -412,7 +412,7 @@ class ModerationCog(commands.Cog):
         video_quality_mode="The new channel's video quality mode, if unsure, leave empty (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -455,7 +455,7 @@ class ModerationCog(commands.Cog):
         position="The new category's position relative to all categories. (defaults to 0)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -485,7 +485,7 @@ class ModerationCog(commands.Cog):
         nsfw="Whether or not the new forum should be marked as NSFW. (default False)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -537,7 +537,7 @@ class ModerationCog(commands.Cog):
         video_quality_mode="The new stage channel's video quality mode, if unsure, leave the default (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -580,7 +580,7 @@ class ModerationCog(commands.Cog):
         slowmode_delay="The new slowmode delay in seconds to set. Maximum is 21600. (defaults to 0)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CHANGE_SLOWMODE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CHANGE_SLOWMODE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
@@ -610,7 +610,7 @@ class ModerationCog(commands.Cog):
         no_markdown="Whether or not to ignore markdown text formatting. (default False)",
         no_mentions="Whether or not to ignore formatting of mentions. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ANNOUNCE_MESSAGE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ANNOUNCE_MESSAGE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(send_messages=True)
     @app_commands.guild_only
@@ -638,7 +638,7 @@ class ModerationCog(commands.Cog):
         reason="The reason for kicking the user from its voice channel. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_KICK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_KICK_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(move_members=True)
     @app_commands.checks.bot_has_permissions(move_members=True)
     @app_commands.guild_only
@@ -679,7 +679,7 @@ class ModerationCog(commands.Cog):
         reason="Reason for moving member to target channel. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MOVE_USER_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MOVE_USER_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(move_members=True)
     @app_commands.checks.bot_has_permissions(move_members=True)
     @app_commands.guild_only
@@ -722,7 +722,7 @@ class ModerationCog(commands.Cog):
         reason="Reason for mute. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_MUTE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VC_MUTE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(mute_members=True)
     @app_commands.checks.bot_has_permissions(mute_members=True)
     @app_commands.guild_only
