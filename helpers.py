@@ -11,7 +11,7 @@ class Error:
     def __init__(self, msg: str):
         self.msg = msg
 
-# Functionn to get a hashmap of pages to display of a queue
+# Function to get a hashmap of pages to display of a queue
 def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
     queue_copy = deepcopy(queue)
     pages = {}
