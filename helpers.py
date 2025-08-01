@@ -547,10 +547,6 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
 
     await update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
 
-    if can_update_status:
-        await update_guild_state(guild_states, member, None, "voice_status")
-        await set_voice_status(guild_states, member)
-
     log(f"[GUILDSTATE] Waiting 10 seconds before cleaning up guild ID {member.guild.id}...")
     await asyncio.sleep(10) # Sleepy time :3 maybe it's a network issue
 
@@ -559,6 +555,10 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
 
         await update_guild_states(guild_states, member, (False, False), ("pending_cleanup", "handling_disconnect_action"))
         return
+    
+    if can_update_status:
+        await update_guild_state(guild_states, member, None, "voice_status")
+        await set_voice_status(guild_states, member)
     
     """ Assumes the bot is disconnected before calling this function, which should be the case since disconnect_routine() gets triggered when there's a voice state update
     and the bot is no longer in a channel (after.channel is None) """
