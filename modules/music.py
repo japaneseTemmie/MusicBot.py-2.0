@@ -111,7 +111,7 @@ class MusicCog(commands.Cog):
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
-            voice_client = await channel.connect(reconnect=False)
+            voice_client = await channel.connect()
             self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
             
             log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
