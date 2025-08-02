@@ -4,7 +4,7 @@ an **extended** moderation module alongside other new features!
 
 ## Table of contents
 - [Key features](#key-features)
-- [Setup Guide](#setup-guide)
+- [Bot Setup Guide](#bot-setup-guide)
 - [Create a Discord Application](#create-a-discord-application)
 - [Set up a Bot](#set-up-a-bot)
 - [Code setup](#code-setup)
@@ -30,14 +30,13 @@ an **extended** moderation module alongside other new features!
 
 _*Playlist support may depend on command._
 
-# Setup Guide
+# Bot Setup Guide
+- If you already have a bot, this section can be skipped. Visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
 
 ## Create a Discord Application
 - Visit the [Discord Developer Portal](https://discord.com/developers/applications), log in, and create a new app. You may customize it if you wish.
 
 ## Set up a Bot
-- If you already have a bot, this section can be skipped. Visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
-
 - Go to the `Bot` section.
   
   (Optional) Modify the name, avatar and banner to your liking.
@@ -62,8 +61,8 @@ _*Playlist support may depend on command._
 # Code setup
 
 ## Requirements
-- UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux/macOS (BSD not tested).
-- Make sure `Python 3.10+`, `FFmpeg` are installed on your system.
+- UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux (BSD/macOS not tested).
+- Make sure `Python 3.10+` and `FFmpeg` are installed on your system.
   
   If you're on a GNU/Linux distribution, they may already be installed.
   
