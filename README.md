@@ -82,13 +82,13 @@ _*Playlist support may depend on command._
 
   Test Python and FFmpeg:
 
-  `python3 -V` (Linux/macOS)
+  `python3 -V` (UNIX-like)
   
   `python -V` (Windows)
 
   Expected output: `Python {VERSION}`
 
-  `ffmpeg -version` (Windows/macOS/Linux)
+  `ffmpeg -version` (UNIX-like/Windows)
 
   Expected output: `ffmpeg version {VERSION}...`
 
@@ -112,20 +112,20 @@ More up to date versions should be able to work fine.
 
   `CMD` is necessary. `PowerShell` will break almost every command in this guide.
 
-  On Linux/macOS:
+  On UNIX-like:
 
   `Bash`/`Zsh` is preferred. `Fish` might break some commands.
 
 - Create a `.env` file with the following contents by running:
 
-  `echo "TOKEN={your_discord_bot_token}" > .env` (Linux/macOS)
+  `echo "TOKEN={your_discord_bot_token}" > .env` (UNIX-like)
 
   `echo TOKEN={your_discord_bot_token} > .env` (Windows)
 
 - Replace `{your_discord_bot_token}` with the token copied earlier.
 - Prepare and run automatically using the helper script:
 
-  `python3 run.py` (Linux/macOS)
+  `python3 run.py` (UNIX-like)
   
   `python run.py` (Windows)
 
@@ -138,7 +138,7 @@ if it fails:
 
 - Create a Python virtual environment (venv):
 
-  `python3 -m venv ./` (Linux/macOS)
+  `python3 -m venv ./` (UNIX-like)
 
   `python -m venv .\` (Windows)
 
@@ -147,7 +147,7 @@ if it fails:
 
 - If successful, activate the venv:
 
-  `source ./bin/activate` (Linux/macOS)
+  `source ./bin/activate` (UNIX-like)
 
   `.\Scripts\activate.bat` (Windows)
 
@@ -156,14 +156,14 @@ if it fails:
 
 - Install the required dependencies for the project:
 
-  `pip install -r requirements.txt` (Linux/macOS/Windows)
+  `pip install -r requirements.txt` (UNIX-like/Windows)
 
   What it does:
   Runs the pip package manager, passing the contents of 'requirements.txt' as the packages to install.
 
 - Finally, if successful, run the main entry point:
 
-  `python3 main.py` (Linux/macOS)
+  `python3 main.py` (UNIX-like)
 
   `python main.py` (Windows)
 
@@ -224,7 +224,7 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
   - **Gracefully** terminate the process with **CTRL + C**, this is the preferred way and allows the bot to properly clean up before exiting.
   - Then, run:
   
-    `python3 run.py` (Linux/macOS)
+    `python3 run.py` (UNIX-like)
   
     `python run.py` (Windows)
   
@@ -232,7 +232,7 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
   
     `source ./bin/activate`
     
-    `python3 main.py` (Linux/macOS)
+    `python3 main.py` (UNIX-like)
     
     `.\Scripts\activate.bat`
 
@@ -244,13 +244,13 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 
   Open a terminal in the project directory and run:
   
-  `./bin/pip install --upgrade -r requirements.txt` (Linux/macOS)
+  `./bin/pip install --upgrade -r requirements.txt` (UNIX-like)
   
   `.\Scripts\pip.exe install --upgrade -r requirements.txt` (Windows)
 
   if the current terminal is **_not_** in the _venv_. Otherwise:
 
-  `pip install --upgrade -r requirements.txt` (Windows/macOS/Linux)
+  `pip install --upgrade -r requirements.txt` (UNIX-like/Windows)
   
   Then, try again.
 
