@@ -18,7 +18,7 @@ class ModerationCog(commands.Cog):
         self.max_announcement_length = 2000
         self.max_purge_limit = 1000
 
-    async def handle_moderation_command_error(interaction: Interaction, error: Exception):
+    async def handle_moderation_command_error(self, interaction: Interaction, error: Exception):
         if isinstance(error, app_commands.errors.BotMissingPermissions):
             await interaction.response.send_message("I don't have the necessary permissions to perform that operation!", ephemeral=True) if not interaction.response.is_done() else\
             await interaction.followup.send("I don't have the necessary permissions to perform that operation!")
