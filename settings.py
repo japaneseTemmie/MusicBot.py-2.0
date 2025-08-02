@@ -263,7 +263,7 @@ def set_up_logging() -> tuple[FileHandler, Formatter, Logger, str]:
     log(f"Log level found: {LEVEL}, actual: {VALID_LOG_LEVELS.get(LEVEL, INFO)}")
     separator()
 
-    LOGGER = getLogger("internal")
+    LOGGER = getLogger("discord")
 
     return HANDLER, FORMATTER, LOGGER, LEVEL
 
@@ -342,7 +342,7 @@ PLAYLIST_LOCKS = {}
 ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
-EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=3600)
+EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=1800)
 
 """ Asyncio.Event() objects that function as locks for safe shutdown.
 Use .clear() to release the lock.
