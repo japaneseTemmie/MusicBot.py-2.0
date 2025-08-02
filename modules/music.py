@@ -149,6 +149,7 @@ class MusicCog(commands.Cog):
         if voice_client.is_connected():
             log(f"[DISCONNECT][SHARD ID {interaction.guild.shard_id}] Requested to leave channel ID {voice_client.channel.id} in guild ID {interaction.guild.id}")
 
+            await update_guild_state(self.guild_states, interaction, True, "user_disconnect")
             if voice_client.is_playing() or voice_client.is_paused():
                 await update_guild_state(self.guild_states, interaction, True, "stop_flag")
                 voice_client.stop()
@@ -253,10 +254,9 @@ class MusicCog(commands.Cog):
 
         position = max(0, min(position, format_minutes(track["duration"])))
         options = await get_ffmpeg_options(position)
-        
-        source = await discord.FFmpegOpusAudio.from_probe(track["url"], **options)
 
         try:
+            source = await discord.FFmpegOpusAudio.from_probe(track["url"], **options)
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:
@@ -338,8 +338,10 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
         if not queue and queue_to_loop:
-            queue = deepcopy(queue_to_loop)
-            await update_guild_state(self.guild_states, interaction, queue, "queue")
+            new_queue = deepcopy(queue_to_loop)
+            await update_guild_state(self.guild_states, interaction, new_queue, "queue")
+
+            queue = self.guild_states[interaction.guild.id]["queue"]
 
         if track_to_loop and is_looping:
             track = track_to_loop
@@ -957,7 +959,7 @@ class MusicCog(commands.Cog):
                 await update_guild_state(self.guild_states, interaction, current_track, "track_to_loop")
             await update_guild_state(self.guild_states, interaction, True, "is_looping")
             
-            await interaction.response.send_message(f"Loop enabled!\nWill loop **{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**.")
+            await interaction.response.send_message(f"Loop enabled!\nWill loop '**{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**'.")
         else:
             await update_guild_states(self.guild_states, interaction, (None, False), ("track_to_loop", "is_looping"))
             await interaction.response.send_message("Loop disabled!")
@@ -1060,8 +1062,8 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="clear", description="Removes every track from the queue (and/or history or loop queue).")
     @app_commands.describe(
-        clear_history="Include track history in removal.",
-        clear_loop_queue="Include the loop queue in removal."
+        clear_history="Include track history in removal. (default False)",
+        clear_loop_queue="Include the loop queue in removal. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
