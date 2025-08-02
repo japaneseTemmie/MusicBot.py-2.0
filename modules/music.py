@@ -111,7 +111,7 @@ class MusicCog(commands.Cog):
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
-            voice_client = await channel.connect()
+            voice_client = await channel.connect(timeout=5)
             self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
             
             log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
@@ -122,10 +122,11 @@ class MusicCog(commands.Cog):
 
     @join_channel.error
     async def handle_join_error(self, interaction: Interaction, error):
-        if isinstance(error, (asyncio.TimeoutError, discord.errors.ConnectionClosed)):
-            await interaction.response.send_message("Connection timed out.", ephemeral=True)
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+        if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
 
     @app_commands.command(name="leave", description="Makes the bot leave your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -157,10 +158,11 @@ class MusicCog(commands.Cog):
 
     @leave_channel.error
     async def handle_leave_error(self, interaction: Interaction, error):
-        if isinstance(error, (asyncio.TimeoutError, discord.ConnectionClosed)):
-            await interaction.response.send_message("Connection timed out.", ephemeral=True)
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+        if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
+
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(error)
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
