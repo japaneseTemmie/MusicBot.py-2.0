@@ -14,6 +14,8 @@ def main() -> None:
         bot.run(TOKEN, log_handler=HANDLER, log_formatter=FORMATTER, log_level=VALID_LOG_LEVELS.get(LEVEL, INFO))
     except discord.errors.PrivilegedIntentsRequired:
         log("Failed to request intents. Ensure all Priviliged Gateway Intents are enabled.")
+    except discord.errors.LoginFailure:
+        log("Failed to log in to Discord. Ensure the provided token in the .env file is valid.")
 
 if __name__ == "__main__":
     log(f"Running main()")
