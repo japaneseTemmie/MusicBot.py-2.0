@@ -263,7 +263,7 @@ def set_up_logging() -> tuple[FileHandler, Formatter, Logger, str]:
     log(f"Log level found: {LEVEL}, actual: {VALID_LOG_LEVELS.get(LEVEL, INFO)}")
     separator()
 
-    LOGGER = getLogger("discord")
+    LOGGER = getLogger("internal")
 
     return HANDLER, FORMATTER, LOGGER, LEVEL
 

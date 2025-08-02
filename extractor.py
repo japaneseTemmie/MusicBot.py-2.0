@@ -71,23 +71,23 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
     if cache:
         return cache
     
-    with YoutubeDL(YDL_OPTIONS) as yt:
-        try:
+    try:
+        with YoutubeDL(YDL_OPTIONS) as yt:
             if query_type[0] != "std_query":
                 info = yt.extract_info(query, download=False)
             else:
                 info = yt.extract_info(f"ytsearch:{query}", download=False)
-        except Exception as e:
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(e)
+    except Exception as e:
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(e)
 
-            return None
-
-        if info is not None:
-            info = parse_info(info, query_type)
-
-            store_cache(info, query, EXTRACTOR_CACHE)
-
-            return info
-        
         return None
+
+    if info is not None:
+        info = parse_info(info, query_type)
+
+        store_cache(info, query, EXTRACTOR_CACHE)
+
+        return info
+    
+    return None
