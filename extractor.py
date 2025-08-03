@@ -2,37 +2,54 @@
 Supported websites:\n
 - YouTube (Both video and playlists)\n
 - Newgrounds\n
-- SoundCloud """
+- SoundCloud\n
+- Bandcamp """
 
 from settings import *
 from timehelpers import format_seconds
-from cachehelpers import get_cache, store_cache
 
 # List of regex pattern to match website URLs
 # Second item is the 'source_website'
 # Remember to update parse_info() after any changes made here.
-PATTERNS = [
+URL_PATTERNS = [
     (re.compile(r"(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:playlist\?list=|watch\?.*?&list=)([a-zA-Z0-9_-]+)"), "YouTube Playlist"),
     (re.compile(r"(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|playlist\?list=|embed\/|v\/|shorts\/)?([^&=%\?]{11})"), "YouTube"),
     (re.compile(r"(https:\/\/)?(www\.)?newgrounds\.com/audio/listen/[0-9]+\/?"), "Newgrounds"),
     (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com/[^\/]+\/[^\/]+"), "SoundCloud"),
     (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/track\/[a-z0-9\-]+(\/)?"), "Bandcamp")
 ]
+# Hashmap of search providers
+# Key is the provider and the value is a tuple with yt-dlp search string [0] and 'source_website' [1]
+SEARCH_PROVIDERS = {
+    "soundcloud": ("scsearch:", "SoundCloud search"),
+    "youtube": ("ytsearch:", "YouTube search")
+}
 
-def get_query_type(query: str) -> tuple[re.Pattern | str, str]:
+def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, str]:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. """
 
-    for pattern in PATTERNS:
+    # Match URLs first.
+    for pattern in URL_PATTERNS:
         if pattern[0].match(query):
             return pattern
-    return ("std_query", "YouTube")
+
+    # If no matches are found, match a search query. If not found, default to youtube.
+    search_provider = SEARCH_PROVIDERS.get(provider, ("ytsearch:", "YouTube search"))
+    return (search_provider[0], search_provider[1])
 
 def prettify_info(info: dict, source_website: str | None=None) -> dict:
-    upload_date = info.get("upload_date", "19700101")
+    upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
     duration = info.get("duration", 0)
 
-    pretty_date = datetime.strptime(upload_date, "%Y%m%d").date()
-    formatted_duration = format_seconds(int(duration))
+    # Since different websites distribute content differently, we have to adapt to different date/duration formats
+    if isinstance(upload_date, str):
+        pretty_date = datetime.strptime(upload_date, "%Y%m%d").date()
+    else:
+        pretty_date = upload_date # Is already a datetime object
+    if isinstance(duration, (int, float)):
+        formatted_duration = format_seconds(int(duration))
+    else:
+        formatted_duration = duration # Is already a HH:MM:SS string
 
     info["upload_date"] = pretty_date
     info["duration"] = formatted_duration
@@ -40,43 +57,41 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
 
     return info
 
-def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict]:
+def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | None:
     """ Parse extracted query in a readable/playable format for the VoiceClient. """
     
-    if query_type[1] in ("Newgrounds", "SoundCloud", "Bandcamp"):
-        info = prettify_info(info, query_type[1])
+    source_website = query_type[1]
 
-    elif query_type[1] in ("YouTube", "YouTube Playlist"):
-        if info and "entries" in info:
-            if len(info["entries"]) == 0:
-                return None
-            
-            if query_type[1] == "YouTube Playlist":
-                for i, entry in enumerate(info["entries"]):
-                    info["entries"][i] = prettify_info(entry, query_type[1])
-                
-                return info["entries"]
+    # If it's a playlist, prettify each entry and return
+    if source_website == "YouTube Playlist" and "entries" in info:
+        return [prettify_info(entry, source_website) for entry in info["entries"]]
 
-            info = prettify_info(info["entries"][0], query_type[1])
-        else:
-            info = prettify_info(info, query_type[1])
+    # If it's a search, prettify the first entry and return
+    if source_website in ("YouTube search", "SoundCloud search") and "entries" in info:
+        if len(info["entries"]) == 0:
+            return None
+        
+        first_entry = info["entries"][0]
+        info = prettify_info(first_entry, source_website)
+
+        return info
+    
+    # URLs are directly prettified.
+    info = prettify_info(info, source_website)
 
     return info
 
 def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
     """ Search a webpage and find info about the query.\n
     Must be sent to a thread. """
-
-    cache = get_cache(EXTRACTOR_CACHE, query)
-    if cache:
-        return cache
     
     try:
         with YoutubeDL(YDL_OPTIONS) as yt:
-            if query_type[0] != "std_query":
-                info = yt.extract_info(query, download=False)
+            search_string = query_type[0]
+            if search_string in ("ytsearch:", "scsearch:"):
+                info = yt.extract_info(search_string + query, download=False)
             else:
-                info = yt.extract_info(f"ytsearch:{query}", download=False)
+                info = yt.extract_info(query, download=False)
     except Exception as e:
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(e)
@@ -85,9 +100,6 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
 
     if info is not None:
         info = parse_info(info, query_type)
-
-        store_cache(info, query, EXTRACTOR_CACHE)
-
         return info
     
     return None

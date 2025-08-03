@@ -167,11 +167,17 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
-        queries="A semicolon separated list of YT, NG, SC, BC URLs or YT search queries.",
+        queries="A semicolon separated list of URLs or search queries.",
+        provider="The website to search for each query on. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(provider=[
+            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
+            app_commands.Choice(name="YouTube search", value="youtube")
+        ]
+    )
     @app_commands.guild_only
-    async def add_track(self, interaction: Interaction, queries: str):
+    async def add_track(self, interaction: Interaction, queries: str, provider: app_commands.Choice[str]=None):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
@@ -193,7 +199,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        found = await fetch_queries(self.guild_states, interaction, queries_split)
+        found = await fetch_queries(self.guild_states, interaction, queries_split, provider=provider.value if provider is not None else None)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -256,15 +262,19 @@ class MusicCog(commands.Cog):
         options = await get_ffmpeg_options(position)
 
         try:
+            is_stream_valid = await validate_stream(track["url"])
+            if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
+                track = await resolve_expired_url(track["webpage_url"])
+
             source = await discord.FFmpegOpusAudio.from_probe(track["url"], **options)
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(e)
-            
-            await interaction.followup.send("An error occurred while reading audio stream.") if interaction.response.is_done() else\
-            await interaction.response.send_message("An error occured while reading audio stream.")
+            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            if is_looping:
+                await update_guild_state(self.guild_states, interaction, False, "is_looping")
+
+            self.handle_playback_end(e, interaction)
             return
 
         if not general_start_time or not general_start_date:
@@ -352,7 +362,6 @@ class MusicCog(commands.Cog):
 
         if track and voice_client:
             await self.play_track(interaction, voice_client, track)
-
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
             if not is_looping:
@@ -364,8 +373,8 @@ class MusicCog(commands.Cog):
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction):
         if error is not None:
-            asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end.") if interaction.response.is_done() else\
-                                            interaction.response.send_message("An error occurred while handling playback end."), self.client.loop)
+            asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end. Skipping..") if interaction.response.is_done() else\
+                                            interaction.response.send_message("An error occurred while handling playback end. Skipping.."), self.client.loop)
             
             if CAN_LOG and LOGGER is not None:
                 LOGGER.exception(error)
@@ -443,7 +452,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="skip", description="Skips to next track in the queue.")
     @app_commands.describe(
-        amount="The amount of tracks to skip. Starts from the current track. Must be <= 25"
+        amount="The amount of tracks to skip. Starts from the current track. Must be <= 25 and random must not be enabled."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -453,6 +462,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
+
+        await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_random = self.guild_states[interaction.guild.id]["is_random"]

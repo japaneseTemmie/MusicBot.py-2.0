@@ -161,7 +161,8 @@ async def fetch_query(
             extraction_state_max_length: int=1,
             query_name: str=None,
             forbid_type: str=None,
-            only_allow_type: str=None
+            only_allow_type: str=None,
+            provider: str | None=None
         ) -> dict | list[dict] | Error:
         """ Extract a query from its website, catch any errors and return the result. """
         
@@ -172,7 +173,7 @@ async def fetch_query(
 
         await update_query_extraction_state(guild_states, interaction, extraction_state_amount, extraction_state_max_length, query_name.strip() if query_name is not None else query)
 
-        query_type = get_query_type(query)
+        query_type = get_query_type(query, provider)
         if (forbid_type or only_allow_type) and query_type[1] == forbid_type if forbid_type is not None else\
                             query_type[1] != only_allow_type if only_allow_type is not None else None:
             return Error(f"Query type **{query_type[1]}** not supported for this command!")
@@ -188,7 +189,8 @@ async def fetch_queries(guild_states: dict,
         queries: list[str | dict],
         query_names: list[str]=None,
         forbid_type: str=None,
-        only_allow_type: str=None
+        only_allow_type: str=None,
+        provider: str | None=None
     ) -> list[dict | list[dict]] | Error:
     """ Extract a list of queries using the fetch_query() function. """
     
@@ -200,7 +202,8 @@ async def fetch_queries(guild_states: dict,
                 extraction_state_max_length=len(queries),
                 query_name=query_names[i] if isinstance(query_names, list) else query_names,
                 forbid_type=forbid_type,
-                only_allow_type=only_allow_type
+                only_allow_type=only_allow_type,
+                provider=provider
             )
 
         if isinstance(extracted_query, (Error, list)):
@@ -209,6 +212,16 @@ async def fetch_queries(guild_states: dict,
             found.append(extracted_query)
     
     return found
+
+async def resolve_expired_url(webpage_url: str) -> dict | None:
+    provider = None
+    query_type = get_query_type(webpage_url, provider)
+    
+    new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
+    if new_extracted_track is None:
+        raise ValueError("Invalid audio stream")
+    
+    return new_extracted_track
 
 async def add_results_to_queue(interaction: Interaction, results: list[dict], queue: list, max_limit: int) -> list[dict]:
     """ Append found results to a queue in place and return None.\n
@@ -579,7 +592,7 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 
         await voice_client.channel.edit(status=status)
 
-# FFmpeg options
+# FFmpeg options and stream validation
 async def get_ffmpeg_options(position: int) -> dict:
     FFMPEG_OPTIONS = {}
     
@@ -587,6 +600,24 @@ async def get_ffmpeg_options(position: int) -> dict:
     FFMPEG_OPTIONS["options"] = f"-vn -ss 0 -loglevel quiet" # -ss 0 here seems to sync the position more accurately
 
     return FFMPEG_OPTIONS
+
+async def validate_stream(url: str) -> bool:
+    proc = await asyncio.create_subprocess_exec(
+        'ffprobe',
+        '-v', 'error',
+        '-show_entries', 'stream=codec_type,codec_name,bit_rate',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        url,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL
+    )
+
+    stdout, _ = await proc.communicate()
+
+    output = stdout.decode().strip().splitlines()
+    audio_stream_found = any(line for line in output if line and line != 'video')
+
+    return proc.returncode == 0 and audio_stream_found
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:

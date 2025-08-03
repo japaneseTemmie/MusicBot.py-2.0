@@ -34,12 +34,11 @@ import re
 import discord
 from discord.ext import commands
 from discord.interactions import Interaction
-from discord import Intents
-from discord import app_commands
+from discord import Intents, app_commands
 
 # Misc imports
 from yt_dlp import YoutubeDL
-from logging import FileHandler, Formatter, Logger, getLogger, ERROR, DEBUG, WARNING, INFO, FATAL, CRITICAL
+from logging import FileHandler, Formatter, Logger, getLogger, ERROR, DEBUG, WARNING, INFO, CRITICAL
 from random import choice, randint, shuffle
 from cachetools import TTLCache
 from importlib import import_module
@@ -53,6 +52,7 @@ from platform import system, python_implementation, python_version
 from os.path import join, dirname, exists, isdir
 from os import listdir, remove, makedirs, getenv, name
 from shutil import rmtree, which
+from subprocess import PIPE, DEVNULL
 from sys import exit as sysexit
 from dotenv import load_dotenv
 from json import load, dump, JSONDecodeError
@@ -95,7 +95,7 @@ def write_file_settings(file_path: str, content: dict | str, json_mode: bool) ->
         
         return True
 
-def get_directory() -> str:
+def get_current_directory() -> str:
     path = dirname(__file__)
     log(f"Working directory: {path}")
     separator()
@@ -189,12 +189,12 @@ def open_help_file() -> dict | None:
     separator()
     return content
 
-def get_defaults() -> dict:
+def get_default_config_data() -> dict:
     return {
         "yt_dlp_options": {
             "quiet": True,
             "noplaylist": True,
-            "format": "bestaudio/best",
+            "format": "bestaudio[ext=opus]/bestaudio[ext=mp3]/bestaudio/best",
             "extractaudio": True,
             "no_warnings": True
         },
@@ -228,7 +228,7 @@ def check_config_exists(path: str, default_data: dict) -> bool:
 
 def get_config_data() -> dict | NoReturn:
     path = join(PATH, "config.json")
-    default_data = get_defaults()
+    default_data = get_default_config_data()
 
     success = check_config_exists(path, default_data)
 
@@ -287,7 +287,7 @@ VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": dis
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
 
 # System info and config
-PATH = get_directory()
+PATH = get_current_directory()
 PYTHON = get_python()
 SYSTEM = get_os()
 CONFIG = get_config_data()
@@ -342,13 +342,12 @@ PLAYLIST_LOCKS = {}
 ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
-EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=1800)
 
-""" Asyncio.Event() objects that function as locks for safe shutdown.
-Use .clear() to release the lock.
-Use .set() to acquire the lock and refuse any VoiceClient or I/O operation.
-Use .wait() to block the event loop if a lock is acquired (should be used rarely).
-Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
+# asyncio.Event() objects that function as locks for safe shutdown.
+# Use .clear() to release the lock.
+# Use .set() to acquire the lock and refuse any VoiceClient or I/O operation.
+# Use .wait() to block the event loop if a lock is acquired (should be used rarely).
+# Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
