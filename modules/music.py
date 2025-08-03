@@ -463,8 +463,6 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
-        await interaction.response.defer(thinking=True)
-
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
