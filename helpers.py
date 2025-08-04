@@ -206,8 +206,10 @@ async def fetch_queries(guild_states: dict,
                 provider=provider
             )
 
-        if isinstance(extracted_query, (Error, list)):
+        if isinstance(extracted_query, Error):
             return extracted_query
+        elif isinstance(extracted_query, list):
+            found.extend(extracted_query)
         else:
             found.append(extracted_query)
     
