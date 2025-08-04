@@ -2,7 +2,6 @@
 
 from settings import *
 from guild import check_guilds
-from helpers import Error
 from loader import ModuleLoader
 
 class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
@@ -29,25 +28,34 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
         return cogs
 
-    async def load_cog(self, cog: commands.Cog) -> bool | Error:
+    async def load_cog(self, cog: commands.Cog) -> bool:
         try:
             await self.add_cog(cog)
         except Exception as e:
-            return Error(f"An error occurred while loading {cog.__class__.__name__}\nErr: {e}")
+            if CAN_LOG and LOGGER:
+                LOGGER.exception(e)
+
+            log(f"An error occurred while loading {cog.__class__.__name__}\nErr: {e}")
+            return False
         
         log(f"Successfully loaded cog {cog.__class__.__name__}")
         return True
 
     async def load_cogs(self) -> None:
         log(f"Loading cogs..")
+        loaded = []
         cogs = await self.get_cogs()
 
         for cog in cogs:
             obj = cog(self)
-            result = await self.load_cog(obj)
-        
-            if isinstance(result, Error):
-                log(result.msg)
+            is_loaded = await self.load_cog(obj)
+
+            if is_loaded:
+                loaded.append(obj)
+
+        if cogs and not loaded:
+            log(f"All cogs failed to load. Check log file if present.")
+            await asyncio.sleep(5)
 
     async def set_activity(self) -> None:
         """ Set up an activity, if configured. """
