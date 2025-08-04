@@ -2,7 +2,7 @@
 
 from settings import *
 from cachehelpers import get_cache, store_cache, invalidate_cache
-from timehelpers import format_minutes, format_seconds, format_minutes_extended
+from timehelpers import format_to_minutes, format_to_seconds, format_to_seconds_extended
 from extractor import fetch, get_query_type
 
 """ Utilities """
@@ -602,9 +602,9 @@ async def get_ffmpeg_options(position: int) -> dict:
     return FFMPEG_OPTIONS
 
 async def validate_stream(url: str) -> bool:
-    proc = await asyncio.create_subprocess_exec(
+    process = await asyncio.create_subprocess_exec(
         'ffprobe',
-        '-v', 'error',
+        '-v', 'quiet',
         '-show_entries', 'stream=codec_type,codec_name,bit_rate',
         '-of', 'default=noprint_wrappers=1:nokey=1',
         url,
@@ -612,12 +612,12 @@ async def validate_stream(url: str) -> bool:
         stderr=asyncio.subprocess.DEVNULL
     )
 
-    stdout, _ = await proc.communicate()
+    stdout, _ = await process.communicate()
 
     output = stdout.decode().strip().splitlines()
     audio_stream_found = any(line for line in output if line and line != 'video')
 
-    return proc.returncode == 0 and audio_stream_found
+    return process.returncode == 0 and audio_stream_found
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:
@@ -689,11 +689,10 @@ async def unlock_playlist(locked: dict, content: dict | Error, playlist_name: st
     
     await cleanup_locked_playlists(content, locked)
 
-async def unlock_all_playlists(guild_states: dict, interaction: Interaction, locked: dict) -> None:
+async def unlock_all_playlists(locked: dict) -> None:
     """ Unlocks every playlist.\n
     Used only in case of errors. """
     
-    locked = guild_states[interaction.guild.id]["locked_playlists"]
     locked.clear()
 
 async def is_playlist_locked(locked: dict) -> bool:

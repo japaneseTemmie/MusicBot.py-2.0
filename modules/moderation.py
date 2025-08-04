@@ -200,7 +200,7 @@ class ModerationCog(commands.Cog):
         member_top_role = interaction.user.top_role
         bot_top_role = interaction.guild.me.top_role
 
-        duration_in_seconds = format_minutes_extended(duration.strip())
+        duration_in_seconds = format_to_seconds_extended(duration.strip())
         current_time = get_time()
 
         if duration_in_seconds is None:
