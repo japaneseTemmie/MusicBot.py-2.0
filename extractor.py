@@ -6,7 +6,7 @@ Supported websites:\n
 - Bandcamp """
 
 from settings import *
-from timehelpers import format_seconds
+from timehelpers import format_to_minutes
 
 # List of regex pattern to match website URLs
 # Second item is the 'source_website'
@@ -34,8 +34,7 @@ def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, 
             return pattern
 
     # If no matches are found, match a search query. If not found, default to youtube.
-    search_provider = SEARCH_PROVIDERS.get(provider, ("ytsearch:", "YouTube search"))
-    return (search_provider[0], search_provider[1])
+    return SEARCH_PROVIDERS.get(provider, ("ytsearch:", "YouTube search"))
 
 def prettify_info(info: dict, source_website: str | None=None) -> dict:
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
@@ -47,7 +46,7 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
     else:
         pretty_date = upload_date # Is already a datetime object
     if isinstance(duration, (int, float)):
-        formatted_duration = format_seconds(int(duration))
+        formatted_duration = format_to_minutes(int(duration))
     else:
         formatted_duration = duration # Is already a HH:MM:SS string
 
