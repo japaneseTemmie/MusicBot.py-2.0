@@ -7,6 +7,7 @@ Supported websites:\n
 
 from settings import *
 from timehelpers import format_to_minutes
+from error import Error
 
 # List of regex pattern to match website URLs
 # Second item is the 'source_website'
@@ -56,7 +57,7 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
 
     return info
 
-def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | None:
+def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
     """ Parse extracted query in a readable/playable format for the VoiceClient. """
     
     source_website = query_type[1]
@@ -68,7 +69,7 @@ def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | l
     # If it's a search, prettify the first entry and return
     if source_website in ("YouTube search", "SoundCloud search") and "entries" in info:
         if len(info["entries"]) == 0:
-            return None
+            return Error(f"No results found for query `{query[:50]}`.")
         
         first_entry = info["entries"][0]
         info = prettify_info(first_entry, source_website)
@@ -80,7 +81,7 @@ def parse_info(info: dict, query_type: tuple[re.Pattern | str, str]) -> dict | l
 
     return info
 
-def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
+def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | Error:
     """ Search a webpage and find info about the query.\n
     Must be sent to a thread. """
     
@@ -95,10 +96,10 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | None:
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(e)
 
-        return None
+        return Error(f"An error occured while extracting `{query[:50]}`.")
 
     if info is not None:
-        info = parse_info(info, query_type)
+        info = parse_info(info, query, query_type)
         return info
     
-    return None
+    return Error(f"An error occured while extracting `{query[:50]}`.")

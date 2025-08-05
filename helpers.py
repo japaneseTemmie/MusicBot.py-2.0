@@ -4,12 +4,9 @@ from settings import *
 from cachehelpers import get_cache, store_cache, invalidate_cache
 from timehelpers import format_to_minutes, format_to_seconds, format_to_seconds_extended
 from extractor import fetch, get_query_type
+from error import Error
 
 """ Utilities """
-
-class Error:
-    def __init__(self, msg: str):
-        self.msg = msg
 
 # Function to get a hashmap of pages to display of a queue
 def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
@@ -179,8 +176,6 @@ async def fetch_query(
             return Error(f"Query type **{query_type[1]}** not supported for this command!")
 
         extracted_track = await asyncio.to_thread(fetch, query, query_type)
-        if extracted_track is None or (isinstance(extracted_track, list) and not extracted_track):
-            return Error(f"An error occurred while extracting `{query}`.")
 
         return extracted_track
 
@@ -220,7 +215,7 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     query_type = get_query_type(webpage_url, provider)
     
     new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
-    if new_extracted_track is None:
+    if isinstance(new_extracted_track, Error):
         raise ValueError("Invalid audio stream")
     
     return new_extracted_track
