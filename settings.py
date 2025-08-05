@@ -189,15 +189,22 @@ def open_help_file() -> dict | None:
     separator()
     return content
 
+def get_default_yt_dlp_config_data() -> dict:
+    return {
+        "quiet": True,
+        "no_playlist": True,
+        "format": "bestaudio/best",
+        "no_warnings": True,
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "opus",
+            "preferredquality": "0"
+        }]
+    }
+
 def get_default_config_data() -> dict:
     return {
-        "yt_dlp_options": {
-            "quiet": True,
-            "noplaylist": True,
-            "format": "bestaudio[ext=opus]/bestaudio[ext=mp3]/bestaudio/best",
-            "extractaudio": True,
-            "no_warnings": True
-        },
+        "yt_dlp_options": get_default_yt_dlp_config_data(),
         "command_prefix": "?",
         "enable_activity": False,
         "activity_name": "with the API",
@@ -206,7 +213,6 @@ def get_default_config_data() -> dict:
         "enable_file_backups": True,
         "enable_logging": True,
         "log_level": "normal",
-        "skip_ffmpeg_check": False,
         "use_sharding": False,
         "enable_ModerationCog": True,
         "enable_UtilsCog": True, 
@@ -296,8 +302,7 @@ sleep(0.2)
 
 # Define config vars as constants
 CAN_LOG = CONFIG.get("enable_logging", True)
-SKIP_FFMPEG_CHECK = CONFIG.get("skip_ffmpeg_check", False)
-YDL_OPTIONS = CONFIG.get("yt_dlp_options", {"quiet": True, "noplaylist": True, "format": "bestaudio/best", "extractaudio": True, "no_warnings": True})
+YDL_OPTIONS = CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data())
 COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
 USE_SHARDING = CONFIG.get("use_sharding", False)
 ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
@@ -328,13 +333,8 @@ COOLDOWNS = {
 # Set up file handler and formatter for discord.py's logging lib, if requested.
 HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging() if CAN_LOG else remove_log()
 
-if not SKIP_FFMPEG_CHECK:
-    FFMPEG = which("ffmpeg")
-    handle_ffmpeg_path_output(FFMPEG)
-else:
-    FFMPEG = None
-    log(f"FFMpeg check disabled. Program may not function correctly if package ffmpeg is not installed.")
-    separator()
+FFMPEG = which("ffmpeg")
+handle_ffmpeg_path_output(FFMPEG)
 
 # Cache
 # Set up hashmaps for asyncio locks and cache
