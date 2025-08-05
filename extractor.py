@@ -72,14 +72,11 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
             return Error(f"No results found for query `{query[:50]}`.")
         
         first_entry = info["entries"][0]
-        info = prettify_info(first_entry, source_website)
-
-        return info
+        
+        return prettify_info(first_entry, source_website)
     
     # URLs are directly prettified.
-    info = prettify_info(info, source_website)
-
-    return info
+    return prettify_info(info, source_website)
 
 def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | Error:
     """ Search a webpage and find info about the query.\n
