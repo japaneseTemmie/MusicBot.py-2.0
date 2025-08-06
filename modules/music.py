@@ -167,7 +167,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
-        queries="A semicolon separated list of URLs or search queries.",
+        queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
         search_provider="The website to search for each query on. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -199,7 +199,10 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        found = await fetch_queries(self.guild_states, interaction, queries_split, provider=search_provider.value if search_provider is not None else None)
+        allowed_query_types = ("YouTube", "YouTube search", "YouTube Playlist", "SoundCloud", "SoundCloud search", "Bandcamp")
+        provider = search_provider.value if search_provider else None
+
+        found = await fetch_queries(self.guild_states, interaction, queries_split, allowed_query_types=allowed_query_types, provider=provider)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -383,12 +386,19 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
-        query="YouTube (video only), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
+        query="URL or search query. Refer to help entry for valid URLs.",
+        search_provider="The website to search for the query on. URLs ignore this.",
         keep_current_track="Whether or not to keep the current track (if any) in the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(
+        search_provider=[
+            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
+            app_commands.Choice(name="YouTube search", value="youtube")
+        ]
+    )
     @app_commands.guild_only
-    async def play_track_now(self, interaction: Interaction, query: str, keep_current_track: bool=True):
+    async def play_track_now(self, interaction: Interaction, query: str, search_provider: app_commands.Choice[str]=None, keep_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
@@ -410,7 +420,9 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        extracted_track = await fetch_query(self.guild_states, interaction, query, 1, 1, None, "YouTube Playlist")
+        allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+        provider = search_provider.value if search_provider else None
+        extracted_track = await fetch_query(self.guild_states, interaction, query, allowed_query_types=allowed_query_types, provider=provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -881,12 +893,19 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="replace", description="Replaces a track with another one. See entry in /help for more info.")
     @app_commands.describe(
         track_name="Name (or index, in case <by_index> is True) of the track to replace.",
-        new_track_query="YouTube (video only), Newgrounds, SoundCloud, Bandcamp URL or YouTube search query.",
+        new_track_query="URL or search query. Refer to help entry for valid URLs.",
+        search_provider="The provider to use for search queries. URLs ignore this.",
         by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(
+        search_provider=[
+            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
+            app_commands.Choice(name="YouTube search", value="youtube")
+        ]
+    )
     @app_commands.guild_only
-    async def replace_track(self, interaction: Interaction, track_name: str, new_track_query: str, by_index: bool=False):
+    async def replace_track(self, interaction: Interaction, track_name: str, new_track_query: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to replace.") or\
@@ -902,7 +921,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await replace_track_in_queue(self.guild_states, interaction, queue, track_name, new_track_query, by_index=by_index)
+        result = await replace_track_in_queue(self.guild_states, interaction, queue, track_name, new_track_query, by_index=by_index, provider=search_provider)
         if isinstance(result, Error):
             await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -2280,12 +2299,19 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old="The name (or index, if <by_index> is True) of the track to replace.",
-        new="YouTube (video only), Newgrounds, Soundcloud, Bandcamp URL or a YouTube search query.",
+        new="URL or search query. Refer to help entry for valid URLs.",
+        search_provider="The provider used for search query. URLs ignore this.",
         by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(
+        search_provider=[
+            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
+            app_commands.Choice(name="YouTube search", value="youtube")
+        ]
+    )
     @app_commands.guild_only
-    async def replace_playlist_track(self, interaction: Interaction, playlist_name: str, old: str, new: str, by_index: bool=False):
+    async def replace_playlist_track(self, interaction: Interaction, playlist_name: str, old: str, new: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -2305,7 +2331,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old, new, by_index)
+        success = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old, new, search_provider, by_index)
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -2397,11 +2423,18 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-add", description="Adds track(s) to the specified playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
-        queries="A semicolon separated list of YouTube, Newgrounds, SoundCloud, Bandcamp URLs or YouTube search queries."
+        queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
+        search_provider="The provider to use for search queries. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(
+        search_provider=[
+            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
+            app_commands.Choice(name="YouTube search", value="youtube")
+        ]
+    )
     @app_commands.guild_only
-    async def add_playlist_track(self, interaction: Interaction, playlist_name: str, queries: str):
+    async def add_playlist_track(self, interaction: Interaction, playlist_name: str, queries: str, search_provider: app_commands.Choice[str]=None):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -2423,7 +2456,8 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, "YouTube Playlist")
+        allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types=allowed_query_types, provider=search_provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -2636,7 +2670,8 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], None, "YouTube Playlist")
+        allowed_query_types = ("YouTube Playlist",)
+        success = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)

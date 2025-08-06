@@ -157,8 +157,7 @@ async def fetch_query(
             extraction_state_amount: int=1,
             extraction_state_max_length: int=1,
             query_name: str=None,
-            forbid_type: str=None,
-            only_allow_type: str=None,
+            allowed_query_types: tuple[str]=None,
             provider: str | None=None
         ) -> dict | list[dict] | Error:
         """ Extract a query from its website, catch any errors and return the result. """
@@ -171,9 +170,10 @@ async def fetch_query(
         await update_query_extraction_state(guild_states, interaction, extraction_state_amount, extraction_state_max_length, query_name.strip() if query_name is not None else query)
 
         query_type = get_query_type(query, provider)
-        if (forbid_type or only_allow_type) and query_type[1] == forbid_type if forbid_type is not None else\
-                            query_type[1] != only_allow_type if only_allow_type is not None else None:
-            return Error(f"Query type **{query_type[1]}** not supported for this command!")
+        source_website = query_type[1]
+        
+        if allowed_query_types is not None and source_website not in allowed_query_types:
+            return Error(f"Query type **{source_website}** not supported for this command!")
 
         extracted_track = await asyncio.to_thread(fetch, query, query_type)
 
@@ -183,8 +183,7 @@ async def fetch_queries(guild_states: dict,
         interaction: Interaction,
         queries: list[str | dict],
         query_names: list[str]=None,
-        forbid_type: str=None,
-        only_allow_type: str=None,
+        allowed_query_types: tuple[str]=None,
         provider: str | None=None
     ) -> list[dict | list[dict]] | Error:
     """ Extract a list of queries using the fetch_query() function. """
@@ -196,8 +195,7 @@ async def fetch_queries(guild_states: dict,
                 extraction_state_amount=i + 1,
                 extraction_state_max_length=len(queries),
                 query_name=query_names[i] if isinstance(query_names, list) else query_names,
-                forbid_type=forbid_type,
-                only_allow_type=only_allow_type,
+                allowed_query_types=allowed_query_types,
                 provider=provider
             )
 
@@ -389,6 +387,7 @@ async def replace_track_in_queue(
         queue: list[dict],
         track: str, 
         new_track: str,
+        provider: app_commands.Choice | None=None,
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict, dict] | Error:
@@ -397,7 +396,10 @@ async def replace_track_in_queue(
     if isinstance(found_track, Error):
         return found_track
 
-    extracted_track = await fetch_query(guild_states, interaction, new_track, 1, 1, None, "YouTube Playlist")
+    allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+    provider = provider.value if provider else None
+
+    extracted_track = await fetch_query(guild_states, interaction, new_track, allowed_query_types=allowed_query_types, provider=provider)
     if isinstance(extracted_track, Error):
         return extracted_track
 
@@ -410,7 +412,7 @@ async def replace_track_in_queue(
             'source_website': extracted_track['source_website']
         }
 
-    if extracted_track["title"].lower().replace(" ", "") == found_track[0]["title"].lower().replace(" ", ""):
+    if extracted_track["webpage_url"] == found_track[0]["webpage_url"]:
         return Error(f"Cannot replace a track (**{found_track[0]['title']}**) with the same one.")
     
     removed_track = queue.pop(found_track[1])

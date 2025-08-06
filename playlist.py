@@ -200,7 +200,7 @@ class PlaylistManager:
         else:
             return success
 
-    async def replace(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, old: str, new: str, by_index: bool=False) -> tuple[bool, dict, dict] | Error:
+    async def replace(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, old: str, new: str, provider: app_commands.Choice | None=None, by_index: bool=False) -> tuple[bool, dict, dict] | Error:
         """ Replaces a playlist track with an extracted track from a given query.\n
         If successful, returns a tuple with a boolean indicating write success [0], the old track [1] and the new track [2]. Error otherwise."""
         
@@ -221,7 +221,7 @@ class PlaylistManager:
         if await is_playlist_empty(playlist):
             return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot replace track.")
 
-        result = await replace_track_in_queue(guild_states, interaction, playlist, old, new, True, by_index)
+        result = await replace_track_in_queue(guild_states, interaction, playlist, old, new, provider, True, by_index)
         if isinstance(result, Error):
             return result
 
@@ -363,7 +363,7 @@ class PlaylistManager:
         
         return (success, added)
 
-    async def add(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, queries: list[str], forbid_type: str=None, only_allow_type: str=None) -> tuple[bool, list[dict]] | Error:
+    async def add(self, guild_states: dict, interaction: Interaction, content: dict | Error, playlist_name: str, queries: list[str], allowed_query_types: tuple[str], provider: app_commands.Choice | None=None) -> tuple[bool, list[dict]] | Error:
         """ Adds a list of queries to the given playlist.\n
         If successful, returns a tuple with a boolean indicating write success [0] and list containing the added tracks [1]. Error otherwise. """
         
@@ -379,7 +379,8 @@ class PlaylistManager:
         if await is_content_full(self.max_limit, content) and not await playlist_exists(content, playlist_name):
             return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
 
-        found = await fetch_queries(guild_states, interaction, queries, None, forbid_type, only_allow_type)
+        provider = provider.value if provider else None
+        found = await fetch_queries(guild_states, interaction, queries, allowed_query_types=allowed_query_types, provider=provider)
 
         if isinstance(found, list):
             success = await self.add_queue(interaction, content, playlist_name, found)
