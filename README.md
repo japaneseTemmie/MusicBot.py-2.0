@@ -4,7 +4,8 @@ an **extended** moderation module alongside other new features!
 
 ## Table of contents
 - [Key features](#key-features)
-- [Bot Setup Guide](#bot-setup-guide)
+- [Quick start guide](#quick-start-guide)
+- [Full Setup Guide](#full-bot-setup-guide)
 - [Create a Discord Application](#create-a-discord-application)
 - [Set up a Bot](#set-up-a-bot)
 - [Code setup](#code-setup)
@@ -17,27 +18,40 @@ an **extended** moderation module alongside other new features!
 - [Licensing](#licensing)
 
 ## Key features
-- Application commands support for a more user friendly interface.
+- Full application commands support for a more user-friendly interface.
+- Multi-guild support.
 - Improved playlist capabilities, now with multi-playlist support.
 - Improved help command.
-- Role-based command access system.
-- Better command functionality.
+- Enhanced role-based command access system.
+- Enhanced command functionality.
 - Multi-website support, with **YouTube** (video or playlist*), **Newgrounds**, **SoundCloud** and **Bandcamp**.
 - 40+ music commands and 15+ moderation commands.
-- Guild and VC auto-cleanup logic.
+- Guild and voice channel auto-cleanup logic.
 - Extendable with custom modules.
 - Easily self-hostable.
 
 _*Playlist support may depend on command._
 
-# Bot Setup Guide
+# Quick start guide
+- Go through the full guide below if you're inexperienced with setting up Discord bots.
+  
+  Otherwise, here are the core commands for basic setup on UNIX-like systems with git:
+
+```bash
+git clone https://github.com/japaneseTemmie/MusicBot.py-2.0
+cd MusicBot.py-2.0
+echo "TOKEN=your_bot_token" > .env
+python3 run.py
+```
+
+# Full Bot Setup Guide
 - If you already have a bot, this section can be skipped. Visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
 
 ## Create a Discord Application
 - Visit the [Discord Developer Portal](https://discord.com/developers/applications), log in, and create a new app. You may customize it if you wish.
 
 ## Set up a Bot
-- Go to the `Bot` section.
+- Navigate to the `Bot` section.
   
   (Optional) Modify the name, avatar and banner to your liking.
 - Scroll down to `Privileged Gateway Intents` and enable everything. Save the changes.
@@ -92,13 +106,19 @@ _*Playlist support may depend on command._
 
   Expected output: `ffmpeg version {VERSION}...`
 
-- (Optional, but preferred) An internet connection with **high download/upload speeds**.
+- Optional, but preferred if hosting on many guilds:
+
+  - An internet connection with **high download/upload speeds**.
   
-  (Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps DL`/`~500mbps UL` for a moderate amount of guilds)
+    (Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds)
 
-- (Optional, but preferred) A system with lots of RAM (>= 32GB) for many guilds.
+  - A system with lots of RAM (>= 32GB) for many guilds.
 
-  The bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
+    The bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
+
+  - A system with a powerful CPU (8+ Cores) for many guilds.
+
+    A powerful CPU is required for tasks like `yt-dlp` extraction, `FFmpeg` post-processing and `Discord` audio processing.
 
 Project was tested on the following software: `Python 3.12.3`, `FFmpeg 6.1` and `Linux Mint 22.1`
 
@@ -193,6 +213,17 @@ Documentation for every key can be found at the top of the `settings.py` file. M
 
 Note: Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
 
+Example activity config:
+
+```json
+{
+  "enable_activity": true,
+  "activity_name": "Amazing music",
+  "activity_type": "listening",
+  "default_status": "online"
+}
+```
+
 # Extending the bot (For devs)
 To add your own modules, simply create a new **.py** file in the `modules` directory, in that file, import everything from the `settings.py`
 module, which contains useful variables and other modules to help writing your custom module.
@@ -210,6 +241,7 @@ Best practices:
 - Check the `CAN_LOG` constant before logging exceptions with `LOGGER`.
 - Do _not_ use the `TOKEN` constant anywhere unless explicitly required (like running the bot).
 - If custom Cogs need other non-default permissions, make sure to enable them in  [your application's Installation section](https://discord.com/applications)
+- Imports should ideally be kept in the `settings.py` file.
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow quick enable/disable of the module, and set its value to `true`, or else the bot won't load your Cog.
 
