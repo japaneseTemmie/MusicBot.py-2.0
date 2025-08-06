@@ -45,7 +45,7 @@ python3 run.py
 ```
 
 # Full Bot Setup Guide
-- If you already have a bot, this section can be skipped. Visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
+- If you already have a bot, this section can be skipped. Ensure the needed permissions and intents enabled and visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
 
 ## Create a Discord Application
 - Visit the [Discord Developer Portal](https://discord.com/developers/applications), log in, and create a new app. You may customize it if you wish.
