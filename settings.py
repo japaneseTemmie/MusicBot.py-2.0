@@ -154,7 +154,7 @@ def get_status() -> discord.Status:
     return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if STATUS_TYPE is None else\
     VALID_STATUSES.get(STATUS_TYPE, discord.Status.online)
 
-def handle_ffmpeg_path_output(output: str | None) -> None | NoReturn:
+def handle_ffmpeg_path_output(output: str | None) -> None:
     if output is None:
         log(f"FFmpeg not found!")
         
