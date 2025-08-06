@@ -18,7 +18,7 @@ def is_in_venv() -> None:
 PATH = dirname(__file__)
 VENV_PYTHON = join(PATH, "bin", "python3") if name == "posix" else join(PATH, "Scripts", "python.exe")
 VENV_PIP = join(PATH, "bin", "pip") if name == "posix" else join(PATH, "Scripts", "pip.exe")
-DEFAULT_DEPENDENCIES = "discord\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
+DEFAULT_DEPENDENCIES = "discord.py\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
 
 cmd_install_venv = ["python3", "-m", "venv", PATH] if name == "posix" else ["python", "-m", "venv", PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
