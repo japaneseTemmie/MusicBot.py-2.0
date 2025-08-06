@@ -2,16 +2,15 @@ from os.path import dirname, exists, join
 from os import name
 from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix
-from typing import NoReturn
 from time import sleep
 from datetime import datetime
 
-def check_python_ver() -> None | NoReturn:
+def check_python_ver() -> None:
     if version_info < (3, 10):
         log(f"Python 3.10+ is required for this project.", 2)
         sysexit(1)
 
-def is_in_venv() -> None | NoReturn:
+def is_in_venv() -> None:
     if prefix != base_prefix:
         log("This script cannot be executed inside a venv.")
         sysexit(1)
@@ -54,7 +53,7 @@ def run(command: list[str], sep_process: bool=False) -> int:
                         preexec_fn=preexec_fn
                         )
     except SubprocessError as e:
-        log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'")
+        log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}")
         sysexit(1) # No point in continuing
     
     try:
@@ -83,7 +82,7 @@ def write(fp: str, content: str) -> bool:
         log(f"An error occurred while writing to {fp}.\nErr: {e}")
         return False
 
-def handle_return_code(code: int, command: str) -> None | NoReturn:
+def handle_return_code(code: int, command: str) -> None:
     if code != 0:
         log(f"Running command '{command}' failed. Exiting...")
         sysexit(1)
@@ -91,7 +90,7 @@ def handle_return_code(code: int, command: str) -> None | NoReturn:
 def venv_exists() -> bool:
     return exists(VENV_PYTHON)
 
-def requirements_exist() -> None | NoReturn:
+def ensure_requirements() -> None:
     if not exists(join(PATH, "requirements.txt")):
         log("requirements.txt file not found. Creating file..")
         sleep(1)
@@ -101,15 +100,15 @@ def requirements_exist() -> None | NoReturn:
         if not success:
             sysexit(1)
 
-def install_venv() -> None | NoReturn:
+def install_venv() -> None:
     code = run(cmd_install_venv)
     handle_return_code(code, " ".join(cmd_install_venv))
 
-def install_dependencies() -> None | NoReturn:
+def install_dependencies() -> None:
     code = run(cmd_install_deps)
     handle_return_code(code, " ".join(cmd_install_deps))
 
-def main() -> None | NoReturn:
+def main() -> None:
     check_python_ver()
     is_in_venv()
     
@@ -120,7 +119,7 @@ def main() -> None | NoReturn:
 
         if venv_exists():
             log("Checking requirements.txt",0.5)
-            requirements_exist()
+            ensure_requirements()
 
             log("Installing dependencies through requirements.txt",0.5)
             install_dependencies()
