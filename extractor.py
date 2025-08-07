@@ -78,7 +78,7 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
     # URLs are directly prettified.
     return prettify_info(info, source_website)
 
-def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | Error:
+def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
     """ Search a webpage and find info about the query.\n
     Must be sent to a thread. """
     
