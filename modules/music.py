@@ -348,8 +348,6 @@ class MusicCog(commands.Cog):
             else await interaction.followup.send("Queue is empty.")
             return
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
         if not queue and queue_to_loop:
             new_queue = deepcopy(queue_to_loop)
             await update_guild_state(self.guild_states, interaction, new_queue, "queue")
@@ -363,16 +361,13 @@ class MusicCog(commands.Cog):
         else:
             track = queue.pop(0)
 
-        if track and voice_client:
-            await self.play_track(interaction, voice_client, track)
-            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+        await self.play_track(interaction, voice_client, track)
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-            if not is_looping:
-                await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
-                else await interaction.followup.send(f"Now playing: **{track['title']}**")
-        else:
-            await interaction.channel.send("An error occurred while getting track from the queue.") if interaction.is_expired()\
-            else await interaction.followup.send("An error occurred while getting track from the queue.")
+        if not is_looping:
+            await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
+            else await interaction.followup.send(f"Now playing: **{track['title']}**")
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction):
         if error is not None:
