@@ -128,6 +128,8 @@ class MusicCog(commands.Cog):
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
+        log(f"[CONNECT] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
+
     @app_commands.command(name="leave", description="Makes the bot leave your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
