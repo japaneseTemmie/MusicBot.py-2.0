@@ -11,14 +11,12 @@ def open_file(file_path: str, json_mode: bool) -> dict | str | bool:
     
     try:
         with open(file_path) as f:
-            content = load(f) if json_mode else f.read()
-            
-            return content
+            return load(f) if json_mode else f.read()
     except Exception as e:
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(e)
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(e)
 
-            return False
+        return False
 
 def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
     """ Write to a file and return None.\n
@@ -29,13 +27,12 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
     try:
         with open(file_path, "w") as f:
             dump(content, f, indent=4) if json_mode else f.write(content)
-
-            return True
+        return True
     except Exception as e:
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(e)
+        if CAN_LOG and LOGGER is not None:
+            LOGGER.exception(e)
 
-            return False
+        return False
 
 def ensure_paths(path: str, file: str | None, file_content_on_creation: str | dict={}) -> bool:
     if not exists(path):
