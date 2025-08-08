@@ -85,7 +85,7 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
     try:
         with YoutubeDL(YDL_OPTIONS) as yt:
             search_string = query_type[0]
-            if search_string in ("ytsearch:", "scsearch:"):
+            if isinstance(search_string, str):
                 info = yt.extract_info(search_string + query, download=False)
             else:
                 info = yt.extract_info(query, download=False)
