@@ -31,7 +31,7 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     return embed
 
-def generate_skipped_tracks_embed(skipped: list[dict]):
+def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
     embed = discord.Embed(
         title=f"Skipped {'tracks' if len(skipped) > 1 else 'track'}",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -46,7 +46,7 @@ def generate_skipped_tracks_embed(skipped: list[dict]):
 
     return embed
 
-def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False):
+def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) -> discord.Embed:
     embed = discord.Embed(
         title=f"{'Queue' if not is_playlist else 'Playlist'} update: Removed tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -64,7 +64,7 @@ def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False):
 
     return embed
 
-def generate_edited_tracks_embed(found: list[dict]):
+def generate_edited_tracks_embed(found: list[dict, str]) -> discord.Embed:
     embed = discord.Embed(
         title="Playlist update: Renamed tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
