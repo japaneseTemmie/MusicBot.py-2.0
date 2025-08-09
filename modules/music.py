@@ -1526,7 +1526,6 @@ class MusicCog(commands.Cog):
         
         history_pages = await asyncio.to_thread(get_pages, track_history)
 
-        
         page = max(1, min(page, len(history_pages)))
         page -= 1
 
@@ -1566,9 +1565,9 @@ class MusicCog(commands.Cog):
         current_query_amount = self.guild_states[interaction.guild.id]["query_amount"]
 
         if current_query is None and\
-        max_queries == 0 and\
-        current_query_amount == 0:
-            await interaction.response.send_message("Failed to read values.")
+            max_queries == 0 and\
+            current_query_amount == 0:
+            await interaction.response.send_message("Invalid values.")
             return
 
         embed = generate_extraction_embed(current_query, max_queries, current_query_amount)
@@ -1688,16 +1687,16 @@ class MusicCog(commands.Cog):
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
         embed = generate_current_track_embed(
-                                        info=info,
-                                        queue=queue,
-                                        queue_to_loop=queue_to_loop,
-                                        track_to_loop=track_to_loop,
-                                        elapsed_time=elapsed_time,
-                                        looping=is_looping,
-                                        random=is_random,
-                                        queueloop=is_looping_queue,
-                                        is_modifying_queue=queue_state_being_modified
-                                    )
+            info=info,
+            queue=queue,
+            queue_to_loop=queue_to_loop,
+            track_to_loop=track_to_loop,
+            elapsed_time=elapsed_time,
+            looping=is_looping,
+            random=is_random,
+            queueloop=is_looping_queue,
+            is_modifying_queue=queue_state_being_modified
+        )
         await interaction.response.send_message(embed=embed)
 
     @show_current_track_info.error
@@ -1842,7 +1841,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -1889,14 +1888,17 @@ class MusicCog(commands.Cog):
         success = await self.playlist.add_queue(interaction, content, playlist_name, queue)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                embed = generate_added_track_embed(success[1], True)
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            added = success[1]
+
+            if not isinstance(write_result, Error):
+                embed = generate_added_track_embed(added, True)
                 await interaction.followup.send(embed=embed)
             else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
-            await interaction.followup.send(success.msg)
+                await interaction.followup.send(write_result.msg)
 
     @save_queue_in_playlist.error
     async def handle_save_queue_in_playlist_error(self, interaction: Interaction, error):
@@ -1907,7 +1909,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -1944,13 +1946,17 @@ class MusicCog(commands.Cog):
         success = await self.playlist.place(interaction, content, playlist_name, current_track, index)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                await interaction.followup.send(f"Placed track **{success[1]['title']}** at index **{success[2]}** of playlist **{playlist_name}**.")
-            else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            added_track = success[1]
+            index = success[2]
+
+            if not isinstance(write_result, Error):
+                await interaction.followup.send(f"Placed track **{added_track['title']}** at index **{index}** of playlist **{playlist_name}**.")
+            else:
+                await interaction.followup.send(write_result.msg)
 
     @save_current_in_playlist.error
     async def handle_save_current_in_playlist_error(self, interaction: Interaction, error):
@@ -1961,7 +1967,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2037,7 +2043,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2067,11 +2073,11 @@ class MusicCog(commands.Cog):
             content = await self.playlist.read(interaction)
             await lock_playlist(interaction, content, locked, playlist_name)
 
-        result = await self.playlist.create(interaction, content, playlist_name)
+        success = await self.playlist.create(interaction, content, playlist_name)
         await unlock_playlist(locked, content, playlist_name)
             
-        if isinstance(result, Error):
-            await interaction.followup.send(result.msg)
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
         else:
             await interaction.followup.send(f"Playlist **{playlist_name}** has been created.")
 
@@ -2084,7 +2090,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2120,11 +2126,17 @@ class MusicCog(commands.Cog):
 
         if isinstance(success, Error):
             await interaction.followup.send(success.msg)
-        else:
-            msg = f'Playlist **{playlist_name}** has been deleted.' if not erase_contents_only else\
-            f'**{len(success[1])}** tracks have been deleted from playlist **{playlist_name}**.'
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            removed_tracks = success[1]
+            removed_tracks_len = len(removed_tracks)
 
-            await interaction.followup.send(msg)
+            if not isinstance(write_result, Error):
+                await interaction.followup.send(f"**{removed_tracks_len}** tracks {'have' if removed_tracks_len > 1 else 'has'} been removed from playlist **{playlist_name}**.")
+            else:
+                await interaction.followup.send(write_result.msg)
+        else:
+            await interaction.followup.send(f"Playlist **{playlist_name}** has been deleted.")
 
     @delete_playlist.error
     async def handle_delete_playlist_error(self, interaction: Interaction, error):
@@ -2135,7 +2147,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2171,11 +2183,17 @@ class MusicCog(commands.Cog):
         success = await self.playlist.remove(interaction, content, playlist_name, track_names, by_index)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, list):
-            embed = generate_removed_tracks_embed(success, True)
-            await interaction.followup.send(embed=embed)
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            removed_tracks = success[1]
+
+            if not isinstance(write_result, Error):
+                embed = generate_removed_tracks_embed(removed_tracks, True)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_result.msg)
 
     @remove_playlist_track.error
     async def handle_remove_playlist_track_error(self, interaction: Interaction, error):
@@ -2186,7 +2204,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2214,14 +2232,13 @@ class MusicCog(commands.Cog):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         
-        content = await self.playlist.read(interaction) if not rewrite else {}
+        content = await self.playlist.read(interaction)
         success = await self.playlist.delete_all(interaction, content, locked, rewrite)
 
         if isinstance(success, Error):
             await interaction.followup.send(success.msg)
         else:
-            msg = f'Deleted **{len(content)}** playlist(s).' if not rewrite else 'Structure rewritten successfully.'
-            await interaction.followup.send(msg)
+            await interaction.followup.send(f'Deleted **{len(content)}** playlist(s).' if not rewrite else 'Structure rewritten successfully.')
 
     @delete_all_playlists.error
     async def handle_delete_all_playlists_error(self, interaction: Interaction, error):
@@ -2232,7 +2249,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2267,13 +2284,17 @@ class MusicCog(commands.Cog):
         success = await self.playlist.rename(interaction, content, playlist_name, new_playlist_name)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                await interaction.followup.send(f"Renamed playlist **{success[1]}** to **{success[2]}**")
-            else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            old_name = success[1]
+            new_name = success[2]
+
+            if not isinstance(write_result, Error):
+                await interaction.followup.send(f"Renamed playlist **{old_name}** to **{new_name}**.")
+            else:
+                await interaction.followup.send(write_result.msg)
 
     @rename_playlist.error
     async def handle_rename_playlist_error(self, interaction: Interaction, error):
@@ -2284,7 +2305,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2334,13 +2355,17 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                await interaction.followup.send(f"Replaced track **{success[1]["title"]}** with track **{success[2]["title"]}**")
-            else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            old_track = success[1]
+            new_track = success[2]
+
+            if not isinstance(write_result, Error):
+                await interaction.followup.send(f"Replaced track **{old_track['title']}** with track **{new_track['title']}**")
+            else:
+                await interaction.followup.send(write_result.msg)
 
         await check_users_in_channel(self.guild_states, interaction)
 
@@ -2355,7 +2380,7 @@ class MusicCog(commands.Cog):
             
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2392,13 +2417,18 @@ class MusicCog(commands.Cog):
         success = await self.playlist.reposition(interaction, content, playlist_name, track_name, new_index, by_index)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                await interaction.followup.send(f"Repositioned track **{success[1]["title"]}** from index **{success[2]}** to **{success[3]}**")
-            else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            track = success[1]
+            old_index = success[2]
+            new_index = success[3]
+
+            if not isinstance(write_result, Error):
+                await interaction.followup.send(f"Repositioned track **{track['title']}** from index **{old_index}** to **{new_index}**")
+            else:
+                await interaction.followup.send(write_result.msg)
 
     @reposition_playlist_track.error
     async def handle_reposition_playlist_track(self, interaction: Interaction, error):
@@ -2409,7 +2439,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2460,14 +2490,17 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                embed = generate_added_track_embed(success[1], True)
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            added_tracks = success[1]
+            
+            if not isinstance(write_result, Error):
+                embed = generate_added_track_embed(added_tracks, True)
                 await interaction.followup.send(embed=embed)
             else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
-            await interaction.followup.send(success.msg)
+                await interaction.followup.send(write_result.msg)
 
         await check_users_in_channel(self.guild_states, interaction)
 
@@ -2482,7 +2515,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2532,15 +2565,15 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, list):
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        elif isinstance(success, list):
             if not voice_client.is_playing() and\
             not voice_client.is_paused():
                 await self.play_next(interaction)
 
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, Error):
-            await interaction.followup.send(success.msg)
 
     @fetch_playlist_track.error
     async def handle_fetch_playlist_track_error(self, interaction: Interaction, error):
@@ -2553,7 +2586,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2611,15 +2644,15 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, list):
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        elif isinstance(success, list):
             if not voice_client.is_playing() and\
             not voice_client.is_paused():
                 await self.play_next(interaction)
 
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
-        elif isinstance(success, Error):
-            await interaction.followup.send(success.msg)
 
     @choose_random_playlist_tracks.error
     async def handle_choose_random_playlist_tracks(self, interaction: Interaction, error):
@@ -2632,7 +2665,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2674,14 +2707,17 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                embed = generate_added_track_embed(success[1], True)
+        if isinstance(success, Error):
+            await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            added_tracks = success[1]
+            
+            if not isinstance(write_result, Error):
+                embed = generate_added_track_embed(added_tracks, True)
                 await interaction.followup.send(embed=embed)
             else:
-                await interaction.followup.send("Failed to update playlist contents.")
-        elif isinstance(success, Error):
-            await interaction.followup.send(success.msg)
+                await interaction.followup.send(write_result.msg)
 
         await check_users_in_channel(self.guild_states, interaction)
 
@@ -2696,7 +2732,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
@@ -2733,12 +2769,17 @@ class MusicCog(commands.Cog):
         success = await self.playlist.edit(interaction, content, playlist_name, old_track_names, new_track_names, by_index)
         await unlock_playlist(locked, content, playlist_name)
 
-        if isinstance(success, tuple):
-            if success[0]:
-                embed = generate_edited_tracks_embed(success[1])
-                await interaction.followup.send(embed=embed)
-        elif isinstance(success, Error):
+        if isinstance(success, Error):
             await interaction.followup.send(success.msg)
+        elif isinstance(success, tuple):
+            write_result = success[0]
+            modified_tracks = success[1]
+
+            if not isinstance(write_result, Error):
+                embed = generate_edited_tracks_embed(modified_tracks)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_result.msg)
 
     @edit_playlist_track.error
     async def handle_edit_playlist_track_error(self, interaction: Interaction, error):
@@ -2749,7 +2790,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await unlock_all_playlists(interaction, self.guild_states[interaction.guild.id]["locked_playlists"])
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
