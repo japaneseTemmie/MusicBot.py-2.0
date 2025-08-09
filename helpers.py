@@ -8,12 +8,12 @@ from error import Error
 
 """ Utilities """
 
-# Function to get a hashmap of pages to display of a queue
+# Function to get a hashmap of queue pages to display
 def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
     queue_copy = deepcopy(queue)
     pages = {}
-    max_page = len(pages)
     tracks = []
+    max_page = 0
 
     while queue_copy:
         for _ in range(min(25, len(queue_copy))):
@@ -23,7 +23,7 @@ def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
         tracks = []
         max_page += 1
 
-    return pages # Return result instead of updating a guild state so we can shave off 3 unused states from get_default_state() :33333333
+    return pages
 
 # Function to reset states
 async def get_default_state(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict[int, Any]:
