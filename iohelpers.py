@@ -1,22 +1,19 @@
 """ I/O Helpers for discord.py bot """
+from json import load, dump
+from os import makedirs
+from os.path import exists
 
-from settings import *
-from helpers import *
-
-def open_file(file_path: str, json_mode: bool) -> dict | str | bool:
+def open_file(file_path: str, json_mode: bool) -> dict | str | None:
     """ Open a file and return its contents.\n
     Use `json_mode` to work with json files.\n
-    Returns: file contents (either in plain text or hashmap depending on mode) or False on read fail.\n
+    Returns: file contents (either in plain text or hashmap depending on mode) or None.\n
     Must be sent to a thread. """
     
     try:
         with open(file_path) as f:
             return load(f) if json_mode else f.read()
-    except Exception as e:
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(e)
-
-        return False
+    except OSError:
+        return None
 
 def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
     """ Write to a file and return None.\n
@@ -28,20 +25,14 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
         with open(file_path, "w") as f:
             dump(content, f, indent=4) if json_mode else f.write(content)
         return True
-    except Exception as e:
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(e)
-
+    except OSError:
         return False
 
 def ensure_paths(path: str, file: str | None, file_content_on_creation: str | dict={}) -> bool:
     if not exists(path):
         try:
             makedirs(path, exist_ok=True)
-        except Exception as e:
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(e)
-
+        except Exception:
             return False
 
     if file and not exists(file):

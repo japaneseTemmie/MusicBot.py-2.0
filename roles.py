@@ -53,7 +53,7 @@ async def open_roles(interaction: Interaction) -> dict | Error:
             return Error("Failed to create guild data.")
 
         content = await asyncio.to_thread(open_file, file, True)
-        if content == False:
+        if content is None:
             return Error("Failed to read role contents.")
     
         store_cache(content, interaction.guild.id, ROLE_FILE_CACHE)

@@ -16,7 +16,6 @@ on the selected log_level.\n
     warning: Logs only warnings.\n
     errors: Logs only errors.\n
     critical: Logs critical errors.\n
-- skip_ffmpeg_check: Does not run the ffmpeg check if set to true. Not recommended if you don't have ffmpeg installed.\n
 - use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
 
 Module settings\n
@@ -55,10 +54,10 @@ from shutil import rmtree, which
 from subprocess import PIPE, DEVNULL
 from sys import exit as sysexit
 from dotenv import load_dotenv
-from json import load, dump, JSONDecodeError
+from iohelpers import open_file, write_file
 
 # Types
-from typing import NoReturn, Callable, Any, Iterable
+from typing import NoReturn, Callable, Any
 from types import ModuleType
 
 def log(msg: str) -> None:
@@ -69,31 +68,9 @@ def separator() -> None:
 
 log("Finished importing libraries")
 separator()
-sleep(0.5)
 log(f"Running discord.py version {discord.__version__}")
 separator()
-
-def open_file_settings(file_path: str, json_mode: bool, returnlines: bool=False) -> dict | str | list[str] | None:
-    with open(file_path) as f:
-        try:
-            return load(f) if json_mode else f.read() if not returnlines else f.readlines()
-        except Exception as e:
-            log(f"An error occurred while opening {file_path}\nErr: {e}")
-            return None
-
-def write_file_settings(file_path: str, content: dict | str, json_mode: bool) -> bool:
-    with open(file_path, "w") as f:
-        try:
-            if not isinstance(content, dict) and json_mode:
-                log("Cannot write content of type string with json_mode=True.")
-                return False
-
-            dump(content, f, indent=4) if json_mode else f.write(content)
-        except Exception as e:
-            log(f"An error occurred while writing to {file_path}\nErr: {e}")
-            return False
-        
-        return True
+sleep(0.5)
 
 def get_current_directory() -> str:
     path = dirname(__file__)
@@ -179,9 +156,9 @@ def open_help_file() -> dict | None:
     log(f"Help file found at {path}")    
     log(f"Opening help file at {path}")
     
-    content = open_file_settings(path, True, False)
+    content = open_file(path, True)
     if content is None:
-        log("No /help will be available.")
+        log(f"An error occurred while opening {path}.\nNo /help will be available.")
         return None
     
     log(f"Found {len(content.keys())} entries in help file.")
@@ -220,12 +197,13 @@ def get_default_config_data() -> dict:
         "enable_MyCog": False
     }
 
-def check_config_exists(path: str, default_data: dict) -> bool:
+def ensure_config(path: str, default_data: dict) -> bool:
     if not exists(path):
         log(f"Creating config file because config.json does not exist at {path}")
-        success = write_file_settings(path, default_data, True)
+        success = write_file(path, default_data, True)
 
-        if not success:
+        if success == False:
+            log(f"An error occurred while writing to {path}")
             return False
 
         log(f"Created config file at {path}")
@@ -236,16 +214,17 @@ def get_config_data() -> dict | NoReturn:
     path = join(PATH, "config.json")
     default_data = get_default_config_data()
 
-    success = check_config_exists(path, default_data)
+    success = ensure_config(path, default_data)
 
     if not success:
         sysexit(1)
 
     log(f"Found config file at {path}")
     log(f"Opening config file at {path}")
-    content = open_file_settings(path, True, False)
+    content = open_file(path, True)
 
     if content is None:
+        log(f"An error occurred while opening {path}")
         sysexit(1)
 
     log(f"Found {len(content.keys())} entries in {path}")

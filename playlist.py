@@ -38,7 +38,7 @@ class PlaylistManager:
                 return Error("Failed to create guild data.")
 
             content = await asyncio.to_thread(open_file, file, True)
-            if content == False:
+            if content is None:
                 return Error("Failed to read playlist contents.")
             
             store_cache(content, interaction.guild.id, PLAYLIST_FILE_CACHE)
