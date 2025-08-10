@@ -27,13 +27,14 @@ an **extended** moderation module alongside other new features!
 - Multi-website support, with **YouTube** (video or playlist*), **Newgrounds**, **SoundCloud** and **Bandcamp**.
 - 40+ music commands and 15+ moderation commands.
 - Guild and voice channel auto-cleanup logic.
+- Sharding support.
 - Extendable with custom modules.
 - Easily self-hostable.
 
 _*Playlist support may depend on command._
 
 # Quick start guide
-- Go through the full guide below if you're inexperienced with setting up Discord bots.
+- Go through the [full guide](#full-bot-setup-guide) if you're inexperienced with setting up Discord bots.
   
   Otherwise, here are the core commands for basic setup on UNIX-like systems with git:
 
@@ -141,6 +142,12 @@ More up to date versions should be able to work fine.
   `echo "TOKEN={your_discord_bot_token}" > .env` (UNIX-like)
 
   `echo TOKEN={your_discord_bot_token} > .env` (Windows)
+
+  Example file output:
+  
+  ```dotenv
+  TOKEN=token_here
+  ```
 
 - Replace `{your_discord_bot_token}` with the token copied earlier.
 - Prepare and run automatically using the helper script:
