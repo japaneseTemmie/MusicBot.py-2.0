@@ -31,8 +31,9 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     return False
 
 async def open_roles(interaction: Interaction) -> dict | Error:
-    """ Open the roles.json file safely and return content.\n
-    Return cache if content is cached, cache the content if not. """
+    """ Safely open a guild's roles file and return content.\n
+    Cache the content of a successful read, return cache if already present.
+    Returns: file contents or Error. """
     
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return Error("Role reading temporarily disabled.")
@@ -61,7 +62,9 @@ async def open_roles(interaction: Interaction) -> dict | Error:
         return content
 
 async def write_roles(interaction: Interaction, content: dict, backup: dict | None) -> bool | Error:
-    """ Write content to roles.json. Cache new content if successful. """
+    """ Safely write `content` to a guild's roles file.\n
+    Cache new content if successful.\n
+    Returns a boolean [True] or Error. """
     
     if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
         return Error("Role writing temporarily disabled.")
