@@ -29,6 +29,11 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
         return False
 
 def ensure_paths(path: str, file: str | None, file_content_on_creation: str | dict={}) -> bool:
+    """ Ensure that a path and, optionally, a file exist.\n
+    If a file name is passed and doesn't exist at `path`, it will be created with
+    the contents of `file_content_on_creation` argument.
+    Returns a boolean. """
+    
     if not exists(path):
         try:
             makedirs(path, exist_ok=True)
