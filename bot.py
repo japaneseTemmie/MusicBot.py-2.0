@@ -1,7 +1,7 @@
 """ Bot subclass setup module for discord.py bot """
 
 from settings import *
-from guild import check_guilds
+from guild import check_guild_data
 from loader import ModuleLoader
 
 class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
@@ -90,7 +90,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
         await asyncio.sleep(0.3)
 
-        await check_guilds(bot_user=self.user.name, guilds=self.guilds)
+        await check_guild_data(bot_user=self.user.name, guilds=self.guilds)
         separator()
 
         await self.load_cogs()

@@ -47,7 +47,7 @@ def check_guild_data_path(path: str) -> None:
     else:
         log(f"Found guild data at {path}.")
 
-async def check_guilds(bot_user: str, guilds: list[discord.Guild]) -> None:
+async def check_guild_data(bot_user: str, guilds: list[discord.Guild]) -> None:
     """ Compare the guilds the bot's currently in
     with the guild IDs in the guild_data directory
     and delete any that aren't in the `guilds` parameter list. """
