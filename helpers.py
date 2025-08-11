@@ -420,7 +420,7 @@ async def replace_track_in_queue(
 
     return extracted_track, removed_track
 
-async def edit_tracks_in_queue(max_name_length: int, queue: list[dict], names: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | Error:
+async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | Error:
     names = split(names)
     new_names = split(new_names)
     found = []

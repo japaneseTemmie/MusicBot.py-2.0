@@ -2740,7 +2740,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-edit-track", description="Modifies the specified track's name. See entry in /help for more info.")
+    @app_commands.command(name="playlist-rename-track", description="Modifies the specified track's name. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old_track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to rename.",
@@ -2749,7 +2749,7 @@ class MusicCog(commands.Cog):
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def edit_playlist_track(self, interaction: Interaction, playlist_name: str, old_track_names: str, new_track_names: str, by_index: bool=False):
+    async def rename_playlist_track(self, interaction: Interaction, playlist_name: str, old_track_names: str, new_track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction):
@@ -2766,7 +2766,7 @@ class MusicCog(commands.Cog):
             content = await self.playlist.read(interaction)
             await lock_playlist(interaction, content, locked, playlist_name)
 
-        success = await self.playlist.edit(interaction, content, playlist_name, old_track_names, new_track_names, by_index)
+        success = await self.playlist.rename_item(interaction, content, playlist_name, old_track_names, new_track_names, by_index)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(success, Error):
@@ -2781,8 +2781,8 @@ class MusicCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
 
-    @edit_playlist_track.error
-    async def handle_edit_playlist_track_error(self, interaction: Interaction, error):
+    @rename_playlist_track.error
+    async def handle_rename_playlist_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return

@@ -496,7 +496,7 @@ class PlaylistManager:
 
         return success, orig_playlist_name, new_playlist_name
         
-    async def edit(
+    async def rename_item(
             self, 
             interaction: Interaction, 
             content: dict | Error, 
@@ -525,7 +525,7 @@ class PlaylistManager:
         if await is_playlist_empty(playlist):
             return Error(f"Playlist {playlist_name[:self.max_name_length]} is empty. Cannot rename tracks.")
 
-        found = await edit_tracks_in_queue(self.max_name_length, playlist, names, new_names, by_index)
+        found = await rename_tracks_in_queue(self.max_name_length, playlist, names, new_names, by_index)
         if isinstance(found, Error):
             return found
 
