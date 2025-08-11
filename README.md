@@ -143,13 +143,14 @@ More up to date versions should be able to work fine.
 
   `echo TOKEN={your_discord_bot_token} > .env` (Windows)
 
+- Replace `{your_discord_bot_token}` with the token copied earlier.
+
   Example file output:
   
   ```dotenv
   TOKEN=token_here
   ```
 
-- Replace `{your_discord_bot_token}` with the token copied earlier.
 - Prepare and run automatically using the helper script:
 
   `python3 run.py` (UNIX-like)
