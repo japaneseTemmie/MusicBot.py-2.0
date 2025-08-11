@@ -121,7 +121,7 @@ class MusicCog(commands.Cog):
             await check_users_in_channel(self.guild_states, interaction) # awful fix to avoid users trapping the bot in a vc when using the join command
 
     @join_channel.error
-    async def handle_join_error(self, interaction: Interaction, error):
+    async def handle_join_channel_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
 
@@ -160,7 +160,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(f"Disconnected from **{voice_client.channel.name}**.")
 
     @leave_channel.error
-    async def handle_leave_error(self, interaction: Interaction, error):
+    async def handle_leave_channel_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
 
@@ -226,7 +226,7 @@ class MusicCog(commands.Cog):
             await interaction.followup.send(found.msg)
 
     @add_track.error
-    async def handle_add_error(self, interaction: Interaction, error):
+    async def handle_add_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             
@@ -442,7 +442,7 @@ class MusicCog(commands.Cog):
             await interaction.followup.send(extracted_track.msg)
 
     @play_track_now.error
-    async def handle_playnow_error(self, interaction: Interaction, error):
+    async def handle_play_track_now_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) and\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -501,7 +501,7 @@ class MusicCog(commands.Cog):
             await interaction.followup.send(f"Skipped track **{current_track['title']}**.")
 
     @skip_track.error
-    async def handle_skip_error(self, interaction: Interaction, error):
+    async def handle_skip_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -642,7 +642,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("Paused track playback.")
 
     @pause_track.error
-    async def handle_pause_error(self, interaction: Interaction, error):
+    async def handle_pause_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -690,7 +690,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("Resumed track playback.")
 
     @resume_track.error
-    async def handle_resume_error(self, interaction: Interaction, error):
+    async def handle_resume_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -731,7 +731,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(f"Stopped track **{current_track['title']}** and reset bot state.")
 
     @stop_track.error
-    async def handle_stop_error(self, interaction: Interaction, error):
+    async def handle_stop_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -771,7 +771,7 @@ class MusicCog(commands.Cog):
         await interaction.followup.send(f"Restarted track **{current_track['title']}**.")
 
     @restart_track.error
-    async def handle_restart_error(self, interaction: Interaction, error):
+    async def handle_restart_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -828,7 +828,7 @@ class MusicCog(commands.Cog):
         await interaction.followup.send(f"Selected track **{track_dict['title']}**.")
 
     @select_track.error
-    async def handle_select_error(self, interaction: Interaction, error):
+    async def handle_select_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -871,7 +871,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(f"Now playing: **{random_track['title']}**")
 
     @select_random_track.error
-    async def handle_select_random_error(self, interaction: Interaction, error):
+    async def handle_select_random_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -939,7 +939,7 @@ class MusicCog(commands.Cog):
         await check_users_in_channel(self.guild_states, interaction)
 
     @replace_track.error
-    async def handle_replace_error(self, interaction: Interaction, error):
+    async def handle_replace_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1128,7 +1128,7 @@ class MusicCog(commands.Cog):
                                                 f"Removed **{track_count}** items from queue{f' and **{track_history_count}** items from track history' if clear_history else ''}.")
 
     @clear_queue.error
-    async def handle_clear_error(self, interaction: Interaction, error):
+    async def handle_clear_queue_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) and\
         self.guild_states.get(interaction.guild.id, None) is None:
             await interaction.response.send_message("Cannot clear queue.\nReason: No longer in voice channel.")
@@ -1180,7 +1180,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @remove_track.error
-    async def handle_remove_error(self, interaction: Interaction, error):
+    async def handle_remove_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1227,7 +1227,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(f"Repositioned track **{result[0]['title']}** from index **{result[1]}** to **{result[2]}**.")
 
     @reposition_track.error
-    async def handle_reposition_error(self, interaction: Interaction, error):
+    async def handle_reposition_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1267,7 +1267,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("Queue shuffled successfully!")
 
     @shuffle_queue.error
-    async def handle_shuffle_error(self, interaction: Interaction, error):
+    async def handle_shuffle_queue_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1319,7 +1319,7 @@ class MusicCog(commands.Cog):
         await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_to_minutes(position_seconds)}**.")
 
     @seek_to.error
-    async def handle_seek_error(self, interaction: Interaction, error):
+    async def handle_seek_to_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1383,7 +1383,7 @@ class MusicCog(commands.Cog):
         await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_to_minutes(time_seconds)}**. Now at **{format_to_minutes(elapsed_time)}**")
 
     @rewind_track.error
-    async def handle_rewind_error(self, interaction: Interaction, error):
+    async def handle_rewind_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1446,7 +1446,7 @@ class MusicCog(commands.Cog):
         await interaction.followup.send(f"Forwarded track (**{current_track['title']}**) by **{format_to_minutes(time_in_seconds)}**. Now at **{format_to_minutes(position)}**.")
 
     @forward_track.error
-    async def handle_forward_error(self, interaction: Interaction, error):
+    async def handle_forward_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1492,7 +1492,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @show_queue.error
-    async def handle_queue_error(self, interaction: Interaction, error):
+    async def handle_show_queue_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1536,7 +1536,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @show_history.error
-    async def handle_history_error(self, interaction: Interaction, error):
+    async def handle_show_history_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1575,7 +1575,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @show_extraction.error
-    async def handle_show_extract_error(self, interaction: Interaction, error):
+    async def handle_show_extraction_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1643,7 +1643,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("Message sent!", ephemeral=True)
 
     @dm_track_info.error
-    async def handle_dm_error(self, interaction: Interaction, error):
+    async def handle_dm_track_info_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -1700,7 +1700,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @show_current_track_info.error
-    async def handle_show_track_info_error(self, interaction: Interaction, error):
+    async def handle_show_current_track_info_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
@@ -2431,7 +2431,7 @@ class MusicCog(commands.Cog):
                 await interaction.followup.send(write_result.msg)
 
     @reposition_playlist_track.error
-    async def handle_reposition_playlist_track(self, interaction: Interaction, error):
+    async def handle_reposition_playlist_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
