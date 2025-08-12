@@ -96,7 +96,6 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
         return Error(f"An error occured while extracting `{query[:50]}`.")
 
     if info is not None:
-        info = parse_info(info, query, query_type)
-        return info
+        return parse_info(info, query, query_type)
     
     return Error(f"An error occured while extracting `{query[:50]}`.")
