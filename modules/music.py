@@ -1635,11 +1635,10 @@ class MusicCog(commands.Cog):
             return
 
         current_track = self.guild_states[interaction.guild.id]["current_track"]
-        user = interaction.user
-        
+
         embed = generate_yoink_embed(current_track)
         
-        await user.send(embed=embed)
+        await interaction.user.send(embed=embed)
         await interaction.response.send_message("Message sent!", ephemeral=True)
 
     @dm_track_info.error
