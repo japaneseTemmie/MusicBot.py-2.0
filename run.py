@@ -1,16 +1,19 @@
+""" Setup script for discord.py bot. """
+
 from os.path import dirname, exists, join
 from os import name
 from subprocess import Popen, SubprocessError, PIPE
-from sys import exit as sysexit, version_info, prefix, base_prefix
+from sys import exit as sysexit, version_info, prefix, base_prefix, executable
 from time import sleep
 from datetime import datetime
 
 PATH = dirname(__file__)
-VENV_PYTHON = join(PATH, "bin", "python3") if name == "posix" else join(PATH, "Scripts", "python.exe")
-VENV_PIP = join(PATH, "bin", "pip") if name == "posix" else join(PATH, "Scripts", "pip.exe")
+VENV_PATH = join(PATH, ".venv")
+VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "python.exe")
+VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
 DEFAULT_DEPENDENCIES = "discord.py\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
 
-cmd_install_venv = ["python3", "-m", "venv", PATH] if name == "posix" else ["python", "-m", "venv", PATH]
+cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
@@ -112,9 +115,9 @@ def main() -> None:
     check_python_ver()
     is_in_venv()
     
-    log(f"Verifying venv installation in {PATH}",0.5)
+    log(f"Verifying venv installation in {VENV_PATH}",0.5)
     if not venv_exists():
-        log(f"venv not found! Creating a new venv in {PATH}",1.5)
+        log(f"venv not found! Creating a new venv in {VENV_PATH}",1.5)
         install_venv()
 
         if venv_exists():
@@ -124,7 +127,7 @@ def main() -> None:
             log("Installing dependencies through requirements.txt",0.5)
             install_dependencies()
     else:
-        log(f"venv found at {VENV_PYTHON}", 0.5)
+        log(f"venv found at {VENV_PATH}", 0.5)
 
     try:
         log("Running main.py")
