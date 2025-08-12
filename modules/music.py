@@ -170,7 +170,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
-        search_provider="The website to search for each query on. URLs ignore this."
+        search_provider="The website to search for each search query on. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(search_provider=[
@@ -209,7 +209,9 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        if isinstance(found, list):
+        if isinstance(found, Error):
+            await interaction.followup.send(found.msg)
+        elif isinstance(found, list):
             added = await add_results_to_queue(interaction, found, queue, self.max_track_limit)
             
             if is_looping_queue:
@@ -222,8 +224,6 @@ class MusicCog(commands.Cog):
             embed = generate_added_track_embed(results=added)
 
             await interaction.followup.send(embed=embed)
-        elif isinstance(found, Error):
-            await interaction.followup.send(found.msg)
 
     @add_track.error
     async def handle_add_track_error(self, interaction: Interaction, error):
@@ -384,7 +384,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
         query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="The website to search for the query on. URLs ignore this.",
+        search_provider="The website to search for the search query on. URLs ignore this.",
         keep_current_track="Whether or not to keep the current track (if any) in the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -461,7 +461,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="skip", description="Skips to next track in the queue.")
     @app_commands.describe(
-        amount="The amount of tracks to skip. Starts from the current track. Must be <= 25 and random must not be enabled."
+        amount="The amount of tracks to skip. Starts from the current track. Must be <= 25 and /random must not be enabled."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1072,7 +1072,7 @@ class MusicCog(commands.Cog):
 
             await update_guild_states(self.guild_states, interaction, (True, new_queue), ("is_looping_queue", "queue_to_loop"))
             
-            await interaction.response.send_message("Queue loop enabled!")
+            await interaction.response.send_message(f"Queue loop enabled!\nWill loop **{len(new_queue)}** tracks at the end of the queue.")
         else:
             await update_guild_state(self.guild_states, interaction, False, "is_looping_queue")
             queue_to_loop.clear()
@@ -1093,7 +1093,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="clear", description="Removes every track from the queue (and/or history or loop queue).")
+    @app_commands.command(name="clear", description="Removes every track from the queue.")
     @app_commands.describe(
         clear_history="Include track history in removal. (default False)",
         clear_loop_queue="Include the loop queue in removal. (default False)"
@@ -1144,7 +1144,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="remove", description="Removes user-given tracks from the queue. See entry in /help for more info.")
+    @app_commands.command(name="remove", description="Removes given tracks from the queue. See entry in /help for more info.")
     @app_commands.describe(
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
         by_index="Remove tracks by their index."
@@ -1195,7 +1195,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="reposition", description="Repositions a track from its original position to a new index. See entry in /help for more info.")
+    @app_commands.command(name="reposition", description="Repositions a track from its original index to a new index. See entry in /help for more info.")
     @app_commands.describe(
         track_name="The name (or index, if <by_index> is True) of the track to reposition.",
         new_index="The new index of the track. Must be > 0 and <= maximum queue index.",
@@ -1462,7 +1462,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
 
-    @app_commands.command(name="queue", description="Shows the tracks in the queue.")
+    @app_commands.command(name="queue", description="Shows tracks of a queue page.")
     @app_commands.describe(
         page="The queue page to view. Must be > 0."
     )
@@ -1507,7 +1507,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="history", description="Shows history of played tracks.")
+    @app_commands.command(name="history", description="Shows tracks of a history page.")
     @app_commands.describe(
         page="The history page to view. Must be > 0."
     )
@@ -1618,7 +1618,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="yoink", description="DMs current track info to the user who ran the command.")
+    @app_commands.command(name="yoink", description="DMs current track info to the user who invoked the command.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def dm_track_info(self, interaction: Interaction):
@@ -1652,7 +1652,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="nowplaying", description="Show information about the current track.")
+    @app_commands.command(name="nowplaying", description="Shows rich information about the current track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_current_track_info(self, interaction: Interaction):
@@ -1706,7 +1706,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="allow-greetings", description="Allows the bot to greet users that join the current voice channel. (if active)")
+    @app_commands.command(name="allow-greetings", description="Enables/Disables the bot from greeting users that join the current voice channel.")
     @app_commands.describe(
         enable="New value of the flag."
     )
@@ -1736,7 +1736,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="allow-voice-status-edit", description="Allows the bot to change the voice status to 'Listening to...'")
+    @app_commands.command(name="allow-voice-status-edit", description="Enables/Disables the bot from changing the voice status to 'Listening to...'")
     @app_commands.describe(
         enable="New value of the flag."
     )
@@ -1785,7 +1785,7 @@ class MusicCog(commands.Cog):
 
     """ Playlist commands """
 
-    @app_commands.command(name="playlist-view", description="Shows the tracks in a playlist.")
+    @app_commands.command(name="playlist-view", description="Shows the tracks of a playlist page.")
     @app_commands.describe(
         playlist_name="The playlist to display's name.",
         page="The page to show. Must be > 0 and <= maximum playlist index."
@@ -1824,6 +1824,8 @@ class MusicCog(commands.Cog):
         embed = generate_queue_embed(playlist_pages[page], page, len(playlist_pages), False, True)
 
         await interaction.followup.send(embed=embed)
+
+        await check_users_in_channel(self.guild_states, interaction)
 
     @show_playlist.error
     async def handle_show_playlist_error(self, interaction: Interaction, error):
@@ -1893,6 +1895,8 @@ class MusicCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @save_queue_in_playlist.error
     async def handle_save_queue_in_playlist_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -1950,6 +1954,8 @@ class MusicCog(commands.Cog):
                 await interaction.followup.send(f"Placed track **{added_track['title']}** at index **{index}** of playlist **{playlist_name}**.")
             else:
                 await interaction.followup.send(write_result.msg)
+
+        await check_users_in_channel(self.guild_states, interaction)
 
     @save_current_in_playlist.error
     async def handle_save_current_in_playlist_error(self, interaction: Interaction, error):
@@ -2017,13 +2023,15 @@ class MusicCog(commands.Cog):
         
         if isinstance(success, list):
             if not voice_client.is_playing() and\
-            not voice_client.is_paused():
+                not voice_client.is_paused():
                 await self.play_next(interaction)
 
             embed = generate_added_track_embed(success)
             await interaction.followup.send(embed=embed)
         elif isinstance(success, Error):
             await interaction.followup.send(success.msg)
+
+        await check_users_in_channel(self.guild_states, interaction)
 
     @select_playlist.error
     async def handle_select_playlist_error(self, interaction: Interaction, error):
@@ -2074,6 +2082,8 @@ class MusicCog(commands.Cog):
         else:
             await interaction.followup.send(f"Playlist **{playlist_name}** has been created.")
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @create_playlist.error
     async def handle_create_playlist_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2091,9 +2101,10 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-delete", description="Deletes a saved playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-delete", description="Deletes a saved playlist or its contents. See entry in /help for more info.")
     @app_commands.describe(
-        playlist_name="The playlist to delete's name."
+        playlist_name="The playlist to delete's name.",
+        erase_contents_only="Whether or not to erase only the contents. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -2130,6 +2141,8 @@ class MusicCog(commands.Cog):
                 await interaction.followup.send(write_result.msg)
         else:
             await interaction.followup.send(f"Playlist **{playlist_name}** has been deleted.")
+
+        await check_users_in_channel(self.guild_states, interaction)
 
     @delete_playlist.error
     async def handle_delete_playlist_error(self, interaction: Interaction, error):
@@ -2188,6 +2201,8 @@ class MusicCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @remove_playlist_track.error
     async def handle_remove_playlist_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2233,6 +2248,8 @@ class MusicCog(commands.Cog):
         else:
             await interaction.followup.send(f'Deleted **{len(content)}** playlist(s).' if not rewrite else 'Structure rewritten successfully.')
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @delete_all_playlists.error
     async def handle_delete_all_playlists_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2250,7 +2267,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-rename", description="Renames a playlist to a new user-specified name. See entry in /help for more info.")
+    @app_commands.command(name="playlist-rename", description="Renames a playlist to a new specified name. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to rename's name.",
         new_playlist_name="New name to assign to the playlist. Must be < 50 (default) characters."
@@ -2289,6 +2306,8 @@ class MusicCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @rename_playlist.error
     async def handle_rename_playlist_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2306,7 +2325,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-replace", description="Replaces a track with a new one in a playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-replace", description="Replaces a playlist track with a different one. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old="The name (or index, if <by_index> is True) of the track to replace.",
@@ -2423,6 +2442,8 @@ class MusicCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @reposition_playlist_track.error
     async def handle_reposition_playlist_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2440,7 +2461,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-add", description="Adds track(s) to the specified playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-add", description="Adds specified tracks to a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
@@ -2516,7 +2537,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-fetch-track", description="Adds a track from a playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-fetch-track", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to fetch tracks from's name.",
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
@@ -2568,6 +2589,8 @@ class MusicCog(commands.Cog):
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @fetch_playlist_track.error
     async def handle_fetch_playlist_track_error(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2587,7 +2610,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-fetch-random-track", description="Fetches random track(s) from specified playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-fetch-random-track", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to get tracks from's name.",
         amount="The amount of random tracks to fetch, must be <= 25 (default)"
@@ -2647,6 +2670,8 @@ class MusicCog(commands.Cog):
             embed = generate_added_track_embed(success, False)
             await interaction.followup.send(embed=embed)
 
+        await check_users_in_channel(self.guild_states, interaction)
+
     @choose_random_playlist_tracks.error
     async def handle_choose_random_playlist_tracks(self, interaction: Interaction, error):
         if isinstance(error, KeyError) or\
@@ -2666,7 +2691,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-add-yt-playlist", description="Adds a YouTube playlist to a playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-add-yt-playlist", description="Imports a playlist from YouTube. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to add the tracks to's name.",
         query="A YouTube playlist URL."
@@ -2733,7 +2758,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-rename-track", description="Modifies the specified track's name. See entry in /help for more info.")
+    @app_commands.command(name="playlist-rename-track", description="Renames tracks to new names. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old_track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to rename.",
@@ -2773,6 +2798,8 @@ class MusicCog(commands.Cog):
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
+        
+        await check_users_in_channel(self.guild_states, interaction)
 
     @rename_playlist_track.error
     async def handle_rename_playlist_track_error(self, interaction: Interaction, error):
@@ -2791,7 +2818,7 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
 
-    @app_commands.command(name="playlist-get-saved", description="Shows the saved playlists for this guild.")
+    @app_commands.command(name="playlist-get-saved", description="Shows saved playlists for this guild.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_saved_playlists(self, interaction: Interaction):
@@ -2818,6 +2845,8 @@ class MusicCog(commands.Cog):
         remaining_slots = self.playlist.max_limit - len(result)
 
         await interaction.followup.send(f"Saved playlists\n{playlists_string}Remaining slots: **{remaining_slots}**.")
+
+        await check_users_in_channel(self.guild_states, interaction)
 
     @show_saved_playlists.error
     async def handle_show_saved_playlists_error(self, interaction: Interaction, error):
