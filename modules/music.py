@@ -1564,12 +1564,6 @@ class MusicCog(commands.Cog):
         max_queries = self.guild_states[interaction.guild.id]["max_queries"]
         current_query_amount = self.guild_states[interaction.guild.id]["query_amount"]
 
-        if current_query is None and\
-            max_queries == 0 and\
-            current_query_amount == 0:
-            await interaction.response.send_message("Invalid values.")
-            return
-
         embed = generate_extraction_embed(current_query, max_queries, current_query_amount)
 
         await interaction.response.send_message(embed=embed)
