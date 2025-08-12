@@ -83,6 +83,14 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     
     return True
 
+async def check_vc_lock(interaction: Interaction) -> bool:
+    if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+        await interaction.response.send_message("Voice connections temporarily disabled.") if not interaction.response.is_done() else\
+        await interaction.followup.send("Voice connections temporarily disabled.")
+        return False
+    
+    return True
+
 async def check_guild_state(
         guild_states: dict,
         interaction: Interaction,
@@ -595,8 +603,8 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 async def get_ffmpeg_options(position: int) -> dict:
     FFMPEG_OPTIONS = {}
     
-    FFMPEG_OPTIONS["before_options"] = f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30 -ss {position}"
-    FFMPEG_OPTIONS["options"] = f"-vn -ss 0 -loglevel quiet" # -ss 0 here seems to sync the position more accurately
+    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30"
+    FFMPEG_OPTIONS["options"] = f"-vn -ss {position}"
 
     return FFMPEG_OPTIONS
 

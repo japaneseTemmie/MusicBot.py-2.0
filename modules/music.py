@@ -88,47 +88,54 @@ class MusicCog(commands.Cog):
     @app_commands.guild_only
     async def join_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-            VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+            not await check_vc_lock(interaction):
             return
+        
+        await interaction.response.defer(thinking=True)
 
         channel = interaction.user.voice.channel if interaction.user.voice else None
         current_channel = interaction.guild.voice_client.channel if interaction.guild.voice_client else None
         permissions = channel.permissions_for(interaction.guild.me) if channel is not None else None
 
         if channel is None:
-            await interaction.response.send_message("Join a voice channel first.")
+            await interaction.followup.send("Join a voice channel first.")
         elif channel.type == discord.ChannelType.stage_voice:
-            await interaction.response.send_message(f"I can't join channel **{channel.name}**! Stage channels scare me!")
+            await interaction.followup.send(f"I can't join channel **{channel.name}**! Stage channels scare me!")
         elif channel is not None and\
             current_channel is not None and\
             channel == current_channel:
-            await interaction.response.send_message("I'm already in your voice channel!")
+            await interaction.followup.send("I'm already in your voice channel!")
         elif current_channel is not None:
-            await interaction.response.send_message(f"I'm already in **{current_channel.name}**!")
+            await interaction.followup.send(f"I'm already in **{current_channel.name}**!")
         elif permissions is not None and\
         (not permissions.connect or not permissions.speak):
-            await interaction.response.send_message(f"I don't have permission to join your channel!")
+            await interaction.followup.send(f"I don't have permission to join your channel!")
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
-            voice_client = await channel.connect(timeout=5)
-            self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
-            
-            log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
+            voice_client = await channel.connect(timeout=15)
+            if voice_client.is_connected():
+                self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
+                
+                log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
 
-            await interaction.response.send_message(f"Connected to **{channel.name}**!")
+                await interaction.followup.send(f"Connected to **{channel.name}**!")
 
-            await check_users_in_channel(self.guild_states, interaction) # awful fix to avoid users trapping the bot in a vc when using the join command
+                await check_users_in_channel(self.guild_states, interaction) # awful fix to avoid users trapping the bot in a vc when using the join command
 
     @join_channel.error
     async def handle_join_channel_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
+            return
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
 
         log(f"[CONNECT] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
+
+        await interaction.followup.send(f"Something went wrong while connecting. "
+                                        f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again.")
 
     @app_commands.command(name="leave", description="Makes the bot leave your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -138,12 +145,14 @@ class MusicCog(commands.Cog):
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use /progress to see the status.") or\
-            VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+            not await check_vc_lock(interaction):
             return
+        
+        await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         if await is_playlist_locked(locked):
-            await interaction.response.send_message(f"A playlist is currently locked, please wait.")
+            await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
@@ -157,15 +166,18 @@ class MusicCog(commands.Cog):
                 voice_client.stop()
 
             await voice_client.disconnect()
-            await interaction.response.send_message(f"Disconnected from **{voice_client.channel.name}**.")
+            await interaction.followup.send(f"Disconnected from **{voice_client.channel.name}**.")
 
     @leave_channel.error
     async def handle_leave_channel_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
+            return
 
         if CAN_LOG and LOGGER is not None:
             LOGGER.exception(error)
+
+        await interaction.followup.send("Something went wrong while disconnecting.")
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -264,14 +276,14 @@ class MusicCog(commands.Cog):
         can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
 
         position = max(0, min(position, format_to_seconds(track["duration"])))
-        options = await get_ffmpeg_options(position)
+        ffmpeg_options = await get_ffmpeg_options(position)
 
         try:
             is_stream_valid = await validate_stream(track["url"])
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 track = await resolve_expired_url(track["webpage_url"])
 
-            source = await discord.FFmpegOpusAudio.from_probe(track["url"], **options)
+            source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:

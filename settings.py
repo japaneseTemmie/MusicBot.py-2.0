@@ -171,12 +171,7 @@ def get_default_yt_dlp_config_data() -> dict:
         "quiet": True,
         "no_playlist": True,
         "format": "bestaudio/best",
-        "no_warnings": True,
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "opus",
-            "preferredquality": "0"
-        }]
+        "no_warnings": True
     }
 
 def get_default_config_data() -> dict:
