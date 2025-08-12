@@ -170,18 +170,18 @@ If the automatic setup doesn't work, try manually setting it up:
 
 - Create a Python virtual environment (venv):
 
-  `python3 -m venv ./` (UNIX-like)
+  `python3 -m venv ./.venv/` (UNIX-like)
 
-  `python -m venv .\` (Windows)
+  `python -m venv .\.venv\` (Windows)
 
   What it does:
   Invokes the Python interpreter with the _venv_ module, passing the current path as the installation directory.
 
 - If successful, activate the venv:
 
-  `source ./bin/activate` (UNIX-like)
+  `source ./.venv/bin/activate` (UNIX-like)
 
-  `.\Scripts\activate.bat` (Windows)
+  `.\.venv\Scripts\activate.bat` (Windows)
 
   What it does:
   Runs the activation script for the _venv_.
@@ -273,11 +273,11 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
   
     if the current terminal is **_not_** in the _venv_. Otherwise:
   
-    `source ./bin/activate`
+    `source ./.venv/bin/activate`
     
     `python3 main.py` (UNIX-like)
     
-    `.\Scripts\activate.bat`
+    `.\.venv\Scripts\activate.bat`
 
     `python main.py` (Windows) 
   
@@ -287,9 +287,9 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 
   Open a terminal in the project directory and run:
   
-  `./bin/pip install --upgrade -r requirements.txt` (UNIX-like)
+  `./.venv/bin/pip install --upgrade -r requirements.txt` (UNIX-like)
   
-  `.\Scripts\pip.exe install --upgrade -r requirements.txt` (Windows)
+  `.\.venv\Scripts\pip.exe install --upgrade -r requirements.txt` (Windows)
 
   if the current terminal is **_not_** in the _venv_. Otherwise:
 
