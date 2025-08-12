@@ -143,7 +143,7 @@ More up to date versions should be able to work fine.
 
   `echo TOKEN={your_discord_bot_token} > .env` (Windows)
 
-- Replace `{your_discord_bot_token}` with the token copied earlier.
+- Replace `{your_discord_bot_token}` with your bot's token.
 
   Example file output:
   
@@ -237,7 +237,7 @@ To add your own modules, simply create a new **.py** file in the `modules` direc
 
 In that file, import everything from the `settings.py` module, which contains useful variables and other modules to help writing your custom module.
 
-Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter in its
+Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter of type `Bot` (from module `bot`) in its
 constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot` or `commands.AutoShardedBot`.
 
 Best practices:
