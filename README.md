@@ -11,6 +11,8 @@ an **extended** moderation module alongside other new features!
 - [Code setup](#code-setup)
 - [Requirements](#requirements)
 - [Preparing the project directory](#preparing-the-project-directory)
+- [Automatic setup](#automatic-setup)
+- [Manual setup](#manual-setup)
 - [Usage](#usage)
 - [Extra configuration](#extra-configuration-for-hosts)
 - [Extending the Bot](#extending-the-bot-for-devs)
@@ -76,7 +78,7 @@ python3 run.py
 # Code setup
 
 ## Requirements
-- UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux (BSD/macOS not tested).
+- UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux (BSD/macOS not tested, but likely to work).
 - Make sure `Python 3.10+` and `FFmpeg` are installed on your system.
   
   If you're on a GNU/Linux distribution, they may already be installed.
@@ -151,6 +153,7 @@ More up to date versions should be able to work fine.
   TOKEN=token_here
   ```
 
+# Automatic setup
 - Prepare and run automatically using the helper script:
 
   `python3 run.py` (UNIX-like)
@@ -160,9 +163,8 @@ More up to date versions should be able to work fine.
   What it does:
   Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script.
 
-=====================================
-
-if it fails:
+# Manual setup
+If the automatic setup doesn't work, try manually setting it up:
 
 - Create a Python virtual environment (venv):
 
@@ -197,8 +199,6 @@ if it fails:
 
   What it does:
   Invokes the Python interpreter with the main.py file.
-
-=====================================
 
 - Once it outputs `Ready`, it will start listening for events and commands.
 
