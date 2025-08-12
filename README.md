@@ -123,7 +123,7 @@ python3 run.py
 
     A powerful CPU is required for tasks like `yt-dlp` extraction, `FFmpeg` post-processing and `Discord` audio processing.
 
-Project was tested on the following software: `Python 3.12.3`, `FFmpeg 6.1` and `Linux Mint 22.1`
+Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
 
 More up to date versions should be able to work fine.
 
