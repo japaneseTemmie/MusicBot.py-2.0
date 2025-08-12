@@ -163,6 +163,8 @@ More up to date versions should be able to work fine.
   What it does:
   Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script.
 
+  - Once it outputs `Ready`, it will start listening for events and commands.
+
 # Manual setup
 If the automatic setup doesn't work, try manually setting it up:
 
@@ -200,7 +202,7 @@ If the automatic setup doesn't work, try manually setting it up:
   What it does:
   Invokes the Python interpreter with the main.py file.
 
-- Once it outputs `Ready`, it will start listening for events and commands.
+  - Once it outputs `Ready`, it will start listening for events and commands.
 
 # Usage
 To start listening to your favourite music:
