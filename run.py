@@ -5,16 +5,6 @@ from sys import exit as sysexit, version_info, prefix, base_prefix
 from time import sleep
 from datetime import datetime
 
-def check_python_ver() -> None:
-    if version_info < (3, 10):
-        log(f"Python 3.10+ is required for this project.", 2)
-        sysexit(1)
-
-def is_in_venv() -> None:
-    if prefix != base_prefix:
-        log("This script cannot be executed inside a venv.")
-        sysexit(1)
-
 PATH = dirname(__file__)
 VENV_PYTHON = join(PATH, "bin", "python3") if name == "posix" else join(PATH, "Scripts", "python.exe")
 VENV_PIP = join(PATH, "bin", "pip") if name == "posix" else join(PATH, "Scripts", "pip.exe")
@@ -31,6 +21,16 @@ def log(content: str, sleep_for: float=0) -> None:
 
 def separator() -> None:
     print("------------------------------")
+
+def check_python_ver() -> None:
+    if version_info < (3, 10):
+        log(f"Python 3.10+ is required for this project.", 2)
+        sysexit(1)
+
+def is_in_venv() -> None:
+    if prefix != base_prefix:
+        log("This script cannot be executed inside a venv.")
+        sysexit(1)
 
 def run(command: list[str], sep_process: bool=False) -> int:
     """ Spawn the process in a separate group so it's not affected by the runner script. """
