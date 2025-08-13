@@ -603,7 +603,7 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 async def get_ffmpeg_options(position: int) -> dict:
     FFMPEG_OPTIONS = {}
     
-    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 30"
+    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 15"
     FFMPEG_OPTIONS["options"] = f"-vn -ss {position}"
 
     return FFMPEG_OPTIONS

@@ -101,14 +101,11 @@ class MusicCog(commands.Cog):
             await interaction.followup.send("Join a voice channel first.")
         elif channel.type == discord.ChannelType.stage_voice:
             await interaction.followup.send(f"I can't join channel **{channel.name}**! Stage channels scare me!")
-        elif channel is not None and\
-            current_channel is not None and\
-            channel == current_channel:
+        elif (channel is not None and current_channel is not None) and channel == current_channel:
             await interaction.followup.send("I'm already in your voice channel!")
         elif current_channel is not None:
             await interaction.followup.send(f"I'm already in **{current_channel.name}**!")
-        elif permissions is not None and\
-        (not permissions.connect or not permissions.speak):
+        elif permissions is not None and (not permissions.connect or not permissions.speak):
             await interaction.followup.send(f"I don't have permission to join your channel!")
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")

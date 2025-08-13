@@ -170,7 +170,7 @@ def get_default_yt_dlp_config_data() -> dict:
     return {
         "quiet": True,
         "no_playlist": True,
-        "format": "bestaudio/best",
+        "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
         "no_warnings": True
     }
 
