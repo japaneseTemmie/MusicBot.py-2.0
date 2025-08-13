@@ -6,6 +6,8 @@ from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix, executable
 from time import sleep
 from datetime import datetime
+from random import choice
+from colors import Colors, all_colors
 
 PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
@@ -17,8 +19,8 @@ cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
-def log(content: str, sleep_for: float=0) -> None:
-    print(f"[runner] | {datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')} | {content}")
+def log(msg: str, sleep_for: float=0) -> None:
+    print(f"{choice(all_colors)}[runner]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
     if sleep_for > 0:
         sleep(sleep_for)
 

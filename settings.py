@@ -45,6 +45,7 @@ from inspect import getmembers, isclass
 from datetime import datetime, timedelta
 from time import time as get_time, sleep
 from copy import deepcopy
+from colors import Colors, all_colors
 
 # OS imports
 from platform import system, python_implementation, python_version
@@ -61,7 +62,7 @@ from typing import NoReturn, Callable, Any
 from types import ModuleType
 
 def log(msg: str) -> None:
-    print(f"[main] | {datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')} | {msg}")
+    print(f"{choice(all_colors)}[main]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
 
 def separator() -> None:
     print("------------------------------")
