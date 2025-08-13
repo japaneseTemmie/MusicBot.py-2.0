@@ -263,7 +263,14 @@ class MusicCog(commands.Cog):
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
 
-    async def play_track(self, interaction: Interaction, voice_client: discord.VoiceClient, track: dict, position: int=0, state: str | None=None):
+    async def play_track(
+            self, 
+            interaction: Interaction, 
+            voice_client: discord.VoiceClient, 
+            track: dict, 
+            position: int=0, 
+            state: str | None=None
+        ) -> None:
         if not voice_client or\
             not voice_client.is_connected() or\
             track is None:
@@ -311,13 +318,13 @@ class MusicCog(commands.Cog):
         """ Only append if the maximum amount of tracks in the track history is not reached, if
             the position is less or equal to 0, if it's not looping the current track, and we're not
             altering the current track with commands like restart, seek, etc. """
-        
-        if len(history) >= self.max_history_track_limit:
-            history.clear()
 
         if not position > 0 and\
             not is_looping and\
             state is None:
+
+            if len(history) >= self.max_history_track_limit:
+                history.clear()
 
             history.append(track)
 
@@ -325,7 +332,7 @@ class MusicCog(commands.Cog):
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-    async def play_next(self, interaction: Interaction):
+    async def play_next(self, interaction: Interaction) -> None:
         if interaction.guild.id not in self.guild_states:
             return
         
@@ -383,7 +390,7 @@ class MusicCog(commands.Cog):
             await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
             else await interaction.followup.send(f"Now playing: **{track['title']}**")
 
-    def handle_playback_end(self, error: Exception | None, interaction: Interaction):
+    def handle_playback_end(self, error: Exception | None, interaction: Interaction) -> None:
         if error is not None:
             asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end. Skipping..") if interaction.response.is_done() else\
                                             interaction.response.send_message("An error occurred while handling playback end. Skipping.."), self.client.loop)
