@@ -342,6 +342,10 @@ class MusicCog(commands.Cog):
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
         voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
+        user_forced = self.guild_states[interaction.guild.id]["user_interrupted_playback"]
+        start_time = self.guild_states[interaction.guild.id]["start_time"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        current_time = get_time() - start_time
 
         if stop_flag:
             await update_guild_state(self.guild_states, interaction, False, "stop_flag")
@@ -365,6 +369,24 @@ class MusicCog(commands.Cog):
             await interaction.channel.send("Queue is empty.") if interaction.is_expired()\
             else await interaction.followup.send("Queue is empty.")
             return
+
+        if current_track is not None:
+            playback_ended_unexpectedly = not user_forced and current_time < format_to_seconds(current_track["duration"])
+
+            if playback_ended_unexpectedly:
+                await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
+                try:
+                    new_track = await resolve_expired_url(current_track["webpage_url"])
+                    await self.play_track(interaction, voice_client, new_track, current_time, "retry")
+                    return
+                except Exception:
+                    pass
+                finally:
+                    await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        
+        if user_forced:
+            await update_guild_state(self.guild_states, interaction, False, "user_interrupted_playback")
 
         if not queue and queue_to_loop:
             new_queue = deepcopy(queue_to_loop)
@@ -494,7 +516,7 @@ class MusicCog(commands.Cog):
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "user_interrupted_playback"))
 
         skipped = []
         if amount > 1 and not is_random:

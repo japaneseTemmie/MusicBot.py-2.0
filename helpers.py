@@ -32,6 +32,7 @@ async def get_default_state(voice_client: discord.VoiceClient, curr_channel: dis
         "voice_client_locked": False,
         "stop_flag": False,
         "user_disconnect": False,
+        "user_interrupted_playback": False,
         "is_looping": False,
         "is_random": False,
         "is_looping_queue": False,
