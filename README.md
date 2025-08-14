@@ -17,6 +17,7 @@ an **extended** moderation module alongside other new features!
 - [Extra configuration](#extra-configuration-for-hosts)
 - [Extending the Bot](#extending-the-bot-for-devs)
 - [Troubleshooting](#troubleshooting)
+- [Known issues](#known-issues)
 - [Licensing](#licensing)
 
 ## Key features
@@ -300,6 +301,17 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 - If you have an existing bot that's in over 2500 guilds, ensure the `use_sharding` key is set to `true` in `config.json`
 
   'Sharding' allows multiple instances of this bot to manage multiple guilds and is required by Discord after a bot reaches 2500 guilds.
+
+# Known issues
+- Bot dies mid-playback of some tracks:
+
+  This is a source-specific, track-specific issue. Due to how some platforms distribute content, the bot needs to adapt to different formats.
+
+  To protect their content, some platforms offer expiring audio streams that are **no longer valid after n minutes**.
+
+  Some progressive formats like `.mp3` or `.m4a` are perfectly fine, however, sometimes platforms may return a `.m3u8` 'playlist', this format requires `ffmpeg`
+  to request new 'segments' before playing them, but since **the links can expire**, platforms will deny the request and the playback **will crash**.
+  The bot recovers simply by skipping the current track.
 
 # Licensing
 This project is licensed under MIT. See [LICENSE](./LICENSE) for more information.
