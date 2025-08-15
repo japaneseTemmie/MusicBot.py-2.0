@@ -1,3 +1,6 @@
+""" Utilities module for discord.py bot\n
+Includes a short class for help commands. """
+
 from settings import *
 from bot import Bot
 
