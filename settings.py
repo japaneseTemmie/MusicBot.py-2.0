@@ -65,7 +65,7 @@ from loghelpers import set_up_logging, remove_log
 from info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
 from help import open_help_file
 from config import get_config_data, get_default_yt_dlp_config_data
-from constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES
+from constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD
 
 log("Finished importing libraries")
 separator()

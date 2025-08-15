@@ -343,7 +343,6 @@ class MusicCog(commands.Cog):
         user_forced = self.guild_states[interaction.guild.id]["user_interrupted_playback"]
         start_time = self.guild_states[interaction.guild.id]["start_time"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
-        current_time = get_time() - start_time
 
         if stop_flag:
             await update_guild_state(self.guild_states, interaction, False, "stop_flag")
@@ -368,15 +367,19 @@ class MusicCog(commands.Cog):
             else await interaction.followup.send("Queue is empty.")
             return
 
-        if current_track is not None:
-            playback_ended_unexpectedly = not user_forced and current_time < format_to_seconds(current_track["duration"])
+        if current_track is not None and not user_forced:
+            current_time = int(get_time() - start_time)
+            playback_ended_unexpectedly = current_time < format_to_seconds(current_track["duration"]) - PLAYBACK_END_GRACE_PERIOD
 
             if playback_ended_unexpectedly:
                 await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+                await interaction.channel.send(f"Looks like the playback crashed at **{format_to_minutes(current_time)}**..\nAttempting to recover..")
 
                 try:
                     new_track = await resolve_expired_url(current_track["webpage_url"])
                     await self.play_track(interaction, voice_client, new_track, current_time, "retry")
+
+                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(current_time)}**.")
                     return
                 except Exception:
                     pass
