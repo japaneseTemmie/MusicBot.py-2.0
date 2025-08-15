@@ -1,7 +1,7 @@
 """ General settings configuration for discord.py bot.\n
 config.json values docs:\n
-- ydl_options: Options passed to the YouTubeDL object in extractor.py/fetch()
-- cmd_prefix: Command prefix used for classic commands.\n
+- yt_dlp_options: Options passed to the YouTubeDL object in extractor.py/fetch()
+- command_prefix: Command prefix used for classic commands.\n
 - enable_activity: Display custom activity.
 - activity_name: The name of the activity. Appears after the type.
 - activity_type: The activity type. Can be "playing", "watching" or "listening".
