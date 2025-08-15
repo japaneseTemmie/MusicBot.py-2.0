@@ -1,31 +1,4 @@
-""" General settings configuration for discord.py bot.\n
-config.json values docs:\n
-- yt_dlp_options: Options passed to the YouTubeDL object in extractor.py/fetch()
-- command_prefix: Command prefix used for classic commands.\n
-- enable_activity: Display custom activity.
-- activity_name: The name of the activity. Appears after the type.
-- activity_type: The activity type. Can be "playing", "watching" or "listening".
-- default_status: The bot status. Can be "online", "idle", "do_not_disturb", "invisible" or null for a random status.
-- enable_file_backups: Enables backup and restore of files like playlists.json and roles.json
-in case of a bad write. Requires double the memory needed to open the file for each call.\n
-- enable_logging: Enables logging of discord.py errors/debug messages/warnings depending
-on the selected log_level.\n
-- log_level: Level of log verbosity. Can be:\n
-    normal: Info about some bot actions.\n
-    verbose: Log everything.\n
-    warning: Logs only warnings.\n
-    errors: Logs only errors.\n
-    critical: Logs critical errors.\n
-- use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
-
-Module settings\n
-These settings allow to control which module gets enabled, useful to limit features
-and reduce memory usage if unused.\n
-
-- enable_ModerationCog: Enables users to run commands from the moderation module.\n
-- enable_RoleManagerCog: Enables users to run commands from the rolemanager module.\n
-- enable_UtilsCog: Enables users to run commands from the utils module. Contains important UX commands like /help. It is highly discouraged to disable this.\n
-- enable_MusicCog: Enables users to run commands from the music module.\n """
+""" General settings configuration for discord.py bot """
 
 import asyncio
 import re

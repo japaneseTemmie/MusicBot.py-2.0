@@ -19,7 +19,7 @@ an **extended** moderation module alongside other new features!
 - [Troubleshooting](#troubleshooting)
 - [Licensing](#licensing)
 
-## Key features
+# Key features
 - Full application commands support for a more user-friendly interface.
 - Multi-guild support.
 - Improved playlist capabilities, now with multi-playlist support.
@@ -121,7 +121,7 @@ python3 run.py
 
   - A system with a powerful CPU (8+ Cores) for many guilds.
 
-    A powerful CPU is required for tasks like `yt-dlp` extraction, `FFmpeg` post-processing and `Discord` audio processing.
+    A powerful CPU is required for tasks like `yt-dlp` extraction, `FFmpeg` and `Discord` audio processing.
 
 Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
 
@@ -163,7 +163,7 @@ More up to date versions should be able to work fine.
   What it does:
   Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script.
 
-  - Once it outputs `Ready`, it will start listening for events and commands.
+  - Once it outputs '`Ready`', it will start listening for events and commands.
 
 # Manual setup
 If the automatic setup doesn't work, try manually setting it up:
@@ -202,7 +202,7 @@ If the automatic setup doesn't work, try manually setting it up:
   What it does:
   Invokes the Python interpreter with the main.py file.
 
-  - Once it outputs `Ready`, it will start listening for events and commands.
+  - Once it outputs '`Ready`', it will start listening for events and commands.
 
 # Usage
 To start listening to your favourite music:
@@ -219,7 +219,7 @@ During the first run, the bot will create a `config.json` file in its own direct
 
 You can modify the `enable_activity`, `activity_name`, `activity_type` and `default_status` values to set your own custom activity.
 
-Documentation for every key can be found at the top of the `settings.py` file. Modify values at your own risk.
+Documentation for every key can be found [here](./CONFIG.md). Modify values at your own risk.
 
 Note: Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
 
