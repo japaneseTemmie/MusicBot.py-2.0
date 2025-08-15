@@ -43,7 +43,7 @@ def check_guild_data_path(path: str) -> None:
             log(f"Created guild data directory at {path}")
         except OSError as e:
             log(f"An error occurred while creating {path}\nErr: {e}")
-            sysexit(0)
+            sysexit(1)
     else:
         log(f"Found guild data at {path}.")
 
@@ -53,16 +53,20 @@ async def check_guild_data(bot_user: str, guilds: list[discord.Guild]) -> None:
     and delete any that aren't in the `guilds` parameter list. """
     
     guild_count = len(guilds)
+    guild_data_path = join(PATH, "guild_data")
 
+    check_guild_data_path(guild_data_path)
+    separator()
+
+    log(f"{bot_user} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
     if guild_count > 2400 and guild_count < 2500:
-        log(f"{bot_user} is close to 2500 guilds ({guild_count} guilds). Consider enabling sharding in config.json")
+        log(f"{bot_user} is close to 2500 guilds. Consider enabling sharding in config.json")
         await asyncio.sleep(5)
 
-    check_guild_data_path(join(PATH, "guild_data"))
-    log(f"{bot_user} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
-    log("Checking for missing guilds.")
-
+    separator()
+    log(f"Checking for leftover guilds in {guild_data_path}.")
     to_delete = get_guilds_to_delete(bot_user, guilds)
+
     if to_delete:
         delete_guild_dirs(to_delete)
     else:

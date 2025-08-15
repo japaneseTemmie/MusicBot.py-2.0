@@ -46,58 +46,26 @@ from inspect import getmembers, isclass
 from datetime import datetime, timedelta
 from time import time as get_time, sleep
 from copy import deepcopy
-from colors import Colors, all_colors
 
 # OS imports
-from platform import system, python_implementation, python_version
 from os.path import join, dirname, exists, isdir
 from os import listdir, remove, makedirs, getenv, name
 from shutil import rmtree, which
 from subprocess import PIPE, DEVNULL
 from sys import exit as sysexit
 from dotenv import load_dotenv
-from iohelpers import open_file, write_file
 
 # Types
 from typing import NoReturn, Callable, Any
 from types import ModuleType
 
-def log(msg: str) -> None:
-    """ Log `msg` to stdout. """
-    
-    print(f"{choice(all_colors)}[main]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
-
-def log_to_discord_log(msg_or_exception: str | Exception, log_type: str="info") -> bool:
-    """
-    Log a message to discord.log if logging is enabled.
-    When `msg_or_exception` is an exception, it is logged directly.
-    When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `msg_or_exception` is a string. The message will be logged as `log_type`.
-
-    Return value indicates log success.
-    """
-    
-    if CAN_LOG and LOGGER is not None:
-        if isinstance(msg_or_exception, Exception):
-            LOGGER.exception(msg_or_exception)
-            
-            return True
-        
-        log_funcs = {
-            "warning": LOGGER.warning,
-            "error": LOGGER.error,
-            "info": LOGGER.info,
-            "debug": LOGGER.debug
-        }
-
-        func = log_funcs.get(log_type, LOGGER.info)
-        func(msg_or_exception)
-
-        return True
-    
-    return False
-
-def separator(s: str="=", length: int=35) -> None:
-    print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
+# Custom modules
+from logutils import log, separator, log_to_discord_log as _log_to_discord_log
+from loghelpers import set_up_logging, remove_log
+from info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
+from help import open_help_file
+from config import get_config_data, get_default_yt_dlp_config_data
+from constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES
 
 log("Finished importing libraries")
 separator()
@@ -105,206 +73,11 @@ log(f"Running discord.py version {discord.__version__}")
 separator()
 sleep(0.5)
 
-def get_current_directory() -> str:
-    path = dirname(__file__)
-    log(f"Working directory: {path}")
-    separator()
-
-    return path
-
-def get_python() -> tuple[str, str]:
-    implementation, ver = python_implementation(), python_version()
-    
-    log(f"Running in {implementation} version {ver}")
-    separator()
-
-    return implementation, ver
-
-def get_os() -> str:
-    os = system()
-
-    if name == "posix":
-        from os import uname
-        kernel = uname()
-    else:
-        kernel = None
-
-    log(f"OS: {name} Pretty name: {os}")
-    log(f"Kernel: {os + ' ' + kernel.release if kernel is not None else 'Unknown'}")
-    separator()
-
-    return os
-
-def get_activity_data() -> tuple[str | None, str, str | None, str | None]:
-    """ Get data to send to the API. """
-    
-    activity_enabled = CONFIG.get("enable_activity", False)
-    status = CONFIG.get("default_status", None)
-    activity_name = CONFIG.get("activity_name", "with the API")
-    activity_type = CONFIG.get("activity_type", None)
-
-    return activity_enabled, status, activity_name, activity_type
-
-def get_activity() -> discord.Activity | None:
-    if ACTIVITY_ENABLED:
-        log("Activity is enabled")
-        separator()
-
-        return discord.Activity(
-            name=ACTIVITY_NAME,
-            type=VALID_ACTIVITY_TYPES.get(ACTIVITY_TYPE, discord.ActivityType.playing)
-        )
-
-    log("Activity is disabled.")
-    separator()
-
-    return None
-
-def get_status() -> discord.Status:
-    return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if STATUS_TYPE is None else\
-    VALID_STATUSES.get(STATUS_TYPE, discord.Status.online)
-
-def handle_ffmpeg_path_output(output: str | None) -> None:
-    if output is None:
-        log(f"FFmpeg not found!")
-        
-        if SYSTEM == "Linux":
-            log(f"If you're running a Debian/Ubuntu based Linux distro, install it with 'sudo apt install ffmpeg'.\nOtherwise, check your distro's repositories or compile it from source.")
-        elif SYSTEM == "Windows":
-            log(f"If you're running Windows, make sure the FFmpeg executable is in the PATH environment variable.")
-    
-        sysexit(1)
-    
-    log(f"Found FFmpeg at {output}")
-    separator()
-
-def open_help_file() -> dict | None:
-    path = join(PATH, "help.json")
-    if not exists(path):
-        log(f"No help file found. /help will not be available.")
-        separator()
-        
-        return None
-
-    log(f"Help file found at {path}")    
-    log(f"Opening help file at {path}")
-    
-    content = open_file(path, True)
-    if content is None:
-        log(f"An error occurred while opening {path}.\nNo /help will be available.")
-        return None
-    
-    log(f"Found {len(content.keys())} entries in help file.")
-
-    separator()
-    return content
-
-def get_default_yt_dlp_config_data() -> dict:
-    return {
-        "quiet": True,
-        "no_playlist": True,
-        "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
-        "no_warnings": True
-    }
-
-def get_default_config_data() -> dict:
-    return {
-        "yt_dlp_options": get_default_yt_dlp_config_data(),
-        "command_prefix": "?",
-        "enable_activity": False,
-        "activity_name": "with the API",
-        "activity_type": "playing",
-        "default_status": None,
-        "enable_file_backups": True,
-        "enable_logging": True,
-        "log_level": "normal",
-        "use_sharding": False,
-        "enable_ModerationCog": True,
-        "enable_RoleManagerCog": True,
-        "enable_UtilsCog": True,
-        "enable_MusicCog": True,
-        "enable_MyCog": False
-    }
-
-def ensure_config(path: str, default_data: dict) -> bool:
-    if not exists(path):
-        log(f"Creating config file because config.json does not exist at {path}")
-        success = write_file(path, default_data, True)
-
-        if success == False:
-            log(f"An error occurred while writing to {path}")
-            return False
-
-        log(f"Created config file at {path}")
-
-    return True
-
-def get_config_data() -> dict | NoReturn:
-    path = join(PATH, "config.json")
-    default_data = get_default_config_data()
-
-    success = ensure_config(path, default_data)
-
-    if not success:
-        sysexit(1)
-
-    log(f"Found config file at {path}")
-    log(f"Opening config file at {path}")
-    content = open_file(path, True)
-
-    if content is None:
-        log(f"An error occurred while opening {path}")
-        sysexit(1)
-
-    log(f"Found {len(content.keys())} entries in {path}")
-    separator()
-    
-    return content
-
-def set_up_logging() -> tuple[FileHandler, Formatter, Logger, str]:
-    log("Logging enabled")
-    log("Setting up logging...")
-
-    path = join(PATH, "discord.log")
-
-    HANDLER = FileHandler(path, "w", "utf-8")
-
-    log(f"Created log file at {HANDLER.stream.name}")
-    
-    FORMATTER = Formatter("[{asctime}] | {levelname:<8} {name}: {message}", "%d/%m/%Y @ %H:%M:%S", style="{")
-    LEVEL = CONFIG["log_level"].strip() if CONFIG["log_level"] in VALID_LOG_LEVELS else "normal"
-    
-    log(f"Log level found: {LEVEL}, actual: {VALID_LOG_LEVELS.get(LEVEL, INFO)}")
-    separator()
-
-    LOGGER = getLogger("discord")
-
-    return HANDLER, FORMATTER, LOGGER, LEVEL
-
-def remove_log() -> tuple[None, None, None, None]:
-    log(f"Logging disabled")
-    
-    path = join(PATH, "discord.log")
-
-    if exists(path):
-        try:
-            remove(path)
-            log(f"Removed {path}")
-        except (Exception, OSError) as e:
-            log(f"An error occurred while removing {path}.\nErr: {e}")
-    separator()
-
-    return None, None, None, None
-
-VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings": WARNING, "critical": CRITICAL}
-VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching, "listening": discord.ActivityType.listening}
-VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
-
 # System info and config
 PATH = get_current_directory()
 PYTHON = get_python()
 SYSTEM = get_os()
-CONFIG = get_config_data()
+CONFIG = get_config_data(PATH)
 load_dotenv()
 sleep(0.2)
 
@@ -314,7 +87,7 @@ YDL_OPTIONS = CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data())
 COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
 USE_SHARDING = CONFIG.get("use_sharding", False)
 ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
-HELP = open_help_file()
+HELP = open_help_file(PATH)
 COOLDOWNS = {
     "PING_COMMAND_COOLDOWN": 5.0,
     "HELP_COMMAND_COOLDOWN": 5.0,
@@ -340,10 +113,21 @@ COOLDOWNS = {
 
 # Logging
 # Set up file handler and formatter for discord.py's logging lib, if requested.
-HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging() if CAN_LOG else remove_log()
+HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
+# Redefine func because better :3
+def log_to_discord_log(msg_or_exception: str | Exception, log_type: str="info"):
+    """
+    Log a message to discord.log if logging is enabled.
+    When `msg_or_exception` is an exception, it is logged directly.
+    When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `msg_or_exception` is a string. The message will be logged as `log_type`.
+
+    Return value indicates log success.
+    """
+
+    return _log_to_discord_log(msg_or_exception, log_type, CAN_LOG, LOGGER)
 
 FFMPEG = which("ffmpeg")
-handle_ffmpeg_path_output(FFMPEG)
+handle_ffmpeg_path_output(SYSTEM, FFMPEG)
 
 # Cache
 # Set up hashmaps for asyncio locks and cache
@@ -362,11 +146,11 @@ VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
 MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff
-ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data()
+ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data(CONFIG)
 
 INTENTS = Intents.all()
-ACTIVITY = get_activity()
-STATUS = get_status()
+ACTIVITY = get_activity(ACTIVITY_ENABLED, ACTIVITY_NAME, ACTIVITY_TYPE)
+STATUS = get_status(STATUS_TYPE)
 sleep(0.4)
 
 # Token stuff
