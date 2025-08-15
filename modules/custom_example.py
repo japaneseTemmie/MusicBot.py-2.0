@@ -6,7 +6,7 @@ from bot import Bot
     Each cog has its own listeners and async methods that work independently from
     other modules (as long as they don't overlap). """
 
-class MyCog(commands.Cog): # Add the Cog subclass
+class MyCog(commands.Cog): # Subclass commands.Cog
     def __init__(self, client: Bot):
         self.client = client
         # This example cog doesn't have any custom attributes. But custom attributes go here.
@@ -31,9 +31,7 @@ class MyCog(commands.Cog): # Add the Cog subclass
             except discord.errors.Forbidden: # We may receive an HTTP 403 'Forbidden' error if the user has DMs disabled or we cannot time out the member.
                 pass # Since this is a listener, it's best if we ignore it.
             except Exception as e:
-                """ Log other exceptions with LOGGER """
-                if CAN_LOG and LOGGER is not None:
-                    LOGGER.exception(e)
+                log_to_discord_log(e) # Log other exceptions to discord.log (if active)
 
     # Define an application command
     @app_commands.command(name="my-command", description="My first custom command.") # Define a command with the command() decorator 
@@ -56,7 +54,6 @@ class MyCog(commands.Cog): # Add the Cog subclass
     async def handle_say_hi_error(self, interaction: Interaction, error: Exception):
         """ This function will be called when an exception in say_hi() is raised. """
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.")

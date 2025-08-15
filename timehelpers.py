@@ -28,8 +28,8 @@ def format_to_seconds(minutes_str: str) -> int | None:
         return int(hours * 3600 + minutes * 60 + seconds)
     except Exception as e:
 
-        if CAN_LOG and LOGGER is not None and not isinstance(e, ValueError):
-            LOGGER.exception(e)
+        if not isinstance(e, ValueError):
+            log_to_discord_log(e)
 
         return None
 
@@ -50,6 +50,7 @@ def format_to_seconds_extended(minutes_str: str) -> int | None:
         days, hours, minutes, seconds = map(int, parts)
         return int(days * 86400 + hours * 3600 + minutes * 60 + seconds)
     except Exception as e:
-        if CAN_LOG and LOGGER is not None and not isinstance(e, ValueError):
-            LOGGER.exception(e)
+        if not isinstance(e, ValueError):
+            log_to_discord_log(e)
+            
         return None

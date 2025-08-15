@@ -17,7 +17,6 @@ an **extended** moderation module alongside other new features!
 - [Extra configuration](#extra-configuration-for-hosts)
 - [Extending the Bot](#extending-the-bot-for-devs)
 - [Troubleshooting](#troubleshooting)
-- [Known issues](#known-issues)
 - [Licensing](#licensing)
 
 ## Key features
@@ -250,7 +249,7 @@ Best practices:
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
 - Avoid interacting with core modules, they were not written with an API-like system in mind.
-- Check the `CAN_LOG` constant before logging exceptions with `LOGGER`.
+- To log errors or messages to stdout, use `log()`. To log to the `discord.log` file, use `log_to_discord_log()` (from `settings`). 
 - Do _not_ use the `TOKEN` constant anywhere unless explicitly required (like running the bot).
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/applications)
 - Imports should ideally be kept in the `settings.py` file.
@@ -301,17 +300,6 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
 - If you have an existing bot that's in over 2500 guilds, ensure the `use_sharding` key is set to `true` in `config.json`
 
   'Sharding' allows multiple instances of this bot to manage multiple guilds and is required by Discord after a bot reaches 2500 guilds.
-
-# Known issues
-- Bot dies mid-playback of some tracks:
-
-  This is a source-specific, track-specific issue. Due to how some platforms distribute content, the bot needs to adapt to different formats.
-
-  To protect their content, some platforms offer expiring audio streams that are **no longer valid after n minutes**.
-
-  Some progressive formats like `.mp3` or `.m4a` are perfectly fine, however, sometimes platforms may return a `.m3u8` 'playlist', this format requires `ffmpeg`
-  to request new 'segments' before playing them, but since **the links can expire**, platforms will deny the request and the playback **will crash**.
-  The bot recovers simply by skipping the current track.
 
 # Licensing
 This project is licensed under MIT. See [LICENSE](./LICENSE) for more information.

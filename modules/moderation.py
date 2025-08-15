@@ -42,8 +42,7 @@ class ModerationCog(commands.Cog):
 
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message(f"An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")

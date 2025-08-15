@@ -32,8 +32,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         try:
             await self.add_cog(cog)
         except Exception as e:
-            if CAN_LOG and LOGGER:
-                LOGGER.exception(e)
+            log_to_discord_log(e)
 
             log(f"An error occurred while loading {cog.__class__.__name__}\nErr: {e}")
             return False
@@ -77,8 +76,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
             synced_commands = await self.tree.sync()
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
         except Exception as e:
-            if CAN_LOG and LOGGER:
-                LOGGER.exception(e)
+            log_to_discord_log(e)
             
             log(f"An error occurred while syncing app commands to Discord.\nErr: {e}")
 
@@ -150,10 +148,12 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
             await asyncio.sleep(0.1)
 
         log("done")
+        separator()
 
     async def close(self) -> None:
         """ Attempt to cleanly exit the program. Called when SIGINT is recieved. (either by user or runner script) """
         
+        separator()
         log("Requested to terminate program.")
         log("Attempting a cleanup..")
         
@@ -164,5 +164,4 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
         log(f"Bai bai :{'3' * randint(1, 10)}")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.info(f"Connection closed by host.\nEnd of log.")
+        log_to_discord_log("Connection closed by host.\nEnd of log.")

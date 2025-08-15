@@ -90,8 +90,7 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
             else:
                 info = yt.extract_info(query, download=False)
     except Exception as e:
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(e)
+        log_to_discord_log(e)
 
         return Error(f"An error occured while extracting `{query[:50]}`.")
 

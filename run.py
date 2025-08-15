@@ -24,8 +24,8 @@ def log(msg: str, sleep_for: float=0) -> None:
     if sleep_for > 0:
         sleep(sleep_for)
 
-def separator() -> None:
-    print("------------------------------")
+def separator(s: str="=", length: int=35) -> None:
+    print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
 
 def check_python_ver() -> None:
     if version_info < (3, 10):

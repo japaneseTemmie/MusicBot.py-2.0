@@ -23,6 +23,7 @@ These settings allow to control which module gets enabled, useful to limit featu
 and reduce memory usage if unused.\n
 
 - enable_ModerationCog: Enables users to run commands from the moderation module.\n
+- enable_RoleManagerCog: Enables users to run commands from the rolemanager module.\n
 - enable_UtilsCog: Enables users to run commands from the utils module. Contains important UX commands like /help. It is highly discouraged to disable this.\n
 - enable_MusicCog: Enables users to run commands from the music module.\n """
 
@@ -62,10 +63,41 @@ from typing import NoReturn, Callable, Any
 from types import ModuleType
 
 def log(msg: str) -> None:
+    """ Log `msg` to stdout. """
+    
     print(f"{choice(all_colors)}[main]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
 
-def separator() -> None:
-    print("------------------------------")
+def log_to_discord_log(msg_or_exception: str | Exception, log_type: str="info") -> bool:
+    """
+    Log a message to discord.log if logging is enabled.
+    When `msg_or_exception` is an exception, it is logged directly.
+    When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `msg_or_exception` is a string. The message will be logged as `log_type`.
+
+    Return value indicates log success.
+    """
+    
+    if CAN_LOG and LOGGER is not None:
+        if isinstance(msg_or_exception, Exception):
+            LOGGER.exception(msg_or_exception)
+            
+            return True
+        
+        log_funcs = {
+            "warning": LOGGER.warning,
+            "error": LOGGER.error,
+            "info": LOGGER.info,
+            "debug": LOGGER.debug
+        }
+
+        func = log_funcs.get(log_type, LOGGER.info)
+        func(msg_or_exception)
+
+        return True
+    
+    return False
+
+def separator(s: str="=", length: int=35) -> None:
+    print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
 
 log("Finished importing libraries")
 separator()
@@ -188,7 +220,8 @@ def get_default_config_data() -> dict:
         "log_level": "normal",
         "use_sharding": False,
         "enable_ModerationCog": True,
-        "enable_UtilsCog": True, 
+        "enable_RoleManagerCog": True,
+        "enable_UtilsCog": True,
         "enable_MusicCog": True,
         "enable_MyCog": False
     }
@@ -283,9 +316,10 @@ USE_SHARDING = CONFIG.get("use_sharding", False)
 ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
 HELP = open_help_file()
 COOLDOWNS = {
+    "PING_COMMAND_COOLDOWN": 5.0,
+    "HELP_COMMAND_COOLDOWN": 5.0,
     "MUSIC_COMMANDS_COOLDOWN": 10.0,
     "EXTRACTOR_MUSIC_COMMANDS_COOLDOWN": 30.0,
-    "HELP_COMMAND_COOLDOWN": 5.0,
     "ROLE_COMMANDS_COOLDOWN": 60.0,
     "PURGE_CHANNEL_COMMAND_COOLDOWN": 45.0,
     "KICK_COMMAND_COOLDOWN": 10.0,

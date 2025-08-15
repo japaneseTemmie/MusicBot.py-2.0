@@ -51,6 +51,7 @@ class MusicCog(commands.Cog):
         await asyncio.gather(*[_close(vc) for vc in self.client.voice_clients])
 
         log("done")
+        separator()
 
     async def cog_unload(self):
         await self.close_voice_clients()
@@ -126,8 +127,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         log(f"[CONNECT] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
 
@@ -171,8 +171,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.followup.send("Something went wrong while disconnecting.")
 
@@ -254,8 +253,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -414,8 +412,7 @@ class MusicCog(commands.Cog):
             asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end. Skipping..") if interaction.response.is_done() else\
                                             interaction.response.send_message("An error occurred while handling playback end. Skipping.."), self.client.loop)
             
-            if CAN_LOG and LOGGER is not None:
-                LOGGER.exception(error)
+            log_to_discord_log(error)
 
         asyncio.run_coroutine_threadsafe(self.play_next(interaction), self.client.loop)
 
@@ -491,8 +488,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "is_extracting", "voice_client_locked"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -549,8 +545,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -599,8 +594,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -642,8 +636,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -690,8 +683,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -738,8 +730,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -779,8 +770,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -819,8 +809,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -876,8 +865,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -919,8 +907,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -988,8 +975,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -1044,8 +1030,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1076,8 +1061,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1126,8 +1110,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1177,8 +1160,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1228,8 +1210,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1275,8 +1256,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1315,8 +1295,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1367,8 +1346,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -1431,8 +1409,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -1494,8 +1471,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send("An unknown error occurred.")
@@ -1540,8 +1516,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1584,8 +1559,7 @@ class MusicCog(commands.Cog):
             
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1615,8 +1589,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1651,8 +1624,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1685,8 +1657,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1739,8 +1710,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1769,8 +1739,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1816,8 +1785,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1876,8 +1844,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -1946,8 +1913,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2006,8 +1972,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2084,8 +2049,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2133,8 +2097,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2193,8 +2156,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2252,8 +2214,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2299,8 +2260,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2357,8 +2317,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2432,8 +2391,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2493,8 +2451,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2569,8 +2526,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2642,8 +2598,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2723,8 +2678,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2790,8 +2744,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2850,8 +2803,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')
@@ -2895,8 +2847,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        if CAN_LOG and LOGGER is not None:
-            LOGGER.exception(error)
+        log_to_discord_log(error)
 
         await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
         await interaction.followup.send('An unknown error occurred.')

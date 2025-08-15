@@ -54,8 +54,7 @@ class ModuleLoader:
             except Exception as e:
                 log(f"An error occured while importing module '{module_file}'")
 
-                if CAN_LOG and LOGGER is not None:
-                    LOGGER.exception(e)
+                log_to_discord_log(e)
 
         return imported_modules
     
