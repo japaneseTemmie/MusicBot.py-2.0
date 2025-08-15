@@ -1,8 +1,4 @@
-""" main.py script for discord.py bot
-
-This software is provided "as-is", without any express or implied warranty.\n
-The developer is not responsible for any damages or data loss resulting from its use or misuse.\n
-Use at your own risk. """
+""" main.py script for discord.py bot """
 
 from settings import *
 from bot import Bot
