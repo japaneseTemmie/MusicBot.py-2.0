@@ -21,8 +21,8 @@ class MusicCog(commands.Cog):
     async def close_voice_clients(self):
         """ Close any leftover VCs and cleanup their open audio sources, if any. """
         
-        VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
-        log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set()}")
+        VOICE_OPERATIONS_LOCKED.set()
+        log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
         
         log("Closing voice clients..")
         

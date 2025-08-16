@@ -111,8 +111,8 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
             log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
             return
         
-        VOICE_OPERATIONS_LOCKED_PERMANENTLY.set()
-        FILE_OPERATIONS_LOCKED_PERMANENTLY.set()
+        VOICE_OPERATIONS_LOCKED.set()
+        FILE_OPERATIONS_LOCKED.set()
 
         log(f"Logged in as {self.user}")
         separator()
@@ -126,8 +126,8 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
         self.has_finished_on_ready = True
 
-        VOICE_OPERATIONS_LOCKED_PERMANENTLY.clear()
-        FILE_OPERATIONS_LOCKED_PERMANENTLY.clear()
+        VOICE_OPERATIONS_LOCKED.clear()
+        FILE_OPERATIONS_LOCKED.clear()
 
     async def on_shard_ready(self, shard_id: int) -> None:
         log(f"Shard {shard_id} is ready.")
@@ -135,8 +135,8 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
     async def wait_for_read_write_sync(self) -> None:
         """ Wait for any write/reads to finish before closing to keep data safe. """
         
-        FILE_OPERATIONS_LOCKED_PERMANENTLY.set()
-        log(f"File operations locked permanently: {FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set()}")
+        FILE_OPERATIONS_LOCKED.set()
+        log(f"File operations locked permanently: {FILE_OPERATIONS_LOCKED.is_set()}")
 
         log("Waiting for read/write sync..")
 

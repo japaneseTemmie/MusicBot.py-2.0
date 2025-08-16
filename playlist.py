@@ -19,7 +19,7 @@ class PlaylistManager:
         """ Safely read the content of a guild's playlist file.\n
         Cache the content of a successful read.\n
         If successful, returns a hashmap, Error otherwise. """
-        if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+        if FILE_OPERATIONS_LOCKED.is_set():
             return Error("Playlist reading temporarily disabled.")
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)
@@ -49,7 +49,7 @@ class PlaylistManager:
         """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.\n
         Cache new content if written successfully.\n
         Returns a boolean [True] or Error. """
-        if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+        if FILE_OPERATIONS_LOCKED.is_set():
             return Error("Playlist writing temporarily disabled.")
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)

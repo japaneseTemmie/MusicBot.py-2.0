@@ -109,13 +109,13 @@ ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 
-# asyncio.Event() objects that function as locks for safe shutdown.
+# Event objects that function as locks for safe shutdown.
 # Use .clear() to release the lock.
 # Use .set() to acquire the lock and refuse any VoiceClient or I/O operation.
 # Use .wait() to block the event loop if a lock is acquired (should be used rarely).
 # Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
-FILE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
-VOICE_OPERATIONS_LOCKED_PERMANENTLY = asyncio.Event()
+FILE_OPERATIONS_LOCKED = asyncio.Event()
+VOICE_OPERATIONS_LOCKED = asyncio.Event()
 MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff

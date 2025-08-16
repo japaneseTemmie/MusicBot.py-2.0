@@ -85,7 +85,7 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     return True
 
 async def check_vc_lock(interaction: Interaction) -> bool:
-    if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+    if VOICE_OPERATIONS_LOCKED.is_set():
         await interaction.response.send_message("Voice connections temporarily disabled.") if not interaction.response.is_done() else\
         await interaction.followup.send("Voice connections temporarily disabled.")
         return False
@@ -525,7 +525,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     """ Check if there are any users in a voice channel.
     Returns True if none are left and the bot is disconnected, else False. """
     
-    if VOICE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+    if VOICE_OPERATIONS_LOCKED.is_set():
         return True # bot is disconnected
 
     voice_client = guild_states[member.guild.id]["voice_client"]

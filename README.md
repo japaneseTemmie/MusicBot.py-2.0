@@ -244,7 +244,7 @@ constructor, this allows custom classes to interact with the Bot subclass of `co
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
-- Check locks before running I/O or VoiceClient operations. These locks are `FILE_OPERATIONS_LOCKED_PERMANENTLY` and `VOICE_OPERATIONS_LOCKED_PERMANENTLY` (from settings, docs included).
+- Check locks before running I/O or VoiceClient operations. These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
 - Do _not_ do I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
