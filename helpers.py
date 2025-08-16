@@ -610,22 +610,25 @@ async def get_ffmpeg_options(position: int) -> dict:
     return FFMPEG_OPTIONS
 
 async def validate_stream(url: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        'ffprobe',
-        '-v', 'quiet',
-        '-show_entries', 'stream=codec_type,codec_name,bit_rate',
-        '-of', 'default=noprint_wrappers=1:nokey=1',
-        url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL
-    )
+    try:
+        process = await asyncio.wait_for(asyncio.create_subprocess_exec(
+            'ffprobe',
+            '-v', 'quiet',
+            '-show_entries', 'stream=codec_type,codec_name,bit_rate',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            url,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL
+        ), timeout=10)
 
-    stdout, _ = await process.communicate()
+        stdout, _ = await process.communicate()
 
-    output = stdout.decode().strip().splitlines()
-    audio_stream_found = any(line for line in output if line and line != 'video')
+        output = stdout.decode().strip().splitlines()
+        audio_stream_found = any(line for line in output if line and line != 'video')
 
-    return process.returncode == 0 and audio_stream_found
+        return process.returncode == 0 and audio_stream_found
+    except asyncio.TimeoutError:
+        return False
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:
