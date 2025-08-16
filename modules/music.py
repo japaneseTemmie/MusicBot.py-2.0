@@ -18,43 +18,8 @@ class MusicCog(commands.Cog):
         
         self.playlist = PlaylistManager(self.client)
 
-    async def close_voice_clients(self):
-        """ Close any leftover VCs and cleanup their open audio sources, if any. """
-        
-        VOICE_OPERATIONS_LOCKED.set()
-        log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
-        
-        log("Closing voice clients..")
-        
-        async def _close(vc: discord.VoiceClient):
-            log(f"Closing connection to channel ID {vc.channel.id}")
-            
-            can_edit_status = self.guild_states[vc.guild.id]["allow_voice_status_edit"]
-
-            await update_guild_states(self.guild_states, vc, (True, True), ("handling_disconnect_action", "pending_cleanup"))
-            
-            if vc.is_playing() or vc.is_paused():
-                await update_guild_state(self.guild_states, vc, True, "stop_flag")
-                vc.stop()
-
-            if can_edit_status:
-                await update_guild_state(self.guild_states, vc, None, "voice_status")
-                await set_voice_status(self.guild_states, vc)
-
-            try:
-                await asyncio.wait_for(vc.disconnect(force=True), timeout=3) # API responds near immediately but the loop hangs for good 10 seconds if we don't pass a minimum timeout
-            except asyncio.TimeoutError:
-                pass
-            
-            vc.cleanup()
-            
-        await asyncio.gather(*[_close(vc) for vc in self.client.voice_clients])
-
-        log("done")
-        separator()
-
     async def cog_unload(self):
-        await self.close_voice_clients()
+        await close_voice_clients(self.guild_states, self.client)
         self.guild_states.clear()
 
         log(f"[{self.__class__.__name__.upper()}] Cleaned all guild states.")

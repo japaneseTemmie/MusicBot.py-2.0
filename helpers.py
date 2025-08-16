@@ -592,6 +592,42 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     any leftover guilds that were not properly cleaned up. """
     await cleanup_guilds(guild_states, client.voice_clients)
 
+async def close_voice_clients(guild_states: dict, client: commands.Bot | commands.AutoShardedBot):
+    """ Close any leftover VCs and cleanup their open audio sources, if any. """
+    
+    VOICE_OPERATIONS_LOCKED.set()
+    log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
+    
+    log("Closing voice clients..")
+    
+    async def _close(vc: discord.VoiceClient):
+        log(f"Closing connection to channel ID {vc.channel.id}..")
+        
+        can_edit_status = guild_states[vc.guild.id]["allow_voice_status_edit"]
+
+        await update_guild_states(guild_states, vc, (True, True), ("handling_disconnect_action", "pending_cleanup"))
+        
+        if vc.is_playing() or vc.is_paused():
+            await update_guild_state(guild_states, vc, True, "stop_flag")
+            vc.stop()
+
+        if can_edit_status:
+            await update_guild_state(guild_states, vc, None, "voice_status")
+            await set_voice_status(guild_states, vc)
+
+        try:
+            await asyncio.wait_for(vc.disconnect(force=True), timeout=3) # API responds near immediately but the loop hangs for good 10 seconds if we don't pass a minimum timeout
+        except asyncio.TimeoutError:
+            pass
+        
+        vc.cleanup()
+        log(f"Cleaned up channel ID {vc.channel.id}")
+        
+    await asyncio.gather(*[_close(vc) for vc in client.voice_clients])
+
+    log("done")
+    separator()
+
 # Voice channel status
 async def set_voice_status(guild_states: dict, interaction: Interaction) -> None:
     if interaction.guild.id in guild_states:
