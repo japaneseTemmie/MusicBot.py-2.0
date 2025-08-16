@@ -40,12 +40,12 @@ _*Playlist support may depend on command._
   
   Otherwise, here are the core commands for basic setup on UNIX-like systems with git:
 
-```bash
-git clone https://github.com/japaneseTemmie/MusicBot.py-2.0
-cd MusicBot.py-2.0
-echo "TOKEN=your_bot_token" > .env
-python3 run.py
-```
+  ```bash
+  git clone https://github.com/japaneseTemmie/MusicBot.py-2.0
+  cd MusicBot.py-2.0
+  echo "TOKEN=your_bot_token" > .env
+  python3 run.py
+  ```
 
 # Full Bot Setup Guide
 - If you already have a bot, this section can be skipped. Ensure the needed permissions and intents are enabled and visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
