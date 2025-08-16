@@ -11,7 +11,7 @@ from discord import Intents, app_commands
 
 # Misc imports
 from yt_dlp import YoutubeDL
-from logging import FileHandler, Formatter, Logger, getLogger, ERROR, DEBUG, WARNING, INFO, CRITICAL
+from logging import INFO
 from random import choice, randint, shuffle
 from cachetools import TTLCache
 from importlib import import_module
