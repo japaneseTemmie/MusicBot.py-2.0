@@ -35,7 +35,7 @@ async def open_roles(interaction: Interaction) -> dict | Error:
     Cache the content of a successful read, return cache if already present.
     Returns: file contents or Error. """
     
-    if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+    if FILE_OPERATIONS_LOCKED.is_set():
         return Error("Role reading temporarily disabled.")
     
     await ensure_lock(interaction, ROLE_LOCKS)
@@ -66,7 +66,7 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
     Cache new content if successful.\n
     Returns a boolean [True] or Error. """
     
-    if FILE_OPERATIONS_LOCKED_PERMANENTLY.is_set():
+    if FILE_OPERATIONS_LOCKED.is_set():
         return Error("Role writing temporarily disabled.")
     
     await ensure_lock(interaction, ROLE_LOCKS)
