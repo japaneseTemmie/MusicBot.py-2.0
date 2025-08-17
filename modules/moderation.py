@@ -19,40 +19,36 @@ class ModerationCog(commands.Cog):
         self.max_purge_limit = 1000
 
     async def handle_moderation_command_error(self, interaction: Interaction, error: Exception):
+        send_func = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
+        
         if isinstance(error, app_commands.errors.BotMissingPermissions):
-            await interaction.response.send_message("I don't have the necessary permissions to perform that operation!", ephemeral=True) if not interaction.response.is_done() else\
-            await interaction.followup.send("I don't have the necessary permissions to perform that operation!")
+            await send_func("I don't have the necessary permissions to perform that operation!", ephemeral=True)
             return
         elif isinstance(error, app_commands.errors.MissingPermissions):
-            await interaction.response.send_message("You don't have the necessary permissions to perform that operation!", ephemeral=True) if not interaction.response.is_done() else\
-            await interaction.followup.send("You don't have the necessary permissions to perform that operation!")
+            await send_func("You don't have the necessary permissions to perform that operation!", ephemeral=True)
             return
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True) if not interaction.response.is_done() else\
-            await interaction.followup.send(str(error))
+            await send_func(str(error), ephemeral=True)
             return
         
         if isinstance(error, app_commands.errors.CommandInvokeError):
             if isinstance(error.original, discord.errors.Forbidden):
-                await interaction.response.send_message("I'm unable to do that!", ephemeral=True) if not interaction.response.is_done() else\
-                await interaction.followup.send("I'm unable to do that!")
+                await send_func("I'm unable to do that! Please check my permissions. (Including channel overrides)", ephemeral=True)
             elif isinstance(error.original, discord.errors.HTTPException):
-                await interaction.response.send_message("Something went wrong while requesting changes.", ephemeral=True) if not interaction.response.is_done() else\
-                await interaction.followup.send("Something went wrong while requesting changes.")
+                await send_func("Something went wrong while requesting changes.", ephemeral=True)
 
             return
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message(f"An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        await send_func("An unknown error occured.", ephemeral=True)
 
     @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel.")
     @app_commands.describe(
-        channel="The channel to purge. Leave empty for current.",
-        amount="The amount of messages to delete (default 100). Must be > 0 and <= 1000.",
-        user="Delete only messages sent by this user.",
-        word="Delete only messages that have this word.",
+        channel="The channel to purge. (defaults to the current channel)",
+        amount="The amount of messages to delete. Must be > 0 and <= 1000. (defaults to 100)",
+        user="Delete only messages sent by this user. (defaults to none)",
+        word="Delete only messages that have this word. (defaults to none)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
@@ -70,8 +66,6 @@ class ModerationCog(commands.Cog):
 
         if message_amount < 1:
             await interaction.followup.send("No messages deleted.")
-            if show:
-                await interaction.channel.send("No messages deleted.")
             return
         
         await interaction.followup.send(f"Deleted **{message_amount}** {'messages' if message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.") if not show else\
@@ -185,7 +179,7 @@ class ModerationCog(commands.Cog):
 
     @app_commands.command(name="timeout", description="Times out a member.")
     @app_commands.describe(
-        duration="For how long the user should remain timed out. Must be DD:HH:MM:SS",
+        duration="For how long the user should remain timed out. Must be DD:HH:MM:SS.",
         member="The member to timeout.",
         reason="Reason for timeout. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
@@ -347,7 +341,7 @@ class ModerationCog(commands.Cog):
     @app_commands.describe(
         name="The new channel's name.",
         topic="The new channel's topic. (default none)",
-        category="The category name to apply the channel to. Leave empty for none",
+        category="The category name to apply the channel to. (defaults to no category)",
         announcement="Whether or not the channel is an announcement channel. (default False)",
         slowmode_delay="The slowmode delay to apply to the channel, must be in seconds. (defaults to 0)",
         nsfw="Whether or not the channel is NSFW. (default False)",
@@ -404,10 +398,10 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="make-voice-channel", description="Creates a voice channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The name of the new channel.",
-        category="The category to apply the new channel to. Leave empty for none.",
+        category="The category to apply the new channel to. (defaults to no category)",
         position="The position of the channel relative to all channels. (defaults to 0)",
         bitrate="The bitrate of the new channel, must be >= 8000 and <= 96000. (defaults to 64000)",
-        user_limit="The new channel's user limit. Must be >= 0 and <= 99. (defaults to 0 (infinite))",
+        user_limit="The new channel's user limit. Must be >= 0 and <= 99. (defaults to infinite)",
         video_quality_mode="The new channel's video quality mode, if unsure, leave empty (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
@@ -451,7 +445,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="make-category", description="Creates a category. See entry in /help for more info.")
     @app_commands.describe(
         name="The new category's name.",
-        position="The new category's position relative to all categories. (defaults to 0)",
+        position="The new category's position relative to all channels. (defaults to 0)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
@@ -479,7 +473,7 @@ class ModerationCog(commands.Cog):
         name="The new forum's name.",
         post_guidelines="The new forum's post guidelines. Must be < 1024 characters. (default none)",
         position="The new forum's position relative to all channels. (defaults to 0)",
-        category="The new forum's category, leave empty for none.",
+        category="The new forum's category. (defaults to no category)",
         slowmode_delay="The slowmode delay to apply to the new forum in seconds. Maximum is 21600. (defaults to 0)",
         nsfw="Whether or not the new forum should be marked as NSFW. (default False)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
@@ -530,7 +524,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="make-stage", description="Creates a stage channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The new stage channel's name.",
-        category="The category to apply the new stage channel to. Leave empty for none.",
+        category="The category to apply the new stage channel to. (defaults to no category)",
         position="The position of the new channel relative to all channels. (defaults to 0)",
         bitrate="The new stage channel's bitrate. Must be >= 8000 and <= 64000. (defaults to 64000).",
         video_quality_mode="The new stage channel's video quality mode, if unsure, leave the default (auto).",
