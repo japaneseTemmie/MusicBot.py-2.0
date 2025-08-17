@@ -1,6 +1,7 @@
 from os.path import join, exists
+
 from iohelpers import open_file
-from logutils import log, separator
+from init.logutils import log, separator
 
 def open_help_file(dir: str) -> dict | None:
     path = join(dir, "help.json")

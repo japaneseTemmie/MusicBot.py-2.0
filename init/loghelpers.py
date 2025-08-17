@@ -2,8 +2,8 @@ from logging import FileHandler, Formatter, Logger, getLogger, INFO
 from os.path import join, exists
 from os import remove
 
-from constants import VALID_LOG_LEVELS
-from logutils import log, separator
+from init.constants import VALID_LOG_LEVELS
+from init.logutils import log, separator
 
 def set_up_logging(dir: str, config: dict) -> tuple[FileHandler, Formatter, Logger, str]:
     log("Logging enabled")

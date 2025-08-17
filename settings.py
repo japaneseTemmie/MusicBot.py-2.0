@@ -33,12 +33,12 @@ from typing import NoReturn, Callable, Any
 from types import ModuleType
 
 # Custom modules
-from logutils import log, separator, log_to_discord_log as _log_to_discord_log
-from loghelpers import set_up_logging, remove_log
-from info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
-from help import open_help_file
-from config import get_config_data, get_default_yt_dlp_config_data
-from constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD
+from init.logutils import log, separator, log_to_discord_log as _log_to_discord_log
+from init.loghelpers import set_up_logging, remove_log
+from init.info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
+from init.help import open_help_file
+from init.config import get_config_data, get_default_yt_dlp_config_data
+from init.constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD
 
 log("Finished importing libraries")
 separator()
@@ -47,7 +47,7 @@ separator()
 sleep(0.5)
 
 # System info and config
-PATH = get_current_directory()
+PATH = get_current_directory(__file__)
 PYTHON = get_python()
 SYSTEM = get_os()
 CONFIG = get_config_data(PATH)

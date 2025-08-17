@@ -4,11 +4,12 @@ from os import name
 from platform import python_implementation, python_version, system
 from sys import exit as sysexit
 from random import choice
-from constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
-from logutils import log, separator
 
-def get_current_directory() -> str:
-    path = dirname(__file__)
+from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
+from init.logutils import log, separator
+
+def get_current_directory(file: str | None=None) -> str:
+    path = dirname(__file__ if file is None else file)
     log(f"Working directory: {path}")
     separator()
 

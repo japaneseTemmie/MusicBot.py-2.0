@@ -4,7 +4,7 @@ from sys import exit as sysexit
 from time import sleep
 
 from iohelpers import open_file, write_file
-from logutils import log, separator
+from init.logutils import log, separator
 
 from typing import NoReturn
 
