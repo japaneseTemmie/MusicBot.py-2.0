@@ -2104,7 +2104,7 @@ class MusicCog(commands.Cog):
             removed_tracks_len = len(removed_tracks)
 
             if not isinstance(write_result, Error):
-                await interaction.followup.send(f"**{removed_tracks_len}** tracks {'have' if removed_tracks_len > 1 else 'has'} been removed from playlist **{playlist_name}**.")
+                await interaction.followup.send(f"**{removed_tracks_len}** {'tracks have' if removed_tracks_len > 1 else 'track has'} been removed from playlist **{playlist_name}**.")
             else:
                 await interaction.followup.send(write_result.msg)
         else:

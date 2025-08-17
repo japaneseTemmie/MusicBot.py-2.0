@@ -47,7 +47,7 @@ def check_guild_data_path(path: str) -> None:
     else:
         log(f"Found guild data at {path}.")
 
-async def check_guild_data(bot_user: str, guilds: list[discord.Guild]) -> None:
+async def check_guild_data(client, guilds: list[discord.Guild]) -> None:
     """ Compare the guilds the bot's currently in
     with the guild IDs in the guild_data directory
     and delete any that aren't in the `guilds` parameter list. """
@@ -58,14 +58,14 @@ async def check_guild_data(bot_user: str, guilds: list[discord.Guild]) -> None:
     check_guild_data_path(guild_data_path)
     separator()
 
-    log(f"{bot_user} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
+    log(f"{client.user.name} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
     if guild_count > 2400 and guild_count < 2500:
-        log(f"{bot_user} is close to 2500 guilds. Consider enabling sharding in config.json")
+        log(f"{client.user.name} is close to 2500 guilds. Consider enabling sharding in config.json")
         await asyncio.sleep(5)
 
     separator()
     log(f"Checking for leftover guilds in {guild_data_path}.")
-    to_delete = get_guilds_to_delete(bot_user, guilds)
+    to_delete = get_guilds_to_delete(client.user.name, guilds)
 
     if to_delete:
         delete_guild_dirs(to_delete)

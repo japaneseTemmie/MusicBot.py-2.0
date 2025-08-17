@@ -84,11 +84,11 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         """ Handle any post-login tasks.\n
         Checking guilds, loading cogs, and syncing commands with the Discord API. """
         
-        log("Running post-login tasks")
+        log("Running post-login tasks..")
         separator()
         await asyncio.sleep(0.3)
 
-        await check_guild_data(bot_user=self.user.name, guilds=self.guilds)
+        await check_guild_data(self, self.guilds)
         separator()
 
         await self.load_cogs()
@@ -114,7 +114,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         VOICE_OPERATIONS_LOCKED.set()
         FILE_OPERATIONS_LOCKED.set()
 
-        log(f"Logged in as {self.user}")
+        log(f"Logged in as {self.user.name}")
         separator()
         await self.post_login_tasks()
 
