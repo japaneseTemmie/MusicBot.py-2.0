@@ -43,13 +43,12 @@ async def get_default_state(voice_client: discord.VoiceClient, curr_channel: dis
         "allow_greetings": True,
         "allow_voice_status_edit": True,
         "voice_status": None,
-        "query_amount": 0,
-        "max_queries": 0,
-        "current_query": None,
+        "progress_current": 0,
+        "progress_total": 0,
+        "progress_item_name": None,
         "current_track": None,
         "track_to_loop": None,
-        "general_start_date": None,
-        "general_start_time": 0,
+        "first_track_start_date": None,
         "elapsed_time": 0,
         "start_time": 0,
         "queue": [],
@@ -145,9 +144,15 @@ async def update_loop_queue_add(guild_states: dict, interaction: Interaction) ->
                 queue_to_loop.append(track)
 
 # Functions for updating guild states
-async def update_query_extraction_state(guild_states: dict, interaction: Interaction, amount: int, max_amount: int, current: str | None):
+async def update_query_extraction_state(
+        guild_states: dict, 
+        interaction: Interaction, 
+        progress_current: int, 
+        progress_total: int,
+        progress_item_name: str | None
+    ) -> None:
     if interaction.guild.id in guild_states:
-        await update_guild_states(guild_states, interaction, (amount, max_amount, current), ("query_amount", "max_queries", "current_query"))
+        await update_guild_states(guild_states, interaction, (progress_current, progress_total, progress_item_name), ("progress_current", "progress_total", "progress_item_name"))
 
 async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying"):
     if interaction.guild.id in guild_states:
@@ -664,14 +669,12 @@ async def validate_stream(url: str) -> bool:
         return False
 
 async def handle_player_crash(
-        guild_states: dict, 
         interaction: Interaction, 
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
         current_time: int,
         play_track_func: Callable
     ) -> bool:
-    await update_guild_state(guild_states, interaction, True, "voice_client_locked")
 
     try:
         new_track = await resolve_expired_url(current_track["webpage_url"])
@@ -687,8 +690,6 @@ async def handle_player_crash(
     except Exception as e:
         log_to_discord_log(e)
         return False
-    finally:
-        await update_guild_state(guild_states, interaction, False, "voice_client_locked")
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:

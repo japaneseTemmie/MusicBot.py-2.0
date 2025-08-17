@@ -26,13 +26,13 @@ class MusicCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        bot_voice_channel = member.guild.voice_client.channel if member.guild.voice_client else None
+        voice_client, bot_voice_channel = member.guild.voice_client, member.guild.voice_client.channel if member.guild.voice_client else None
         
         if member.id != self.client.user.id:
             if (bot_voice_channel is not None and before.channel == bot_voice_channel) and\
                 (after.channel is None or after.channel is not None) and\
                 member.guild.id in self.guild_states:
-                """ User left, check member count in voice channel. """
+                """ User left. Check member count in voice channel. """
                 
                 await check_users_in_channel(self.guild_states, member)
             elif (before.channel is None or before.channel is not None) and\
@@ -42,12 +42,17 @@ class MusicCog(commands.Cog):
                 
                 await greet_new_user_in_vc(self.guild_states, member)
         else:
-            if before.channel is not None and\
-                after.channel is None and\
+            if (before.channel is not None and after.channel is None) and\
                 member.guild.id in self.guild_states:
-                """ Bot has disconnected, wait and then clean up. """
+                """ Bot has disconnected. Wait and then clean up. """
                 
                 await disconnect_routine(self.client, self.guild_states, member)
+            elif (before.channel is not None and after.channel is not None) and\
+                member.guild.id in self.guild_states:
+                """ Bot has been moved. Stop play_next() from running. """
+
+                if voice_client.is_playing() or voice_client.is_paused():
+                    await update_guild_state(self.guild_states, member, True, "stop_flag")
 
     @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -74,7 +79,7 @@ class MusicCog(commands.Cog):
         elif permissions is not None and (not permissions.connect or not permissions.speak):
             await interaction.followup.send(f"I don't have permission to join your channel!")
         else:
-            log(f"[CONNECT][SHARD ID {interaction.guild.id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
+            log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
             voice_client = await channel.connect(timeout=15)
             if voice_client.is_connected():
@@ -94,10 +99,16 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        log(f"[CONNECT] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
+        log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
 
-        await interaction.followup.send(f"Something went wrong while connecting. "
-                                        f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again.")
+        await interaction.followup.send(
+            f"Something went wrong while connecting. "
+            f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again."
+        ) if interaction.response.is_done() else\
+        await interaction.response.send_message(
+            f"Something went wrong while connecting. "
+            f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again.", ephemeral=True
+        )
 
     @app_commands.command(name="leave", description="Makes the bot leave your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -107,6 +118,7 @@ class MusicCog(commands.Cog):
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use /progress to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nPlease Wait for the other action first.") or\
             not await check_vc_lock(interaction):
             return
         
@@ -138,7 +150,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.followup.send("Something went wrong while disconnecting.")
+        await interaction.followup.send("An unknown error occurred.") if interaction.response.is_done() else\
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -224,12 +237,12 @@ class MusicCog(commands.Cog):
         await interaction.followup.send("An unknown error occurred.")
 
     async def play_track(
-            self, 
-            interaction: Interaction, 
-            voice_client: discord.VoiceClient, 
-            track: dict, 
-            position: int=0, 
-            state: str | None=None
+        self, 
+        interaction: Interaction, 
+        voice_client: discord.VoiceClient, 
+        track: dict, 
+        position: int=0, 
+        state: str | None=None
         ) -> None:
         if not voice_client or\
             not voice_client.is_connected() or\
@@ -239,7 +252,7 @@ class MusicCog(commands.Cog):
         history = self.guild_states[interaction.guild.id]["queue_history"]
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
-        general_start_time, general_start_date = self.guild_states[interaction.guild.id]["general_start_time"], self.guild_states[interaction.guild.id]["general_start_date"]
+        first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
         can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
 
         position = max(0, min(position, format_to_seconds(track["duration"])))
@@ -261,8 +274,8 @@ class MusicCog(commands.Cog):
             self.handle_playback_end(e, interaction)
             return
 
-        if not general_start_time or not general_start_date:
-            await update_guild_states(self.guild_states, interaction, (get_time(), datetime.now()), ("general_start_time", "general_start_date"))
+        if not first_track_start_date:
+            await update_guild_state(self.guild_states, interaction, datetime.now(), "first_track_start_date")
 
         await update_guild_states(self.guild_states, interaction, (get_time() - position, position), ("start_time", "elapsed_time"))
         
@@ -325,12 +338,14 @@ class MusicCog(commands.Cog):
             playback_ended_unexpectedly = current_time < expected_elapsed_time
 
             if playback_ended_unexpectedly:
+                await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
                 await interaction.channel.send(
                     f"Looks like the playback crashed at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}** due to a faulty stream..\nAttempting to recover.."
                 )
 
-                success = await handle_player_crash(self.guild_states, interaction, current_track, voice_client, current_time, self.play_track)
+                success = await handle_player_crash(interaction, current_track, voice_client, current_time, self.play_track)
 
+                await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
                 if success:
                     await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}**.")
                     return
@@ -1530,7 +1545,7 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="progress", description="Show info about the current extraction process.")
+    @app_commands.command(name="progress", description="Show info about the current extraction process. (if any)")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_extraction(self, interaction: Interaction):
@@ -1539,11 +1554,11 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, "is_extracting", False, "I'm not extracting anything!"):
             return
 
-        current_query = self.guild_states[interaction.guild.id]["current_query"]
-        max_queries = self.guild_states[interaction.guild.id]["max_queries"]
-        current_query_amount = self.guild_states[interaction.guild.id]["query_amount"]
+        name = self.guild_states[interaction.guild.id]["progress_item_name"]
+        total = self.guild_states[interaction.guild.id]["progress_total"]
+        current = self.guild_states[interaction.guild.id]["progress_current"]
 
-        embed = generate_extraction_embed(current_query, max_queries, current_query_amount)
+        embed = generate_extraction_embed(name, total, current)
 
         await interaction.response.send_message(embed=embed)
 
@@ -1567,16 +1582,15 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
         not await check_channel(self.guild_states, interaction):
             return
-        
-        start_time = self.guild_states[interaction.guild.id]["general_start_time"]
-        join_time = self.guild_states[interaction.guild.id]["general_start_date"]
 
-        if not start_time or not join_time:
+        first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
+
+        if not first_track_start_date:
             await interaction.response.send_message("Play a track first.")
             return
         
-        formatted_start_time = format_to_minutes(int(get_time() - start_time))
-        formatted_join_time = join_time.strftime("%d/%m/%Y @ %H:%M:%S")
+        formatted_start_time = format_to_minutes(int(get_time() - first_track_start_date.timestamp()))
+        formatted_join_time = first_track_start_date.strftime("%d/%m/%Y @ %H:%M:%S")
 
         embed = generate_epoch_embed(formatted_join_time, formatted_start_time)
 
