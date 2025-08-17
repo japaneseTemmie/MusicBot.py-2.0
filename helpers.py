@@ -26,7 +26,7 @@ def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
     return pages
 
 # Function to reset states
-async def get_default_state(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict[int, Any]:
+async def get_default_state(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict[str, Any]:
     return {
         "voice_client": voice_client,
         "voice_client_locked": False,
@@ -339,14 +339,11 @@ async def get_tracks_from_playlist(usr_tracks: list[str], playlist: list[dict], 
 
     return found if found else Error("Could not find given tracks.")
 
-async def get_random_tracks_from_playlist(playlist: list[dict], amount: int) -> list[dict] | list:
-    found = []
-
-    for _ in range(amount):
-        chosen = choice(playlist)
-        found.append(chosen)
-
-    return found
+async def get_random_tracks_from_playlist(playlist: list[dict], amount: int, max_limit: int=25) -> list[dict]:
+    playlist_len = len(playlist)
+    max_amount = max(1, min(min(max_limit, playlist_len), amount))
+    
+    return sample(playlist, max_amount)
 
 # Apply playlist tracks' title and source website to tracks
 # Has no effect on titles if users did not modify them.
@@ -636,7 +633,7 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 
         await voice_client.channel.edit(status=status)
 
-# FFmpeg options and stream validation
+# FFmpeg stuff and stream validation
 async def get_ffmpeg_options(position: int) -> dict:
     FFMPEG_OPTIONS = {}
     
@@ -665,6 +662,33 @@ async def validate_stream(url: str) -> bool:
         return process.returncode == 0 and audio_stream_found
     except asyncio.TimeoutError:
         return False
+
+async def handle_player_crash(
+        guild_states: dict, 
+        interaction: Interaction, 
+        current_track: dict[str, Any], 
+        voice_client: discord.VoiceClient,
+        current_time: int,
+        play_track_func: Callable
+    ) -> bool:
+    await update_guild_state(guild_states, interaction, True, "voice_client_locked")
+
+    try:
+        new_track = await resolve_expired_url(current_track["webpage_url"])
+        await play_track_func(
+            interaction, 
+            voice_client, 
+            new_track, 
+            max(0, current_time - PLAYBACK_CRASH_RECOVERY_TIME), # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
+            "retry"
+        )
+
+        return True
+    except Exception as e:
+        log_to_discord_log(e)
+        return False
+    finally:
+        await update_guild_state(guild_states, interaction, False, "voice_client_locked")
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:

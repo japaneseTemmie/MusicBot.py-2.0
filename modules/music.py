@@ -143,7 +143,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
-        search_provider="The website to search for each search query on. URLs ignore this."
+        search_provider="[EXPERIMENTAL] The website to search for each search query on. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(search_provider=[
@@ -318,7 +318,28 @@ class MusicCog(commands.Cog):
         no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
         if no_users_in_channel:
             return
-        
+
+        if current_track is not None and not user_forced:
+            current_time = int(get_time() - start_time)
+            expected_elapsed_time = format_to_seconds(current_track["duration"]) - PLAYBACK_END_GRACE_PERIOD
+            playback_ended_unexpectedly = current_time < expected_elapsed_time
+
+            if playback_ended_unexpectedly:
+                await interaction.channel.send(
+                    f"Looks like the playback crashed at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}** due to a faulty stream..\nAttempting to recover.."
+                )
+
+                success = await handle_player_crash(self.guild_states, interaction, current_track, voice_client, current_time, self.play_track)
+
+                if success:
+                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}**.")
+                    return
+                else:
+                    await interaction.channel.send(f"Failed to recover. Skipping..")
+
+        if user_forced:
+            await update_guild_state(self.guild_states, interaction, False, "user_interrupted_playback")
+
         if not queue and not\
             is_looping and not\
             queue_to_loop:
@@ -331,29 +352,7 @@ class MusicCog(commands.Cog):
             await interaction.channel.send("Queue is empty.") if interaction.is_expired()\
             else await interaction.followup.send("Queue is empty.")
             return
-
-        if current_track is not None and not user_forced:
-            current_time = int(get_time() - start_time)
-            playback_ended_unexpectedly = current_time < format_to_seconds(current_track["duration"]) - PLAYBACK_END_GRACE_PERIOD
-
-            if playback_ended_unexpectedly:
-                await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-                await interaction.channel.send(f"Looks like the playback crashed at **{format_to_minutes(current_time)}**..\nAttempting to recover..")
-
-                try:
-                    new_track = await resolve_expired_url(current_track["webpage_url"])
-                    await self.play_track(interaction, voice_client, new_track, current_time, "retry")
-
-                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(current_time)}**.")
-                    return
-                except Exception:
-                    pass
-                finally:
-                    await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
-        
-        if user_forced:
-            await update_guild_state(self.guild_states, interaction, False, "user_interrupted_playback")
-
+    
         if not queue and queue_to_loop:
             new_queue = deepcopy(queue_to_loop)
             await update_guild_state(self.guild_states, interaction, new_queue, "queue")
@@ -387,7 +386,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
         query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="The website to search for the search query on. URLs ignore this.",
+        search_provider="[EXPERIMENTAL] The website to search for the search query on. URLs ignore this.",
         keep_current_track="Whether or not to keep the current track (if any) in the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -882,9 +881,9 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="replace", description="Replaces a track with another one. See entry in /help for more info.")
     @app_commands.describe(
-        track_name="Name (or index, in case <by_index> is True) of the track to replace.",
+        old_track_name="Name (or index, in case <by_index> is True) of the track to replace.",
         new_track_query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="The provider to use for search queries. URLs ignore this.",
+        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this.",
         by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -895,7 +894,7 @@ class MusicCog(commands.Cog):
         ]
     )
     @app_commands.guild_only
-    async def replace_track(self, interaction: Interaction, track_name: str, new_track_query: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
+    async def replace_track(self, interaction: Interaction, old_track_name: str, new_track_query: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to replace.") or\
@@ -911,7 +910,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await replace_track_in_queue(self.guild_states, interaction, queue, track_name, new_track_query, by_index=by_index, provider=search_provider)
+        result = await replace_track_in_queue(self.guild_states, interaction, queue, old_track_name, new_track_query, by_index=by_index, provider=search_provider)
         if isinstance(result, Error):
             await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -950,7 +949,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="loop", description="Loops the current or specified track. Functions as a toggle.")
     @app_commands.describe(
-        track_name="The track to loop's name or index. (if <by_index> is True)",
+        track_name="The track to loop's name or index (if <by_index> is True). (defaults to current track)",
         by_index="Whether or not to search for track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -2293,9 +2292,9 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playlist-replace", description="Replaces a playlist track with a different one. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
-        old="The name (or index, if <by_index> is True) of the track to replace.",
-        new="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="The provider used for search query. URLs ignore this.",
+        old_track_name="The name (or index, if <by_index> is True) of the track to replace.",
+        new_track_query="URL or search query. Refer to help entry for valid URLs.",
+        search_provider="[EXPERIMENTAL] The provider used for search query. URLs ignore this.",
         by_index="Replace a track by its index."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -2306,7 +2305,7 @@ class MusicCog(commands.Cog):
         ]
     )
     @app_commands.guild_only
-    async def replace_playlist_track(self, interaction: Interaction, playlist_name: str, old: str, new: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
+    async def replace_playlist_track(self, interaction: Interaction, playlist_name: str, old_track_name: str, new_track_query: str, search_provider: app_commands.Choice[str]=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -2326,7 +2325,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        success = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old, new, search_provider, by_index)
+        success = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old_track_name, new_track_query, search_provider, by_index)
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
@@ -2428,7 +2427,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
-        search_provider="The provider to use for search queries. URLs ignore this."
+        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(

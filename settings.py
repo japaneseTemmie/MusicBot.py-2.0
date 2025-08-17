@@ -12,7 +12,7 @@ from discord import Intents, app_commands
 # Misc imports
 from yt_dlp import YoutubeDL
 from logging import INFO
-from random import choice, randint, shuffle
+from random import choice, randint, shuffle, sample
 from cachetools import TTLCache
 from importlib import import_module
 from inspect import getmembers, isclass
@@ -38,7 +38,7 @@ from init.loghelpers import set_up_logging, remove_log
 from init.info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
 from init.help import open_help_file
 from init.config import get_config_data, get_default_yt_dlp_config_data
-from init.constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD
+from init.constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD, PLAYBACK_CRASH_RECOVERY_TIME, MAX_IO_SYNC_WAIT_TIME
 
 log("Finished importing libraries")
 separator()
@@ -116,7 +116,6 @@ PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 # Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED = asyncio.Event()
 VOICE_OPERATIONS_LOCKED = asyncio.Event()
-MAX_IO_SYNC_WAIT_TIME = 20000 # Only wait up to 20 seconds for locks to be false during shutdown.
 
 # API stuff
 ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data(CONFIG)
