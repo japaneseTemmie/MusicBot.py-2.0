@@ -154,11 +154,11 @@ async def update_query_extraction_state(
     if interaction.guild.id in guild_states:
         await update_guild_states(guild_states, interaction, (progress_current, progress_total, progress_item_name), ("progress_current", "progress_total", "progress_item_name"))
 
-async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying"):
+async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying") -> None:
     if interaction.guild.id in guild_states:
         guild_states[interaction.guild.id][state] = value
 
-async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]):
+async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
     if interaction.guild.id in guild_states:
         for state, value in zip(states, values):
             guild_states[interaction.guild.id][state] = value
@@ -510,7 +510,7 @@ async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None
         guild_states[user.guild.id]["greet_timeouts"][user.id] = False
 
 # Disconnect behaviour
-async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]):
+async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]) -> None:
     active_guild_ids = [client.guild.id for client in clients]
 
     for guild_id in guild_states.copy():
@@ -559,7 +559,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
 
     return False
 
-async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member):
+async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member) -> None:
     voice_client = guild_states[member.guild.id]["voice_client"]
     can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
     has_pending_cleanup = guild_states[member.guild.id]["pending_cleanup"]
@@ -594,7 +594,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     any leftover guilds that were not properly cleaned up. """
     await cleanup_guilds(guild_states, client.voice_clients)
 
-async def close_voice_clients(guild_states: dict, client: commands.Bot | commands.AutoShardedBot):
+async def close_voice_clients(guild_states: dict, client: commands.Bot | commands.AutoShardedBot) -> None:
     """ Close any leftover VCs and cleanup their open audio sources, if any. """
     
     VOICE_OPERATIONS_LOCKED.set()
