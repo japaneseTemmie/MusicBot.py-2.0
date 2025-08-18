@@ -5,5 +5,5 @@ VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings
 VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching, "listening": discord.ActivityType.listening}
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
 PLAYBACK_END_GRACE_PERIOD = 1
-PLAYBACK_CRASH_RECOVERY_TIME = 5
+PLAYBACK_CRASH_RECOVERY_TIME = 7
 MAX_IO_SYNC_WAIT_TIME = 20000

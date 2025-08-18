@@ -165,33 +165,33 @@ async def update_guild_states(guild_states: dict, interaction: Interaction, valu
 
 # Functions for fetching stuff and adding it to a list
 async def fetch_query(
-            guild_states: dict,
-            interaction: Interaction,
-            query: str,
-            extraction_state_amount: int=1,
-            extraction_state_max_length: int=1,
-            query_name: str=None,
-            allowed_query_types: tuple[str]=None,
-            provider: str | None=None
-        ) -> dict | list[dict] | Error:
-        """ Extract a query from its website, catch any errors and return the result. """
-        
-        query = query.strip()
+        guild_states: dict,
+        interaction: Interaction,
+        query: str,
+        extraction_state_amount: int=1,
+        extraction_state_max_length: int=1,
+        query_name: str=None,
+        allowed_query_types: tuple[str]=None,
+        provider: str | None=None
+    ) -> dict | list[dict] | Error:
+    """ Extract a query from its website, catch any errors and return the result. """
+    
+    query = query.strip()
 
-        if not query:
-            return Error("Query cannot be empty.")
+    if not query:
+        return Error("Query cannot be empty.")
 
-        await update_query_extraction_state(guild_states, interaction, extraction_state_amount, extraction_state_max_length, query_name.strip() if query_name is not None else query)
+    await update_query_extraction_state(guild_states, interaction, extraction_state_amount, extraction_state_max_length, query_name.strip() if query_name is not None else query)
 
-        query_type = get_query_type(query, provider)
-        source_website = query_type[1]
-        
-        if allowed_query_types is not None and source_website not in allowed_query_types:
-            return Error(f"Query type **{source_website}** not supported for this command!")
+    query_type = get_query_type(query, provider)
+    source_website = query_type[1]
+    
+    if allowed_query_types is not None and source_website not in allowed_query_types:
+        return Error(f"Query type **{source_website}** not supported for this command!")
 
-        extracted_track = await asyncio.to_thread(fetch, query, query_type)
+    extracted_track = await asyncio.to_thread(fetch, query, query_type)
 
-        return extracted_track
+    return extracted_track
 
 async def fetch_queries(guild_states: dict,
         interaction: Interaction,
@@ -228,7 +228,7 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     
     new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
     if isinstance(new_extracted_track, Error):
-        raise ValueError("Invalid audio stream")
+        return None
     
     return new_extracted_track
 
@@ -310,8 +310,7 @@ async def get_previous(current: dict | None, history: list[dict] | list) -> dict
 async def get_next(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
     if is_random:
         return Error("Next track will be random.")
-
-    if is_looping and track_to_loop:
+    elif is_looping and track_to_loop:
         next_track = track_to_loop
     elif queue:
         next_track = queue[0]
@@ -630,6 +629,15 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     log("done")
     separator()
 
+async def handle_channel_move(guild_states: dict, interaction: Interaction | discord.Member):
+    voice_client = guild_states[interaction.guild.id]["voice_client"]
+
+    if voice_client.is_playing() or voice_client.is_paused():
+        await update_guild_state(guild_states, interaction, True, "stop_flag")
+    await update_guild_state(guild_states, interaction, True, "user_disconnect")
+
+    await voice_client.disconnect()
+
 # Voice channel status
 async def set_voice_status(guild_states: dict, interaction: Interaction) -> None:
     if interaction.guild.id in guild_states:
@@ -677,7 +685,17 @@ async def handle_player_crash(
     ) -> bool:
 
     try:
+        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
+        old_title = str(current_track["title"])
+        old_source_website = str(current_track["source_website"])
+
         new_track = await resolve_expired_url(current_track["webpage_url"])
+        if new_track is None:
+            return False
+        
+        new_track["title"] = old_title
+        new_track["source_website"] = old_source_website
+
         await play_track_func(
             interaction, 
             voice_client, 
@@ -749,7 +767,7 @@ async def lock_playlist(interaction: Interaction, content: dict | Error, locked:
 
     # Ensure the target playlist exists or a command that creates one is used.
     if  (await playlist_exists(content, playlist_name) or\
-            interaction.command.name in ("playlist-save", "playlist-add-yt-playlist", "playlist-add", "playlist-create")):
+            interaction.command.name in ("playlist-save", "playlist-save-current", "playlist-add-yt-playlist", "playlist-add", "playlist-create")):
         locked[playlist_name] = True
 
 async def unlock_playlist(locked: dict, content: dict | Error, playlist_name: str) -> None:

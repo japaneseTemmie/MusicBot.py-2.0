@@ -26,7 +26,7 @@ class MusicCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        voice_client, bot_voice_channel = member.guild.voice_client, member.guild.voice_client.channel if member.guild.voice_client else None
+        bot_voice_channel = member.guild.voice_client.channel if member.guild.voice_client else None
         
         if member.id != self.client.user.id:
             if (bot_voice_channel is not None and before.channel == bot_voice_channel) and\
@@ -49,10 +49,9 @@ class MusicCog(commands.Cog):
                 await disconnect_routine(self.client, self.guild_states, member)
             elif (before.channel is not None and after.channel is not None) and\
                 member.guild.id in self.guild_states:
-                """ Bot has been moved. Stop play_next() from running. """
+                """ Bot has been moved. Disconnect from channel. """
 
-                if voice_client.is_playing() or voice_client.is_paused():
-                    await update_guild_state(self.guild_states, member, True, "stop_flag")
+                await handle_channel_move(self.guild_states, member)
 
     @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -81,7 +80,7 @@ class MusicCog(commands.Cog):
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
-            voice_client = await channel.connect(timeout=15)
+            voice_client = await channel.connect(timeout=10)
             if voice_client.is_connected():
                 self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
                 
@@ -254,6 +253,9 @@ class MusicCog(commands.Cog):
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
         can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
+        old_title = str(track["title"])
+        old_source_website = str(track["source_website"])
 
         position = max(0, min(position, format_to_seconds(track["duration"])))
         ffmpeg_options = await get_ffmpeg_options(position)
@@ -262,6 +264,11 @@ class MusicCog(commands.Cog):
             is_stream_valid = await validate_stream(track["url"])
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 track = await resolve_expired_url(track["webpage_url"])
+                track["title"] = old_title
+                track["source_website"] = old_source_website
+
+                if track is None:
+                    raise ValueError("Unrecoverable stream.")
 
             source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
