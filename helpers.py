@@ -488,6 +488,8 @@ async def ensure_lock(interaction: Interaction, locks: dict) -> None:
 
 # Connect behaviour
 async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None:
+    """ Say hi to `user` in the text channel the /join command was used in. """
+    
     if user.guild.id in guild_states:
         can_greet = guild_states[user.guild.id]["allow_greetings"]
         text_channel = guild_states[user.guild.id]["interaction_channel"]
@@ -510,6 +512,8 @@ async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None
 
 # Disconnect behaviour
 async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]) -> None:
+    """ Clean up any inactive guild's data. Called at the end of `disconnect_routine()` """
+    
     active_guild_ids = [client.guild.id for client in clients]
 
     for guild_id in guild_states.copy():
@@ -559,6 +563,8 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     return False
 
 async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member) -> None:
+    """ Function that runs every voice_client.disconnect() call. """
+    
     voice_client = guild_states[member.guild.id]["voice_client"]
     can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
     has_pending_cleanup = guild_states[member.guild.id]["pending_cleanup"]
@@ -630,6 +636,8 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     separator()
 
 async def handle_channel_move(guild_states: dict, interaction: Interaction | discord.Member):
+    """ Function that runs every time the voice client is unexpectedly moved to another channel. """
+    
     voice_client = guild_states[interaction.guild.id]["voice_client"]
 
     if voice_client.is_playing() or voice_client.is_paused():
@@ -640,6 +648,8 @@ async def handle_channel_move(guild_states: dict, interaction: Interaction | dis
 
 # Voice channel status
 async def set_voice_status(guild_states: dict, interaction: Interaction) -> None:
+    """ Updates the `voice_client` channel status. """
+    
     if interaction.guild.id in guild_states:
         voice_client = guild_states[interaction.guild.id]["voice_client"]
         status = guild_states[interaction.guild.id]["voice_status"]
@@ -656,6 +666,8 @@ async def get_ffmpeg_options(position: int) -> dict:
     return FFMPEG_OPTIONS
 
 async def validate_stream(url: str) -> bool:
+    """ Validate a stream URL using ffprobe. """
+    
     try:
         process = await asyncio.wait_for(asyncio.create_subprocess_exec(
             'ffprobe',
@@ -683,6 +695,8 @@ async def handle_player_crash(
         current_time: int,
         play_track_func: Callable
     ) -> bool:
+
+    """ Handles unexpected stream crashes. """
 
     try:
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
