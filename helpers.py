@@ -635,14 +635,16 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     log("done")
     separator()
 
-async def handle_channel_move(guild_states: dict, interaction: Interaction | discord.Member):
+async def handle_channel_move(guild_states: dict, member: Interaction | discord.Member, before_state: discord.VoiceState):
     """ Function that runs every time the voice client is unexpectedly moved to another channel. """
     
-    voice_client = guild_states[interaction.guild.id]["voice_client"]
+    voice_client = guild_states[member.guild.id]["voice_client"]
+
+    await before_state.channel.edit(status=None)
 
     if voice_client.is_playing() or voice_client.is_paused():
-        await update_guild_state(guild_states, interaction, True, "stop_flag")
-    await update_guild_state(guild_states, interaction, True, "user_disconnect")
+        await update_guild_state(guild_states, member, True, "stop_flag")
+    await update_guild_state(guild_states, member, True, "user_disconnect")
 
     await voice_client.disconnect()
 

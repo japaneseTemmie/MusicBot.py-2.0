@@ -51,7 +51,7 @@ class MusicCog(commands.Cog):
                 member.guild.id in self.guild_states:
                 """ Bot has been moved. Disconnect from channel. """
 
-                await handle_channel_move(self.guild_states, member)
+                await handle_channel_move(self.guild_states, member, before)
 
     @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
