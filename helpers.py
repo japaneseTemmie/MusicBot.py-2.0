@@ -639,8 +639,10 @@ async def handle_channel_move(guild_states: dict, member: Interaction | discord.
     """ Function that runs every time the voice client is unexpectedly moved to another channel. """
     
     voice_client = guild_states[member.guild.id]["voice_client"]
+    can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
 
-    await before_state.channel.edit(status=None)
+    if can_update_status:
+        await before_state.channel.edit(status=None)
 
     if voice_client.is_playing() or voice_client.is_paused():
         await update_guild_state(guild_states, member, True, "stop_flag")
