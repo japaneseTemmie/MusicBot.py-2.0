@@ -693,7 +693,8 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     separator()
 
 async def handle_channel_move(guild_states: dict, member: Interaction | discord.Member, before_state: discord.VoiceState, after_state: discord.VoiceState):
-    """ Function that runs every time the voice client is unexpectedly moved to another channel. """
+    """ Function that runs every time the voice client is unexpectedly moved to another channel.
+    Waits for users and resumes session in new channel. """
     
     handling_move_action = guild_states[member.guild.id]["handling_move_action"]
     voice_client = guild_states[member.guild.id]["voice_client"]
@@ -744,7 +745,7 @@ async def handle_channel_move(guild_states: dict, member: Interaction | discord.
 
         await set_voice_status(guild_states, member)
 
-    await update_guild_state(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
+    await update_guild_states(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
 
     await text_channel.send(f"Resumed session in **{voice_client.channel.name}**.")
 
@@ -798,11 +799,11 @@ async def handle_player_crash(
         interaction: Interaction, 
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
-        current_time: int,
+        resume_time: int | float,
         play_track_func: Callable
     ) -> bool:
 
-    """ Handles unexpected stream crashes by resolving the expired URL and starting a new ffmpeg process.
+    """ Handles unexpected stream crashes by resolving the expired URL and spawning a new ffmpeg process.
     Returns True for a successful recovery, False otherwise. """
 
     try:
@@ -817,13 +818,11 @@ async def handle_player_crash(
         new_track["title"] = old_title
         new_track["source_website"] = old_source_website
 
-        rewind_offset = (format_to_seconds(current_track["duration"]) - current_time) * 0.1
-
         await play_track_func(
             interaction, 
             voice_client, 
             new_track, 
-            max(0, current_time - rewind_offset), # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
+            resume_time, # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
             "retry"
         )
 

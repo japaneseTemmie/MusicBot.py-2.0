@@ -249,6 +249,7 @@ class MusicCog(commands.Cog):
         if not voice_client or\
             not voice_client.is_connected() or\
             track is None:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions.")
             return
 
         history = self.guild_states[interaction.guild.id]["queue_history"]
@@ -267,11 +268,12 @@ class MusicCog(commands.Cog):
             is_stream_valid = await validate_stream(track["url"])
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 track = await resolve_expired_url(track["webpage_url"])
-                track["title"] = old_title
-                track["source_website"] = old_source_website
 
                 if track is None:
                     raise ValueError("Unrecoverable stream.")
+                
+                track["title"] = old_title
+                track["source_website"] = old_source_website
 
             source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
@@ -317,6 +319,7 @@ class MusicCog(commands.Cog):
 
     async def play_next(self, interaction: Interaction) -> None:
         if interaction.guild.id not in self.guild_states:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with non-existent guild state. Ignoring.")
             return
         
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
@@ -333,31 +336,39 @@ class MusicCog(commands.Cog):
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         if stop_flag:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag. Ignoring.")
+            
             await update_guild_state(self.guild_states, interaction, False, "stop_flag")
             return
         elif voice_client_locked:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked. Ignoring.")
             return
 
         no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
         if no_users_in_channel:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with no users in channel. Ignoring.")
             return
 
         if current_track is not None and not user_forced:
             current_time = int(get_time() - start_time)
-            expected_elapsed_time = format_to_seconds(current_track["duration"]) - PLAYBACK_END_GRACE_PERIOD
+            track_duration_in_seconds = format_to_seconds(current_track["duration"])
+            expected_elapsed_time = track_duration_in_seconds - PLAYBACK_END_GRACE_PERIOD
+            
             playback_ended_unexpectedly = current_time < expected_elapsed_time
 
             if playback_ended_unexpectedly:
                 await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
+                approximate_resume_time = max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
                 await interaction.channel.send(
-                    f"Looks like the playback crashed at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}** due to a faulty stream..\nAttempting to recover.."
+                    f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream..\nAttempting to recover.."
                 )
 
-                success = await handle_player_crash(interaction, current_track, voice_client, current_time, self.play_track)
+                success = await handle_player_crash(interaction, current_track, voice_client, approximate_resume_time, self.play_track)
 
                 await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
                 if success:
-                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(current_time - PLAYBACK_CRASH_RECOVERY_TIME)}**.")
+                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
                     return
                 else:
                     await interaction.channel.send(f"Failed to recover. Skipping..")
