@@ -29,7 +29,7 @@ from sys import exit as sysexit
 from dotenv import load_dotenv
 
 # Types
-from typing import NoReturn, Callable, Any
+from typing import NoReturn, Callable, Any, Awaitable
 from types import ModuleType
 
 # Custom modules

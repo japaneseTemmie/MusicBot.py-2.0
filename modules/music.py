@@ -239,17 +239,17 @@ class MusicCog(commands.Cog):
         await interaction.followup.send("An unknown error occurred.")
 
     async def play_track(
-        self, 
-        interaction: Interaction, 
-        voice_client: discord.VoiceClient, 
-        track: dict, 
-        position: int=0, 
-        state: str | None=None
+            self, 
+            interaction: Interaction, 
+            voice_client: discord.VoiceClient, 
+            track: dict, 
+            position: int=0, 
+            state: str | None=None
         ) -> None:
         if not voice_client or\
             not voice_client.is_connected() or\
             track is None:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions.")
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions. Ignoring.")
             return
 
         history = self.guild_states[interaction.guild.id]["queue_history"]
@@ -257,6 +257,7 @@ class MusicCog(commands.Cog):
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
         can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
         old_title = str(track["title"])
         old_source_website = str(track["source_website"])
@@ -506,6 +507,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
 
@@ -883,6 +885,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
+        
+        await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
@@ -897,7 +901,7 @@ class MusicCog(commands.Cog):
         await self.play_track(interaction, voice_client, random_track)
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "voice_client_locked"))
 
-        await interaction.response.send_message(f"Now playing: **{random_track['title']}**")
+        await interaction.followup.send(f"Now playing: **{random_track['title']}**")
 
     @select_random_track.error
     async def handle_select_random_track_error(self, interaction: Interaction, error):

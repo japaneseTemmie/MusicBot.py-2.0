@@ -540,14 +540,14 @@ def split(s: str) -> list[str]:
 
 # Function to get a file lock for a specific guild id
 async def ensure_lock(interaction: Interaction, locks: dict) -> None:
-    """ Adds an `asyncio.Lock` object to an guild if not present. """
+    """ Adds an `asyncio.Lock` object to a guild if not present. """
     
     if interaction.guild.id not in locks:
         locks[interaction.guild.id] = asyncio.Lock()
 
 # Connect behaviour
 async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None:
-    """ Say hi to `user` in the text channel the /join command was used in. """
+    """ Say hi to `user` in the text channel the /join command was used in :3. """
     
     if user.guild.id in guild_states:
         can_greet = guild_states[user.guild.id]["allow_greetings"]
@@ -587,13 +587,13 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
 
 async def check_users_in_channel(guild_states: dict, member: discord.Member | Interaction) -> bool:
     """ Check if there are any users in a voice channel.
-    Returns True if none are left and the bot is disconnected, else False. """
+    Returns True if none are left and the bot is disconnected, False otherwise. """
     
     if VOICE_OPERATIONS_LOCKED.is_set():
         return True # bot is disconnected
 
     voice_client = guild_states[member.guild.id]["voice_client"]
-    locked = guild_states[member.guild.id]["locked_playlists"]
+    locked_playlists = guild_states[member.guild.id]["locked_playlists"]
     is_extracting = guild_states[member.guild.id]["is_extracting"]
     handling_disconnect = guild_states[member.guild.id]["handling_disconnect_action"]
 
@@ -606,7 +606,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     if voice_client.is_connected() and\
         not voice_client.is_playing() and\
         not is_extracting and\
-        not await is_playlist_locked(locked):
+        not await is_playlist_locked(locked_playlists):
 
         log(f"[DISCONNECT][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
 
@@ -619,7 +619,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
 
     return False
 
-async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member) -> None:
+async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member | Interaction) -> None:
     """ Function that runs every voice_client.disconnect() call. Responsible for cleaning up the disconnected client and its guild data. """
     
     voice_client = guild_states[member.guild.id]["voice_client"]
@@ -630,7 +630,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     
     if has_pending_cleanup or\
         handling_disconnect:
-        log(f"[GUILDSTATE] Already handling a disconnect action for guild ID {member.guild.id}, ignoring.")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a disconnect action for guild ID {member.guild.id}, ignoring.")
         return
 
     await update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
@@ -639,7 +639,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
         await update_guild_state(guild_states, member, None, "voice_status")
         await set_voice_status(guild_states, member)
 
-    log(f"[GUILDSTATE] Waiting 10 seconds before cleaning up guild ID {member.guild.id}...")
+    log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Waiting 10 seconds before cleaning up guild ID {member.guild.id}...")
     await asyncio.sleep(10) # Sleepy time :3 maybe it's a network issue
 
     if any(client.guild.id == member.guild.id for client in client.voice_clients): # Reconnected, all good
@@ -692,7 +692,12 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     log("done")
     separator()
 
-async def handle_channel_move(guild_states: dict, member: Interaction | discord.Member, before_state: discord.VoiceState, after_state: discord.VoiceState):
+async def handle_channel_move(
+        guild_states: dict, 
+        member: discord.Member | Interaction, 
+        before_state: discord.VoiceState, 
+        after_state: discord.VoiceState
+    ) -> None:
     """ Function that runs every time the voice client is unexpectedly moved to another channel.
     Waits for users and resumes session in new channel. """
     
@@ -800,7 +805,7 @@ async def handle_player_crash(
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
         resume_time: int | float,
-        play_track_func: Callable
+        play_track_func: Awaitable
     ) -> bool:
 
     """ Handles unexpected stream crashes by resolving the expired URL and spawning a new ffmpeg process.
@@ -822,7 +827,7 @@ async def handle_player_crash(
             interaction, 
             voice_client, 
             new_track, 
-            resume_time, # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
+            resume_time,
             "retry"
         )
 
