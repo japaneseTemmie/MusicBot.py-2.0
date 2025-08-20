@@ -251,7 +251,7 @@ Best practices:
 - Avoid interacting with core modules, they were not written with an API-like system in mind.
 - To log errors or messages to stdout, use `log()`. To log to the `discord.log` file, use `log_to_discord_log()` (from `settings`). 
 - Do _not_ use the `TOKEN` constant anywhere unless explicitly required (like running the bot).
-- If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/applications)
+- If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications)
 - Imports should ideally be kept in the `settings.py` file.
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow quick enable/disable of the module, and set its value to `true`, or else the bot won't load your Cog.
