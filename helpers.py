@@ -6,10 +6,11 @@ from timehelpers import format_to_minutes, format_to_seconds, format_to_seconds_
 from extractor import fetch, get_query_type
 from error import Error
 
-""" Utilities """
-
 # Function to get a hashmap of queue pages to display
 def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
+    """ Create a hashmap of queue pages. Each page is 25 elements log.
+    Must be sent to a thread, as it contains blocking code. """
+    
     queue_copy = deepcopy(queue)
     pages = {}
     tracks = []
@@ -26,7 +27,9 @@ def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
     return pages
 
 # Function to reset states
-async def get_default_state(voice_client: discord.VoiceClient, curr_channel: discord.TextChannel) -> dict[str, Any]:
+async def get_default_state(voice_client: discord.VoiceClient, current_text_channel: discord.TextChannel) -> dict[str, Any]:
+    """ Return a hashmap of default guild states where `voice_client` and `interaction_channel` are passed as function parameters. """
+    
     return {
         "voice_client": voice_client,
         "voice_client_locked": False,
@@ -57,7 +60,8 @@ async def get_default_state(voice_client: discord.VoiceClient, curr_channel: dis
         "locked_playlists": {},
         "pending_cleanup": False,
         "handling_disconnect_action": False,
-        "interaction_channel": curr_channel,
+        "handling_move_action": False,
+        "interaction_channel": current_text_channel,
         "greet_timeouts": {}
     }
 
@@ -83,10 +87,15 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     
     return True
 
-async def check_vc_lock(interaction: Interaction) -> bool:
+async def check_vc_lock(interaction: Interaction, msg_on_locked: str | None=None) -> bool:
+    """ Check the `VOICE_OPERATION_LOCKED` event.
+    If True, reply to the interaction with `msg_on_locked` or a default message and return False. """
+    
+    default_msg = msg_on_locked or "Voice connections temporarily disabled."
+    
     if VOICE_OPERATIONS_LOCKED.is_set():
-        await interaction.response.send_message("Voice connections temporarily disabled.") if not interaction.response.is_done() else\
-        await interaction.followup.send("Voice connections temporarily disabled.")
+        await interaction.response.send_message(default_msg) if not interaction.response.is_done() else\
+        await interaction.followup.send(default_msg)
         return False
     
     return True
@@ -111,8 +120,11 @@ async def check_guild_state(
         
         return True
 
-# Functions to update the copied queue when queueloop is enabled.
+# Functions to update the copied queue when /queueloop is enabled.
 async def update_loop_queue_replace(guild_states: dict, interaction: Interaction, old_track: dict, track: dict) -> None:
+    """ Update the `queue_to_loop` state with the `old` and `new` output of a replace track function.
+    This function must be called after replacing an item from the `queue` state and `is_looping_queue` state is active. """
+    
     if interaction.guild.id in guild_states:
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
 
@@ -126,6 +138,9 @@ async def update_loop_queue_replace(guild_states: dict, interaction: Interaction
             queue_to_loop.insert(loop_index, track)
 
 async def update_loop_queue_remove(guild_states: dict, interaction: Interaction, tracks_to_remove: list[dict]) -> None:
+    """ Update the `queue_to_loop` state by removing items that are not in the `queue` state.
+    This function must be called after removing items from the `queue` state and `is_looping_queue` state is active. """
+    
     if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
@@ -135,6 +150,9 @@ async def update_loop_queue_remove(guild_states: dict, interaction: Interaction,
                 queue_to_loop.remove(track_to_remove)
 
 async def update_loop_queue_add(guild_states: dict, interaction: Interaction) -> None:
+    """ Update the `queue_to_loop` state with the latest extracted items from `queue`.
+    This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is True. """
+    
     if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
@@ -151,14 +169,20 @@ async def update_query_extraction_state(
         progress_total: int,
         progress_item_name: str | None
     ) -> None:
+    """ Update the current extraction state. """
+    
     if interaction.guild.id in guild_states:
         await update_guild_states(guild_states, interaction, (progress_current, progress_total, progress_item_name), ("progress_current", "progress_total", "progress_item_name"))
 
 async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying") -> None:
+    """ Update guild `state` with a new `value`. """
+    
     if interaction.guild.id in guild_states:
         guild_states[interaction.guild.id][state] = value
 
 async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
+    """ Bulk update guild `states` with `values`. """
+    
     if interaction.guild.id in guild_states:
         for state, value in zip(states, values):
             guild_states[interaction.guild.id][state] = value
@@ -223,6 +247,9 @@ async def fetch_queries(guild_states: dict,
     return found
 
 async def resolve_expired_url(webpage_url: str) -> dict | None:
+    """ Fetch a new track object based on the current webpage URL.
+    Unlike `fetch()`, this function returns None on failure. """
+    
     provider = None
     query_type = get_query_type(webpage_url, provider)
     
@@ -233,8 +260,9 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     return new_extracted_track
 
 async def add_results_to_queue(interaction: Interaction, results: list[dict], queue: list, max_limit: int) -> list[dict]:
-    """ Append found results to a queue in place and return None.\n
-    Reply to the interaction if it exceeds max_limit. """
+    """ Append found results to a queue in place.\n
+    Reply to the interaction if it exceeds `max_limit`.
+    Return the added items. """
     added = []
 
     for track_info in results:
@@ -248,23 +276,30 @@ async def add_results_to_queue(interaction: Interaction, results: list[dict], qu
     return added
 
 # Functions for checking input and queue, these functions also 'reply' to interactions
-async def check_input_length(interaction: Interaction, max_limit: int, input_split: list[Any]) -> list[Any]:
+async def check_input_length(interaction: Interaction, max_limit: int, input_split: list[Any], msg_on_fail: str | None=None) -> list[Any]:
+    """ Check a split input's length and compare it to a given maximum limit.
+    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and slice the input up to the `max_limit`.
+    Returns `input_split`. """
+    
+    default_msg = msg_on_fail or f"You can only add a maximum of **{max_limit}** tracks per command.\n" + f"Only the first **{max_limit}** of your command will be added."
     input_length = len(input_split)
     
     if input_length > max_limit:
-        input_split = input_split[:max_limit]
-        await interaction.channel.send(f"You can only add a maximum of **{max_limit}** tracks per command.\n"
-                                       f"You were trying to add **{input_length}** tracks.\n"
-                                       f"Only the first **{max_limit}** of those will be added."
-                                        )
+        await interaction.channel.send(default_msg)
+        return input_split[:max_limit]
 
     return input_split
 
-async def check_queue_length(interaction: Interaction, max_limit: int, queue: list) -> bool:
+async def check_queue_length(interaction: Interaction, max_limit: int, queue: list, msg_on_fail: str | None=None) -> bool:
+    """ Check a queue's length and compare it to a given maximum limit.
+    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and return False. """
+    
+    default_msg = msg_on_fail or f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s)."
     queue_length = len(queue)
+
     if queue_length >= max_limit:
-        await interaction.followup.send(f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s).") if interaction.response.is_done() else\
-        await interaction.response.send_message(f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s).")
+        await interaction.followup.send(default_msg) if interaction.response.is_done() else\
+        await interaction.response.send_message(default_msg)
         
         return False
     
@@ -272,6 +307,8 @@ async def check_queue_length(interaction: Interaction, max_limit: int, queue: li
 
 # Input sanitation
 async def sanitize_name(name: str) -> str:
+    """ Sanitize a playlist name by removing unwanted chars and additionally, return a fixed name if the sanitized one is empty. """
+    
     return name.replace("\\", "").strip() or "Untitled"
 
 # Functions for finding items
@@ -296,6 +333,9 @@ async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> 
     return Error(f"Could not find track **{track[:50]}**.")
 
 async def get_previous(current: dict | None, history: list[dict] | list) -> dict | Error:
+    """ Return the previous track in an iterable `history` based on the current track.
+    Does not remove the returned track. """
+    
     if not history:
         return Error("Track history is empty. Nothing to show.")
     
@@ -308,6 +348,9 @@ async def get_previous(current: dict | None, history: list[dict] | list) -> dict
     return history[length - 2] if current is not None else history[length - 1] # len - 1 = current, len - 2 = actual previous track
 
 async def get_next(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
+    """ Get the next track in an iterable `queue` (and `queue_to_loop`) based on different states.
+    Does not remove the returned track. """
+    
     if is_random:
         return Error("Next track will be random.")
     elif is_looping and track_to_loop:
@@ -331,10 +374,12 @@ async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
         return False
 
 # Functions to get stuff from playlists.
-async def get_tracks_from_playlist(usr_tracks: list[str], playlist: list[dict], by_index: bool=False) -> list[dict] | Error:
+async def get_tracks_from_playlist(track_names: list[str], playlist: list[dict], by_index: bool=False) -> list[dict] | Error:
+    """ Get track objects from an interable `playlist` based on their names (or indices). """
+    
     found = []
-    for track in usr_tracks:
-        track_info = await find_track(track, playlist, by_index)
+    for name in track_names:
+        track_info = await find_track(name, playlist, by_index)
         
         if isinstance(track_info, Error):
             return track_info
@@ -344,6 +389,8 @@ async def get_tracks_from_playlist(usr_tracks: list[str], playlist: list[dict], 
     return found if found else Error("Could not find given tracks.")
 
 async def get_random_tracks_from_playlist(playlist: list[dict], amount: int, max_limit: int=25) -> list[dict]:
+    """ Return random amount of tracks from an interable `playlist` clamped to a maximum of 25. """
+    
     playlist_len = len(playlist)
     max_amount = max(1, min(min(max_limit, playlist_len), amount))
     
@@ -351,15 +398,17 @@ async def get_random_tracks_from_playlist(playlist: list[dict], amount: int, max
 
 # Apply playlist tracks' title and source website to tracks
 # Has no effect on titles if users did not modify them.
-async def replace_data_with_playlist_data(tracks: list[dict], data: list[dict]) -> None:
+async def replace_data_with_playlist_data(tracks: list[dict], playlist: list[dict]) -> None:
     """ Replaces a track's 'title' and 'source_website' keys' values with values from the playlist (data). """
     
-    for track, playlist_track in zip(tracks, data):
+    for track, playlist_track in zip(tracks, playlist):
         track["title"] = playlist_track["title"]
         track["source_website"] = playlist_track["source_website"]
 
 # Remove/Reposition/etc. functions
 async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index: bool=False) -> list[dict] | Error:
+    """ Remove given `tracks` from iterable `queue`. Returns removed tracks or Error. """
+    
     found = []
     
     for track in tracks:
@@ -376,6 +425,8 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
     return found if found else Error("Could not find given tracks.")
 
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict], by_index: bool=False) -> tuple[dict, int, int] | Error:
+    """ Repositions a track to a new index in an iterable `queue`. Returns a tuple with found track [0], old index [1], and new index [2] or Error. """
+    
     index = max(1, min(index, len(queue)))
     index -= 1
 
@@ -401,6 +452,8 @@ async def replace_track_in_queue(
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict, dict] | Error:
+
+    """ Replace a track in an iterable `queue` by extracting a new one. Returns a tuple with old track [0] and new one [1] or Error. """
     
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
@@ -431,6 +484,8 @@ async def replace_track_in_queue(
     return extracted_track, removed_track
 
 async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | Error:
+    """ Bulk renames tracks in an iterable `queue`. Returns a list with a tuple with track object [0] and new name [1] or Error. """
+    
     names = split(names)
     new_names = split(new_names)
     found = []
@@ -444,8 +499,8 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names:
         found_track = await find_track(track, queue, by_index)
         if isinstance(found_track, Error):
             return found_track
-        elif new_name.lower().replace(" ", "") == found_track[0]["title"].lower().replace(" ", ""):
-            return Error(f"Cannot rename a track (**{found_track[0]['title']}**) to the same name.")
+        elif new_name.replace(" ", "") == found_track[0]["title"].replace(" ", ""):
+            return Error(f"Cannot rename a track (**{found_track[0]['title']}**) to the same name (**{new_name[:50]}**).")
         
         old_track = deepcopy(found_track[0])
         old_track_index = found_track[1]
@@ -456,6 +511,8 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names:
     return found if found else Error(f"Could not find given tracks.")
 
 async def place_track_in_playlist(queue: list, index: int | None, track: dict) -> tuple[dict, int] | Error:
+    """ Place a track at a specified or last index in an iterable `queue`. Returns a tuple with placed track [0] and its index [1]. """
+    
     index = max(1, min(index, len(queue))) if index is not None else len(queue)+1
     index -= 1
     
@@ -476,13 +533,15 @@ async def place_track_in_playlist(queue: list, index: int | None, track: dict) -
 
 # Custom split
 def split(s: str) -> list[str]:
-    """ Use this lovely regex to split on ; with the exception when it's prefixed with a '\\\\'. """
+    """ Custom split. Use `re.split` to split an item on each semicolon with the exception when it's prefixed with a backslash ('\\\\'). """
     
     parts = re.split(r'(?<!\\);', s)
     return [part.replace(r'\;', ';') for part in parts]
 
 # Function to get a file lock for a specific guild id
 async def ensure_lock(interaction: Interaction, locks: dict) -> None:
+    """ Adds an `asyncio.Lock` object to an guild if not present. """
+    
     if interaction.guild.id not in locks:
         locks[interaction.guild.id] = asyncio.Lock()
 
@@ -536,7 +595,6 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     voice_client = guild_states[member.guild.id]["voice_client"]
     locked = guild_states[member.guild.id]["locked_playlists"]
     is_extracting = guild_states[member.guild.id]["is_extracting"]
-    is_vc_locked = guild_states[member.guild.id]["voice_client_locked"]
     handling_disconnect = guild_states[member.guild.id]["handling_disconnect_action"]
 
     if handling_disconnect:
@@ -548,7 +606,6 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     if voice_client.is_connected() and\
         not voice_client.is_playing() and\
         not is_extracting and\
-        not is_vc_locked and\
         not await is_playlist_locked(locked):
 
         log(f"[DISCONNECT][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
@@ -563,7 +620,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
     return False
 
 async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member) -> None:
-    """ Function that runs every voice_client.disconnect() call. """
+    """ Function that runs every voice_client.disconnect() call. Responsible for cleaning up the disconnected client and its guild data. """
     
     voice_client = guild_states[member.guild.id]["voice_client"]
     can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
@@ -635,24 +692,65 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     log("done")
     separator()
 
-async def handle_channel_move(guild_states: dict, member: Interaction | discord.Member, before_state: discord.VoiceState):
+async def handle_channel_move(guild_states: dict, member: Interaction | discord.Member, before_state: discord.VoiceState, after_state: discord.VoiceState):
     """ Function that runs every time the voice client is unexpectedly moved to another channel. """
     
+    handling_move_action = guild_states[member.guild.id]["handling_move_action"]
     voice_client = guild_states[member.guild.id]["voice_client"]
+    text_channel = guild_states[member.guild.id]["interaction_channel"]
     can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
+    current_status = guild_states[member.guild.id]["voice_status"]
+    start_time = guild_states[member.guild.id]["start_time"]
+    elapsed_time = guild_states[member.guild.id]["elapsed_time"]
 
-    if can_update_status:
+    if handling_move_action:
+        log(f"[CHANNELSTATE][SHARD ID {member.guild.shard_id}] Already handling a move action for channel ID {after_state.channel.id}")
+        return
+    
+    await update_guild_states(guild_states, member, (True, True), ("handling_move_action", "voice_client_locked"))
+
+    if can_update_status and current_status:
         await before_state.channel.edit(status=None)
 
-    if voice_client.is_playing() or voice_client.is_paused():
-        await update_guild_state(guild_states, member, True, "stop_flag")
-    await update_guild_state(guild_states, member, True, "user_disconnect")
+    if after_state.channel.type == discord.ChannelType.stage_voice:
+        await text_channel.send("I've been moved to an unsupported stage channel. Don't jumpscare me like that!\nDisconnecting..")
 
-    await voice_client.disconnect()
+        if voice_client.is_playing() or voice_client.is_paused():
+            await update_guild_state(guild_states, member, True, "stop_flag")
+
+        await voice_client.disconnect()
+        return
+
+    if len(voice_client.channel.members) < 2:
+        
+        if voice_client.is_playing():
+            voice_client.pause()
+            elapsed_time = int(get_time() - start_time)
+            await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
+
+        await text_channel.send(f"Waiting **10** seconds for users in new channel **{voice_client.channel.name}**.")
+
+        await asyncio.sleep(10)
+
+        no_users_in_channel = await check_users_in_channel(guild_states, member)
+        if no_users_in_channel:
+            await text_channel.send(f"Timeout exhausted, disconnected from channel **{voice_client.channel.name}**.")
+            return
+
+    if voice_client.is_paused():
+        voice_client.resume()
+        start_time = int(get_time() - elapsed_time)
+        await update_guild_state(guild_states, member, start_time, "start_time")
+
+        await set_voice_status(guild_states, member)
+
+    await update_guild_state(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
+
+    await text_channel.send(f"Resumed session in **{voice_client.channel.name}**.")
 
 # Voice channel status
 async def set_voice_status(guild_states: dict, interaction: Interaction) -> None:
-    """ Updates the `voice_client` channel status. """
+    """ Updates the `voice_client` channel status with the `voice_status` guild state. """
     
     if interaction.guild.id in guild_states:
         voice_client = guild_states[interaction.guild.id]["voice_client"]
@@ -662,15 +760,19 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 
 # FFmpeg stuff and stream validation
 async def get_ffmpeg_options(position: int) -> dict:
+    """ Return a hashmap containing ffmpeg `before_options` and `options` in their respective keys.
+    Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
+    
     FFMPEG_OPTIONS = {}
     
-    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 15"
+    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10"
     FFMPEG_OPTIONS["options"] = f"-vn -ss {position}"
 
     return FFMPEG_OPTIONS
 
 async def validate_stream(url: str) -> bool:
-    """ Validate a stream URL using ffprobe. """
+    """ Validate a stream URL by spawning an `ffprobe` subprocess asynchronously with a 10 second timeout.
+    Returns True if the stream can be used for playback, otherwise False if the subprocess exits with 1 or timeout is exhausted. """
     
     try:
         process = await asyncio.wait_for(asyncio.create_subprocess_exec(
@@ -686,7 +788,7 @@ async def validate_stream(url: str) -> bool:
         stdout, _ = await process.communicate()
 
         output = stdout.decode().strip().splitlines()
-        audio_stream_found = any(line for line in output if line and line != 'video')
+        audio_stream_found = any(line and line == "audio" for line in output)
 
         return process.returncode == 0 and audio_stream_found
     except asyncio.TimeoutError:
@@ -700,7 +802,8 @@ async def handle_player_crash(
         play_track_func: Callable
     ) -> bool:
 
-    """ Handles unexpected stream crashes. """
+    """ Handles unexpected stream crashes by resolving the expired URL and starting a new ffmpeg process.
+    Returns True for a successful recovery, False otherwise. """
 
     try:
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
@@ -714,11 +817,13 @@ async def handle_player_crash(
         new_track["title"] = old_title
         new_track["source_website"] = old_source_website
 
+        rewind_offset = (format_to_seconds(current_track["duration"]) - current_time) * 0.1
+
         await play_track_func(
             interaction, 
             voice_client, 
             new_track, 
-            max(0, current_time - PLAYBACK_CRASH_RECOVERY_TIME), # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
+            max(0, current_time - rewind_offset), # The play_next() function may take a while before being called. Therefore, we must go back a few secs.
             "retry"
         )
 
@@ -810,7 +915,7 @@ async def is_playlist_locked(locked: dict) -> bool:
     return any(locked.values())
 
 async def cleanup_locked_playlists(content: dict | Error, locked: dict) -> None:
-    """ Cleans up leftover playlists. """
+    """ Cleans up leftover playlists in `locked`. """
     
     if isinstance(content, Error):
         return
@@ -822,6 +927,8 @@ async def cleanup_locked_playlists(content: dict | Error, locked: dict) -> None:
 
 # Moderation utilities
 async def get_ban_entries(guild: discord.Guild) -> list[discord.User] | list:
+    """ Get a list of `discord.User` objects from a guild's ban entries. """
+
     members = []
     async for ban_entry in guild.bans():
         members.append(ban_entry.user)
@@ -829,6 +936,8 @@ async def get_ban_entries(guild: discord.Guild) -> list[discord.User] | list:
     return members
 
 async def get_user_to_unban(ban_entries: list[discord.User], member: str | int) -> discord.User:
+    """ Match a given user's name or ID to users in a ban entry list and return the object. """
+    
     member_obj = None
     funcs = [
         lambda: discord.utils.get(ban_entries, id=int(member) if member.isdigit() else None),
@@ -845,6 +954,8 @@ async def get_user_to_unban(ban_entries: list[discord.User], member: str | int) 
     return member_obj
 
 async def remove_markdown_or_mentions(text: str, markdown: bool, mentions: bool) -> str:
+    """ Remove Discord's markdown and mention formatting. """
+    
     clean_text = text
 
     if mentions:

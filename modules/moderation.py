@@ -19,6 +19,15 @@ class ModerationCog(commands.Cog):
         self.max_purge_limit = 1000
 
     async def handle_moderation_command_error(self, interaction: Interaction, error: Exception):
+        """ AIO error handler for moderation commands.
+        Currently handles:
+         
+        - BotMissingPermissions
+        - MissingPermissions (user)
+        - CommandOnCooldown
+        - Forbidden
+        - HTTPException """
+        
         send_func = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
         
         if isinstance(error, app_commands.errors.BotMissingPermissions):
@@ -35,7 +44,7 @@ class ModerationCog(commands.Cog):
             if isinstance(error.original, discord.errors.Forbidden):
                 await send_func("I'm unable to do that! Please check my permissions. (Including channel overrides)", ephemeral=True)
             elif isinstance(error.original, discord.errors.HTTPException):
-                await send_func("Something went wrong while requesting changes.", ephemeral=True)
+                await send_func("Something went wrong while requesting changes. Try again later.", ephemeral=True)
 
             return
 

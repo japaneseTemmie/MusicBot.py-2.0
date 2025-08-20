@@ -38,6 +38,8 @@ def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, 
     return SEARCH_PROVIDERS.get(provider, ("ytsearch:", "YouTube search"))
 
 def prettify_info(info: dict, source_website: str | None=None) -> dict:
+    """ Prettify the extracted info with cleaner values. """
+    
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
     duration = info.get("duration", 0)
 
@@ -92,7 +94,7 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
     except Exception as e:
         log_to_discord_log(e)
 
-        return Error(f"An error occured while extracting `{query[:50]}`.")
+        return Error(f"An error occured while extracting `{query[:50]}`. Please try another source website.")
 
     if info is not None:
         return parse_info(info, query, query_type)

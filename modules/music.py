@@ -19,6 +19,8 @@ class MusicCog(commands.Cog):
         self.playlist = PlaylistManager(self.client)
 
     async def cog_unload(self):
+        """ Cleanup function called when destroying the cog. Cleans up voice clients and guild states. """
+        
         await close_voice_clients(self.guild_states, self.client)
         self.guild_states.clear()
 
@@ -51,7 +53,7 @@ class MusicCog(commands.Cog):
                 member.guild.id in self.guild_states:
                 """ Bot has been moved. Disconnect from channel. """
 
-                await handle_channel_move(self.guild_states, member, before)
+                await handle_channel_move(self.guild_states, member, before, after)
 
     @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -117,7 +119,7 @@ class MusicCog(commands.Cog):
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use /progress to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nPlease Wait for the other action first.") or\
+            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first.") or\
             not await check_vc_lock(interaction):
             return
         
@@ -133,10 +135,11 @@ class MusicCog(commands.Cog):
         if voice_client.is_connected():
             log(f"[DISCONNECT][SHARD ID {interaction.guild.shard_id}] Requested to leave channel ID {voice_client.channel.id} in guild ID {interaction.guild.id}")
 
-            await update_guild_state(self.guild_states, interaction, True, "user_disconnect")
             if voice_client.is_playing() or voice_client.is_paused():
                 await update_guild_state(self.guild_states, interaction, True, "stop_flag")
                 voice_client.stop()
+
+            await update_guild_state(self.guild_states, interaction, True, "user_disconnect")
 
             await voice_client.disconnect()
             await interaction.followup.send(f"Disconnected from **{voice_client.channel.name}**.")
@@ -1596,7 +1599,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message("Play a track first.")
             return
         
-        formatted_start_time = format_to_minutes(int(get_time() - first_track_start_date.timestamp()))
+        formatted_start_time = format_to_minutes(int(system_time() - first_track_start_date.timestamp()))
         formatted_join_time = first_track_start_date.strftime("%d/%m/%Y @ %H:%M:%S")
 
         embed = generate_epoch_embed(formatted_join_time, formatted_start_time)
@@ -1707,6 +1710,7 @@ class MusicCog(commands.Cog):
         enable="New value of the flag."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
     async def set_allow_greetings(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -1736,6 +1740,7 @@ class MusicCog(commands.Cog):
         enable="New value of the flag."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
     async def set_allow_voice_status_edit(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\

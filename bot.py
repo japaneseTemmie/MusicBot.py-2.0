@@ -15,6 +15,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
+        
         loader = ModuleLoader("modules")
         classes = loader.get_classes()
         values = loader.get_enable_values_from_config([obj.__name__ for obj in classes])
@@ -29,6 +30,8 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         return cogs
 
     async def load_cog(self, cog: commands.Cog) -> bool:
+        """ Wrapper function for client.add_cog() with error handling. """
+        
         try:
             await self.add_cog(cog)
         except Exception as e:
@@ -41,6 +44,8 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         return True
 
     async def load_cogs(self) -> None:
+        """ Loads all available cogs from the `modules` folder based on their enable_* value from the config file. """
+        
         log(f"Loading cogs..")
         loaded = []
         cogs = await self.get_cogs()

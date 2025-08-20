@@ -17,7 +17,7 @@ from cachetools import TTLCache
 from importlib import import_module
 from inspect import getmembers, isclass
 from datetime import datetime, timedelta
-from time import time as get_time, sleep
+from time import monotonic as get_time, time as system_time, sleep
 from copy import deepcopy
 
 # OS imports
@@ -90,7 +90,7 @@ HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else
 # Redefine func because better :3
 def log_to_discord_log(msg_or_exception: str | Exception, log_type: str="info"):
     """
-    Log a message to discord.log if logging is enabled.
+    Log a message or exception to `discord.log` file if logging is enabled.
     When `msg_or_exception` is an exception, it is logged directly.
     When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `msg_or_exception` is a string. The message will be logged as `log_type`.
 

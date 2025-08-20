@@ -1,4 +1,4 @@
-""" Rolemanager module for discord.py bot.\n
+""" RoleManager module for discord.py bot.\n
 Includes a class with methods to manage music and playlist permissions. """
 
 from settings import *

@@ -22,6 +22,8 @@ def get_guilds_to_delete(user: str, guilds: list[discord.Guild]) -> list[str]:
     return to_delete
 
 def delete_guild_tree(path: str) -> None:
+    """ Delete a guild directory using rmtree. """
+    
     try:
         if isdir(path):
             rmtree(path)
