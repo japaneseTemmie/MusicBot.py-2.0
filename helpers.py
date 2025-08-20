@@ -748,7 +748,8 @@ async def handle_channel_move(
         start_time = int(get_time() - elapsed_time)
         await update_guild_state(guild_states, member, start_time, "start_time")
 
-        await set_voice_status(guild_states, member)
+        if can_update_status and current_status:
+            await set_voice_status(guild_states, member)
 
     await update_guild_states(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
 
