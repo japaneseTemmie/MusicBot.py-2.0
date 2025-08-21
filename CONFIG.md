@@ -13,8 +13,8 @@ Here's the documentation for each key and its function in the `config.json` file
 - log_level: Level of log verbosity. Can be:
     - `normal`: Info about some bot actions.
     - `verbose`: Log everything.
-    - `warning`: Logs only warnings.
-    - `errors`: Logs only errors.
+    - `warning`: Logs warnings.
+    - `errors`: Logs errors.
     - `critical`: Logs critical errors.
 - use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
 
@@ -25,4 +25,4 @@ and reduce memory usage if unused.
 - enable_ModerationCog: Enables users to run commands from the `moderation` module.
 - enable_RoleManagerCog: Enables users to run commands from the `rolemanager` module.
 - enable_UtilsCog: Enables users to run commands from the `utils` module. Contains important UX commands like **/help**. It is highly discouraged to disable this.
-- enable_MusicCog: Enables users to run commands from the `music` module. """
+- enable_MusicCog: Enables users to run commands from the `music` module.
