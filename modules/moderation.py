@@ -51,7 +51,7 @@ class ModerationCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await send_func("An unknown error occured.", ephemeral=True)
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel.")
     @app_commands.describe(
