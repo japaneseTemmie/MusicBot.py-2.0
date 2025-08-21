@@ -46,7 +46,8 @@ class ModerationCog(commands.Cog):
                 await send_func("I'm unable to do that! Please check my permissions. (Including channel overrides)", ephemeral=True)
             elif isinstance(error.original, discord.errors.HTTPException):
                 await send_func("Something went wrong while requesting changes. Try again later.", ephemeral=True)
-
+            
+            log_to_discord_log(error.original)
             return
 
         log_to_discord_log(error)
