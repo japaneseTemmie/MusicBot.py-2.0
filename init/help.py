@@ -15,8 +15,7 @@ def open_help_file(dir: str) -> dict | None:
     
     content = open_file(path, True)
     if content is None:
-        log(f"An error occurred while opening {path}.\nNo /help will be available.")
-        separator()
+        log("No /help will be available.")
 
         return None
     

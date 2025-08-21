@@ -75,7 +75,6 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
         success = write_file(path, default_data, True)
 
         if success == False:
-            log(f"An error occurred while writing to {path}")
             sysexit(1)
 
         log(f"Created config file at {path}")
@@ -83,6 +82,9 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
     log(f"Config file found at {path}")
     
     content = open_file(path, True)
+
+    if content is None:
+        sysexit(1)
 
     log(f"Found {len(content.keys())} entries in {path}")
     separator()
@@ -95,9 +97,6 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
         log("Updating config file..")
         sleep(0.5)
         success = write_file(path, new_data, True)
-
-        if success == False:
-            log(f"An error occured while updating file {path}")
     else:
         log("Config file is up to date.")
     separator()
