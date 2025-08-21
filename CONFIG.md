@@ -11,11 +11,11 @@ Here's the documentation for each key and its function in the `config.json` file
   in case of a bad write. Requires double the memory needed to open the file for each call.
 - enable_logging: Enables logging of `discord`.py errors/debug messages/warnings depending on the selected `log_level`.
 - log_level: Level of log verbosity. Can be:
-    `normal`: Info about some bot actions.
-    `verbose`: Log everything.
-    `warning`: Logs only warnings.
-    `errors`: Logs only errors.
-    `critical`: Logs critical errors.
+    - `normal`: Info about some bot actions.
+    - `verbose`: Log everything.
+    - `warning`: Logs only warnings.
+    - `errors`: Logs only errors.
+    - `critical`: Logs critical errors.
 - use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
 
 # Module settings
