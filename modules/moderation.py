@@ -1,4 +1,5 @@
-""" A complete, simple moderation module for discord.py bot.\n 
+""" A complete, simple moderation module for discord.py bot.
+
 Includes a class with a few methods for managing
 a Discord guild and its users. """
 
@@ -18,7 +19,7 @@ class ModerationCog(commands.Cog):
         self.max_announcement_length = 2000
         self.max_purge_limit = 1000
 
-    async def handle_moderation_command_error(self, interaction: Interaction, error: Exception):
+    async def handle_command_error(self, interaction: Interaction, error: Exception):
         """ AIO error handler for moderation commands.
         Currently handles:
          
@@ -84,8 +85,8 @@ class ModerationCog(commands.Cog):
             await interaction.channel.send(f"Deleted **{message_amount}** {'messages' if message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.")       
 
     @purge_channel.error
-    async def handle_purge_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_purge_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="kick", description="Kicks a member from the guild.")
     @app_commands.describe(
@@ -117,8 +118,8 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(f"Member **{member.name}** has been kicked from the guild{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
 
     @kick_member.error
-    async def handle_kick_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_kick_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="ban", description="Bans a member from the guild.")
     @app_commands.describe(
@@ -151,8 +152,8 @@ class ModerationCog(commands.Cog):
                                                 f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
 
     @ban_member.error
-    async def handle_ban_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_ban_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="unban", description="Unbans a member from the guild. See entry in /help for more info.")
     @app_commands.describe(
@@ -183,8 +184,8 @@ class ModerationCog(commands.Cog):
                                                 f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
 
     @unban_member.error
-    async def handle_unban_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_unban_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="timeout", description="Times out a member.")
     @app_commands.describe(
@@ -203,7 +204,7 @@ class ModerationCog(commands.Cog):
         bot_top_role = interaction.guild.me.top_role
 
         duration_in_seconds = format_to_seconds_extended(duration.strip())
-        current_time = get_time()
+        current_time = get_unix_timestamp()
 
         if duration_in_seconds is None:
             await interaction.response.send_message("Invalid duration. Be sure to format it to **DD:HH:MM:SS**.\n"+
@@ -234,8 +235,8 @@ class ModerationCog(commands.Cog):
         )
 
     @time_out_member.error
-    async def handle_time_out_member_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_time_out_member_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="remove-timeout", description="Removes a timeout from a user.")
     @app_commands.describe(
@@ -260,8 +261,8 @@ class ModerationCog(commands.Cog):
                                                 f"{'R' if not show else 'r'}emoved timeout from member **{member.name}**.", ephemeral=not show)
 
     @remove_timeout_from_member.error
-    async def handle_remove_timeout_from_member_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_remove_timeout_from_member_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="add-role", description="Adds a role to a member.")
     @app_commands.describe(
@@ -293,8 +294,8 @@ class ModerationCog(commands.Cog):
                                                 f"{'A' if not show else 'a'}dded role **{role.name}** to member **{member.name}**!", ephemeral=not show)
 
     @add_role.error
-    async def handle_add_role_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_add_role_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="remove-role", description="Removes a role from a member.")
     @app_commands.describe(
@@ -326,8 +327,8 @@ class ModerationCog(commands.Cog):
                                                 f"{'R' if not show else 'r'}emoved role **{role.name}** from member **{member.name}**!", ephemeral=not show)
 
     @remove_role.error
-    async def handle_remove_role_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_remove_role_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="remove-channel", description="Deletes a channel from the current guild. See entry in /help for more info.")
     @app_commands.describe(
@@ -343,8 +344,8 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(f"Deleted channel **{channel.name}** (**{channel.id}**) of type **{channel.type.name}**.", ephemeral=not show)
 
     @delete_channel.error
-    async def handle_delete_channel_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_delete_channel_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="make-text-channel", description="Creates a text channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -401,8 +402,8 @@ class ModerationCog(commands.Cog):
                                                 f"Topic: **{created_channel.topic if created_channel.topic else 'None'}**.", ephemeral=not show)
 
     @create_text_channel.error
-    async def handle_create_channel_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_create_channel_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="make-voice-channel", description="Creates a voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -448,8 +449,8 @@ class ModerationCog(commands.Cog):
                                                 f"Video quality: **{created_channel.video_quality_mode.name}**.", ephemeral=not show)
 
     @create_voice_channel.error
-    async def handle_create_voice_channel_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_create_voice_channel_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="make-category", description="Creates a category. See entry in /help for more info.")
     @app_commands.describe(
@@ -474,8 +475,8 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(f"Created category named **{created_category.name}** with position **{created_category.position}**", ephemeral=not show)
 
     @create_category.error
-    async def handle_create_category_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_create_category_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="make-forum", description="Creates a forum channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -520,15 +521,15 @@ class ModerationCog(commands.Cog):
 
         created_channel = await interaction.guild.create_forum(name=name, topic=post_guidelines, position=position, category=category, slowmode_delay=slowmode_delay, nsfw=nsfw)
         await interaction.response.send_message(f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-                                                f"Topic: **{created_channel.topic if created_channel.topic else 'None'}**\n"
+                                                f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
                                                 f"Position: **{created_channel.position}**\n"
                                                 f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
                                                 f"Slowmode delay: **{created_channel.slowmode_delay}**\n"
                                                 f"NSFW: **{created_channel.is_nsfw()}**", ephemeral=not show)
 
     @create_forum_channel.error
-    async def handle_create_forum_channel_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_create_forum_channel_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="make-stage", description="Creates a stage channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -573,8 +574,8 @@ class ModerationCog(commands.Cog):
                                                 f"Video quality mode: **{created_channel.video_quality_mode.name}**", ephemeral=not show)
     
     @create_stage_channel.error
-    async def handle_create_stage_channel_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_create_stage_channel_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -602,8 +603,8 @@ class ModerationCog(commands.Cog):
                                                 ephemeral=not show)
 
     @change_slowmode.error
-    async def handle_change_slowmode_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_change_slowmode_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="announce", description="Announce a message in the current/specified channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -631,8 +632,8 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(f"Message announced in channel **{channel.name}**.", ephemeral=True)
 
     @announce_message.error
-    async def handle_announce_message_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_announce_message_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="vckick", description="Kicks a user from a voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -671,8 +672,8 @@ class ModerationCog(commands.Cog):
                                                 f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
 
     @kick_user_from_vc.error
-    async def handle_kick_user_from_vc_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_kick_user_from_vc_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="vcmove", description="Moves member to target voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -714,8 +715,8 @@ class ModerationCog(commands.Cog):
                                                 f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
     
     @move_user_to_vc.error
-    async def handle_move_user_to_vc(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_move_user_to_vc(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="vcmute", description="Mutes a member in voice channel. See entry in /help for more info.")
     @app_commands.describe(
@@ -755,5 +756,5 @@ class ModerationCog(commands.Cog):
                                                 f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
         
     @vc_mute_member.error
-    async def handle_vc_mute_member_error(self, interaction: Interaction, error):
-        await self.handle_moderation_command_error(interaction, error)
+    async def handle_vc_mute_member_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)

@@ -139,16 +139,13 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
     async def wait_for_read_write_sync(self) -> None:
         """ Wait for any write/reads to finish before closing to keep data safe. """
-        
-        FILE_OPERATIONS_LOCKED.set()
-        log(f"File operations locked permanently: {FILE_OPERATIONS_LOCKED.is_set()}")
 
         log("Waiting for read/write sync..")
 
-        start_time = get_time() # Track elapsed time and continue anyways if it times out.
+        start_time = get_monotonic() # Track elapsed time and continue anyways if it times out.
 
         while (any(playlist_lock.locked() for playlist_lock in PLAYLIST_LOCKS.values()) or\
-            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (get_time() - start_time < MAX_IO_SYNC_WAIT_TIME):
+            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (get_monotonic() - start_time < MAX_IO_SYNC_WAIT_TIME):
             
             await asyncio.sleep(0.1)
 
@@ -161,6 +158,14 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
         log("Requested to terminate program.")
         log("Attempting a cleanup..")
+        separator()
+
+        FILE_OPERATIONS_LOCKED.set()
+        VOICE_OPERATIONS_LOCKED.set()
+
+        log(f"File operations locked permanently: {FILE_OPERATIONS_LOCKED.is_set()}")
+        log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
+        separator()
         
         await self.wait_for_read_write_sync()
 

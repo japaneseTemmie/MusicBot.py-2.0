@@ -615,6 +615,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
             await update_guild_state(guild_states, member, True, "stop_flag")
 
         await voice_client.disconnect() # rest is handled by disconnect_routine() (hopefully)
+        log(f"[DISCONNECT][SHARD ID {member.guild.shard_id}] Left channel ID {voice_client.channel.id}")
         return True
 
     return False
@@ -658,10 +659,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
 
 async def close_voice_clients(guild_states: dict, client: commands.Bot | commands.AutoShardedBot) -> None:
     """ Close any leftover VCs and cleanup their open audio sources, if any. """
-    
-    VOICE_OPERATIONS_LOCKED.set()
-    log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
-    
+
     log("Closing voice clients..")
     
     async def _close(vc: discord.VoiceClient):
@@ -700,7 +698,7 @@ async def handle_channel_move(
     ) -> None:
     """ Function that runs every time the voice client is unexpectedly moved to another channel.
     Waits for users and resumes session in new channel. """
-    
+
     handling_move_action = guild_states[member.guild.id]["handling_move_action"]
     voice_client = guild_states[member.guild.id]["voice_client"]
     text_channel = guild_states[member.guild.id]["interaction_channel"]
@@ -731,7 +729,7 @@ async def handle_channel_move(
         
         if voice_client.is_playing():
             voice_client.pause()
-            elapsed_time = int(get_time() - start_time)
+            elapsed_time = int(get_monotonic() - start_time)
             await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
 
         await text_channel.send(f"Waiting **10** seconds for users in new channel **{voice_client.channel.name}**.")
@@ -745,7 +743,7 @@ async def handle_channel_move(
 
     if voice_client.is_paused():
         voice_client.resume()
-        start_time = int(get_time() - elapsed_time)
+        start_time = int(get_monotonic() - elapsed_time)
         await update_guild_state(guild_states, member, start_time, "start_time")
 
         if can_update_status and current_status:
@@ -939,6 +937,10 @@ async def get_ban_entries(guild: discord.Guild) -> list[discord.User] | list:
         members.append(ban_entry.user)
 
     return members
+
+async def get_role(roles: list[discord.Role], role: str, get_by_id: bool=False) -> discord.Role | None:
+    return discord.utils.get(roles, name=role) if not get_by_id and not role.isdigit() else\
+    discord.utils.get(roles, id=int(role))
 
 async def get_user_to_unban(ban_entries: list[discord.User], member: str | int) -> discord.User:
     """ Match a given user's name or ID to users in a ban entry list and return the object. """

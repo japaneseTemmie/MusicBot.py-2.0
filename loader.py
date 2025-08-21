@@ -1,4 +1,5 @@
-""" Loader module\n
+""" Loader module for discord.py bot.
+
 Helper module to dynamically load all modules found in a specified directory. """
 
 from settings import *

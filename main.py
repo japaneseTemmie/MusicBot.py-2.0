@@ -4,6 +4,9 @@ from settings import *
 from bot import Bot
 
 def main() -> None:
+    """ Main entry point. The greatest journey begins here. (assuming it starts :3) 
+    Handles construction of the custom `Bot` object and runs it. """
+
     bot = Bot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS)
     
     try:

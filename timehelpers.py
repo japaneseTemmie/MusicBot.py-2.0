@@ -1,3 +1,5 @@
+""" Helper functions for working with durations for discord.py bot. """
+
 from settings import *
 
 def add_zeroes(parts: list[str], length_limit: int):

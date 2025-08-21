@@ -1,4 +1,4 @@
-""" Guild checks helper functions for discord.py bot """
+""" Guild helper functions for discord.py bot """
 
 from settings import *
 

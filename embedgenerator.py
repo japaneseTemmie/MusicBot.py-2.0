@@ -2,7 +2,7 @@
 
 from settings import *
 
-def generate_epoch_embed(join_time: datetime, elapsed_time: str) -> discord.Embed:
+def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
     embed = discord.Embed(
         title="Total elapsed time",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -22,7 +22,7 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     for i, track in enumerate(results):
         if i < 24:
-            embed.add_field(name=f"[ `{track.get("title", "Unknown")}` ]",
+            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ], Duration: [ `{track['duration']}` ], Source: [ `{track['source_website']}` ]",
                             inline=False)
         else:
@@ -40,7 +40,7 @@ def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
 
     for i, track in enumerate(skipped):
         if i < 24:
-            embed.add_field(name=f"[ `{track.get("title", "Unknown")}` ]",
+            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False)
 
@@ -55,7 +55,7 @@ def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) ->
 
     for i, track in enumerate(found):
         if i < 24:
-            embed.add_field(name=f"[ `{track.get("title", "Unknown")}` ]",
+            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False)
         else:
@@ -64,7 +64,7 @@ def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) ->
 
     return embed
 
-def generate_edited_tracks_embed(found: list[dict, str]) -> discord.Embed:
+def generate_edited_tracks_embed(found: list[tuple[dict, str]]) -> discord.Embed:
     embed = discord.Embed(
         title="Playlist update: Renamed tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -73,7 +73,7 @@ def generate_edited_tracks_embed(found: list[dict, str]) -> discord.Embed:
 
     for i, (track, new) in enumerate(found):
         if i < 24:
-            embed.add_field(name=f"[ `{track['title']}` ] --> [ `{new}` ]",
+            embed.add_field(name=f"**{i+1}.** [ `{track['title']}` ] --> [ `{new}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False
             )
@@ -146,12 +146,12 @@ def generate_yoink_embed(info: dict) -> discord.Embed:
         timestamp=datetime.now()
     )
 
-    embed.add_field(name="Title", value=f"[ `{info['title']}` ]", inline=True)
-    embed.add_field(name="Author", value=f"[ `{info.get("uploader", "Unknown")}` ]", inline=True)
-    embed.add_field(name="Upload date", value=f"[ `{info['upload_date']}` ] ", inline=False)
-    embed.add_field(name="Duration", value=f"[ `{info['duration']}` ]", inline=True)
-    embed.add_field(name="Webpage", value=f"[ `{info.get("webpage_url", "Unknown")}` ]", inline=False)
-    embed.add_field(name="Source", value=f"[ `{info['source_website']}` ]", inline=True)
+    embed.add_field(name="Title", value=f"[ `{info.get('title', 'Unknown')}` ]", inline=True)
+    embed.add_field(name="Author", value=f"[ `{info.get('uploader', 'Unknown')}` ]", inline=True)
+    embed.add_field(name="Upload date", value=f"[ `{info.get('upload_date', 'Unknown')}` ] ", inline=False)
+    embed.add_field(name="Duration", value=f"[ `{info.get('duration', 'Unknown')}` ]", inline=True)
+    embed.add_field(name="Webpage", value=f"[ `{info.get('webpage_url', 'Unknown')}` ]", inline=False)
+    embed.add_field(name="Source", value=f"[ `{info.get('source_website', 'Unknown')}` ]", inline=True)
     embed.add_field(name="Thumbnail", value="", inline=False)
     embed.set_image(url=info.get("thumbnail", None))
 
@@ -160,7 +160,7 @@ def generate_yoink_embed(info: dict) -> discord.Embed:
 def generate_extraction_embed(current_query: str, max_queries: int, current_query_amount: int) -> discord.Embed:
     embed = discord.Embed(
         title=f"Extraction progress",
-        color=discord.Colour.random(seed=randint(1,1000)),
+        colour=discord.Colour.random(seed=randint(1,1000)),
         timestamp=datetime.now()
     )
 
@@ -172,12 +172,12 @@ def generate_extraction_embed(current_query: str, max_queries: int, current_quer
 def generate_queue_embed(queue: list[dict], page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
     embed = discord.Embed(
         title=f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}",
-        color=discord.Colour.random(seed=randint(1,1000)),
+        colour=discord.Colour.random(seed=randint(1,1000)),
         timestamp=datetime.now()
     )
     
-    for track in queue:
-        embed.add_field(name=f"[ `{track.get("title", "Unknown")}` ]",
+    for i, track in enumerate(queue):
+        embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
                         value=f"Author: [ `{track.get('uploader', 'Unknown')}` ], Duration: [ `{track['duration']}` ], Source: [ `{track['source_website']}` ]",
                         inline=False
         )

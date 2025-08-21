@@ -1,8 +1,10 @@
-""" Extractor module for discord.py bot.\n
-Supported websites:\n
-- YouTube (Both video and playlists)\n
-- Newgrounds\n
-- SoundCloud\n
+""" Extractor module for discord.py bot.
+
+Supported websites
+
+- YouTube (Both video and playlists)
+- Newgrounds
+- SoundCloud
 - Bandcamp """
 
 from settings import *
@@ -55,7 +57,7 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
 
     info["upload_date"] = pretty_date
     info["duration"] = formatted_duration
-    info["source_website"] = "Unknown" if source_website is None else source_website
+    info["source_website"] = source_website or "Unknown"
 
     return info
 
@@ -94,7 +96,7 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
     except Exception as e:
         log_to_discord_log(e)
 
-        return Error(f"An error occured while extracting `{query[:50]}`. Please try another source website.")
+        return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
 
     if info is not None:
         return parse_info(info, query, query_type)

@@ -1,3 +1,5 @@
+""" Cache helper functions for discord.py bot. """
+
 from settings import *
 
 # Caching tools

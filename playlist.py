@@ -1,4 +1,5 @@
-""" Playlist module for discord.py bot.\n
+""" Playlist module for discord.py bot.
+
 Includes a few methods for managing playlists
 and fetching tracks from them. """
 

@@ -17,7 +17,7 @@ from cachetools import TTLCache
 from importlib import import_module
 from inspect import getmembers, isclass
 from datetime import datetime, timedelta
-from time import monotonic as get_time, time as system_time, sleep
+from time import monotonic as get_monotonic, time as get_unix_timestamp, sleep
 from copy import deepcopy
 
 # OS imports

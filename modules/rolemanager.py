@@ -1,4 +1,5 @@
-""" RoleManager module for discord.py bot.\n
+""" RoleManager module for discord.py bot.
+
 Includes a class with methods to manage music and playlist permissions. """
 
 from settings import *
@@ -9,11 +10,17 @@ class RoleManagerCog(commands.Cog):
     def __init__(self, client: Bot):
         self.client = client
 
-    async def get_role(self, roles: list, value: str, get_by_id: bool=False) -> discord.Role | None:
-        role = discord.utils.get(roles, name=value) if not get_by_id and not value.isdigit() else\
-        discord.utils.get(roles, id=int(value))
+    async def handle_command_error(self, interaction: Interaction, error: Exception) -> None:
+        if isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        elif isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
+            return
 
-        return role
+        log_to_discord_log(error)
+
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="role-set", description="Sets the default role users must have to allow music/playlist commands.")
     @app_commands.describe(
@@ -49,17 +56,8 @@ class RoleManagerCog(commands.Cog):
         await interaction.response.send_message(f"Set **{role_to_set}** role to **{role.name}** for this guild.", ephemeral=not show)
 
     @set_music_role.error
-    async def handle_set_role_error(self, interaction: Interaction, error):
-        if isinstance(error, app_commands.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        elif isinstance(error, app_commands.errors.MissingPermissions):
-            await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
-            return
-
-        log_to_discord_log(error)
-
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+    async def handle_set_role_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="role-get", description="Shows the current music/playlist role set up for this guild.")
     @app_commands.describe(
@@ -81,7 +79,7 @@ class RoleManagerCog(commands.Cog):
             return
         
         role = roles[role_to_look_for]
-        role_obj = await self.get_role(interaction.guild.roles, role, True)
+        role_obj = await get_role(interaction.guild.roles, role, True)
         if role_obj is None:
             await interaction.response.send_message(f"Role **{role}** not found in guild!", ephemeral=True)
             return
@@ -89,17 +87,8 @@ class RoleManagerCog(commands.Cog):
         await interaction.response.send_message(f"Default **{role_to_look_for}** role for this guild is **{role_obj.name}**.", ephemeral=not show)
 
     @get_music_role.error
-    async def handle_get_role_error(self, interaction: Interaction, error):
-        if isinstance(error, app_commands.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        elif isinstance(error, app_commands.errors.MissingPermissions):
-            await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
-            return
-
-        log_to_discord_log(error)
-
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+    async def handle_get_role_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="role-wipe", description="Removes the current music/playlist role set up for this guild.")
     @app_commands.describe(
@@ -118,8 +107,7 @@ class RoleManagerCog(commands.Cog):
         backup = None if not CONFIG["enable_file_backups"] else deepcopy(roles)
         role_to_delete = "playlist" if playlist else "music"
         if role_to_delete not in roles:
-            display_role = role_to_delete.replace("p", "P") if playlist else\
-            role_to_delete.replace("m", "M")
+            display_role = role_to_delete[0].upper() + role_to_delete[1:]
 
             await interaction.response.send_message(f"**{display_role}** role is already empty!", ephemeral=True)
             return
@@ -134,17 +122,8 @@ class RoleManagerCog(commands.Cog):
         await interaction.response.send_message(f"Removed **{role_to_delete}** role for this guild.", ephemeral=not show)
 
     @wipe_music_role.error
-    async def handle_wipe_role_error(self, interaction: Interaction, error):
-        if isinstance(error, app_commands.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        elif isinstance(error, app_commands.errors.MissingPermissions):
-            await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
-            return
-
-        log_to_discord_log(error)
-
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+    async def handle_wipe_role_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="role-reset", description="Rewrite the saved role structure if corrupt.")
     @app_commands.describe(
@@ -163,14 +142,5 @@ class RoleManagerCog(commands.Cog):
         await interaction.response.send_message("Successfully rewritten role structure.", ephemeral=not show)
 
     @reset_roles.error
-    async def handle_reset_roles_error(self, interaction: Interaction, error):
-        if isinstance(error, app_commands.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        elif isinstance(error, app_commands.errors.MissingPermissions):
-            await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
-            return
-
-        log_to_discord_log(error)
-
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+    async def handle_reset_roles_error(self, interaction: Interaction, error: Exception):
+        await self.handle_command_error(interaction, error)
