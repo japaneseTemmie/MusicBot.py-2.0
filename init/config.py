@@ -96,7 +96,7 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
     if new_data is not None:
         log("Updating config file..")
         sleep(0.5)
-        success = write_file(path, new_data, True)
+        write_file(path, new_data, True)
     else:
         log("Config file is up to date.")
     separator()

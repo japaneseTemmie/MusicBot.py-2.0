@@ -66,10 +66,10 @@ _*Playlist support may depend on command._
 
   | Permission Category |                Permissions                  |
   |---------------------|---------------------------------------------|
-  | Server Management   | Manage Server, Manage Roles, Manage Channels |
-  | Moderation          | Kick, Ban and Moderate Members |
-  | Messaging           | View, Send, Manage Messages & Threads |
-  | Voice               | Connect, Speak, Move and Mute Members, Set Voice Channel Status |
+  | Server Management   | Manage Server, Manage Roles, Manage Channels, Manage Threads and Manage Messages |
+  | Moderation          | Kick Members, Ban Members and Moderate Members |
+  | Messaging           | Send Messages, Send Messages in Threads and Read Message History |
+  | Voice               | Connect, Speak, Move Members, Mute Members |
   | Other               | Embed Links, Mention Everyone |
 
 - Save the changes. Copy the link provided in the `Install link` box.
