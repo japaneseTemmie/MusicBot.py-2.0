@@ -3,6 +3,8 @@
 from settings import *
 
 def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
+    """ Generated an embed showing elapsed time since the very first track. """
+    
     embed = discord.Embed(
         title="Total elapsed time",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -14,6 +16,8 @@ def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
     return embed
 
 def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> discord.Embed:
+    """ Generate an embed of up to 24 added tracks. """
+    
     embed = discord.Embed(
         title=f"{'Playlist' if is_playlist else 'Queue'} update: Added tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -22,7 +26,7 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     for i, track in enumerate(results):
         if i < 24:
-            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
+            embed.add_field(name=f"[ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ], Duration: [ `{track['duration']}` ], Source: [ `{track['source_website']}` ]",
                             inline=False)
         else:
@@ -31,7 +35,13 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     return embed
 
-def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
+def generate_skipped_tracks_embed(skipped: list[dict], skipped_indices: list[int]) -> discord.Embed:
+    """ Generate an embed to show the amount of skipped tracks.
+     
+    `skipped` is the list of tracks that were removed from the queue.
+
+    `skipped_indices` are the corresponding indices of the `skipped` tracks in the queue. """
+    
     embed = discord.Embed(
         title=f"Skipped {'tracks' if len(skipped) > 1 else 'track'}",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -40,13 +50,19 @@ def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
 
     for i, track in enumerate(skipped):
         if i < 24:
-            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
+            embed.add_field(name=f"**{skipped_indices[i]}.** [ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False)
 
     return embed
 
-def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) -> discord.Embed:
+def generate_removed_tracks_embed(found: list[dict], found_indices: list[int], is_playlist: bool=False) -> discord.Embed:
+    """ Generate an embed showing the removed tracks from a queue.
+     
+    `found` is the list of removed tracks.
+
+    `found_indices` is the corresponding indices of the tracks in the queue. """
+    
     embed = discord.Embed(
         title=f"{'Queue' if not is_playlist else 'Playlist'} update: Removed tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -55,7 +71,7 @@ def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) ->
 
     for i, track in enumerate(found):
         if i < 24:
-            embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
+            embed.add_field(name=f"**{found_indices[i]}.** [ `{track.get('title', 'Unknown')}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False)
         else:
@@ -64,7 +80,13 @@ def generate_removed_tracks_embed(found: list[dict], is_playlist: bool=False) ->
 
     return embed
 
-def generate_edited_tracks_embed(found: list[tuple[dict, str]]) -> discord.Embed:
+def generate_renamed_tracks_embed(found: list[tuple[dict, str]], found_indices: list[int]) -> discord.Embed:
+    """ Generate an embed to show renamed tracks in a queue.
+    
+    `found` is a list of tuples with old track (`dict`) and new name (`str`).
+
+    `found_indices` is the corresponding indices of the old tracks in the queue. """
+    
     embed = discord.Embed(
         title="Playlist update: Renamed tracks",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -73,7 +95,7 @@ def generate_edited_tracks_embed(found: list[tuple[dict, str]]) -> discord.Embed
 
     for i, (track, new) in enumerate(found):
         if i < 24:
-            embed.add_field(name=f"**{i+1}.** [ `{track['title']}` ] --> [ `{new}` ]",
+            embed.add_field(name=f"**{found_indices[i]}.** [ `{track['title']}` ] --> [ `{new}` ]",
                             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track['duration']}` ]; Source: [ `{track['source_website']}` ]",
                             inline=False
             )
@@ -91,9 +113,11 @@ def generate_current_track_embed(
         elapsed_time: int,
         looping: bool,
         random: bool,
-        queueloop: bool,
+        is_looping_queue: bool,
         is_modifying_queue: bool
     ) -> discord.Embed:
+    """ Generate an embed to show detailed info about the current track. """
+
     embed = discord.Embed(
         title="Now Playing",
         colour=discord.Colour.random(seed=randint(1, 1000)),
@@ -131,7 +155,7 @@ def generate_current_track_embed(
     embed.add_field(name="Extra options:", value="", inline=False)
     embed.add_field(name="Loop", value="[ `Enabled` ]" if looping else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Randomization", value="[ `Enabled` ]" if random else "[ `Disabled` ]", inline=True)
-    embed.add_field(name="Queue loop", value="[ `Enabled` ]" if queueloop else "[ `Disabled` ]", inline=True)
+    embed.add_field(name="Queue loop", value="[ `Enabled` ]" if is_looping_queue else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Source", value=f"[ `{info.get('source_website')}` ]", inline=False)
     embed.add_field(name="Thumbnail", value="", inline=False)
     embed.set_image(url=info.get("thumbnail", None))
@@ -139,9 +163,11 @@ def generate_current_track_embed(
 
     return embed
 
-def generate_yoink_embed(info: dict) -> discord.Embed:
+def generate_generic_track_embed(info: dict, embed_title: str="Track info") -> discord.Embed:
+    """ Generate an embed to show some info about an `info` track object. """
+    
     embed = discord.Embed(
-        title="Track info",
+        title=embed_title,
         colour=discord.Colour.random(seed=randint(1, 1000)),
         timestamp=datetime.now()
     )
@@ -157,7 +183,9 @@ def generate_yoink_embed(info: dict) -> discord.Embed:
 
     return embed
 
-def generate_extraction_embed(current_query: str, max_queries: int, current_query_amount: int) -> discord.Embed:
+def generate_extraction_progress_embed(current_query: str, max_queries: int, current_query_amount: int) -> discord.Embed:
+    """ Generate an embed to show current extraction progress. """
+    
     embed = discord.Embed(
         title=f"Extraction progress",
         colour=discord.Colour.random(seed=randint(1,1000)),
@@ -169,7 +197,13 @@ def generate_extraction_embed(current_query: str, max_queries: int, current_quer
 
     return embed
 
-def generate_queue_embed(queue: list[dict], page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
+def generate_queue_embed(queue: list[dict], queue_indices: list[int], page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
+    """ Generate an embed to show tracks in a queue page.
+    
+    `queue` is a list of tracks.
+
+    `queue_indices` is the corresponding indices of the tracks in the queue. """
+    
     embed = discord.Embed(
         title=f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}",
         colour=discord.Colour.random(seed=randint(1,1000)),
@@ -177,7 +211,7 @@ def generate_queue_embed(queue: list[dict], page: int, page_length: int, is_hist
     )
     
     for i, track in enumerate(queue):
-        embed.add_field(name=f"**{i+1}.** [ `{track.get('title', 'Unknown')}` ]",
+        embed.add_field(name=f"**{queue_indices[i]}.** [ `{track.get('title', 'Unknown')}` ]",
                         value=f"Author: [ `{track.get('uploader', 'Unknown')}` ], Duration: [ `{track['duration']}` ], Source: [ `{track['source_website']}` ]",
                         inline=False
         )

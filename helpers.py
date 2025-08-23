@@ -373,6 +373,22 @@ async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
     except IndexError:
         return False
 
+async def get_queue_indices(queue: list[dict], tracks: list[dict]) -> list[int]:
+    """ Returns the queue 1-based indices matching each item in `tracks`. """
+
+    indices = []
+    seen = set()
+
+    for usr_track in tracks:
+        for i, queue_track in enumerate(queue):
+            if queue_track == usr_track and i not in seen:
+                indices.append(i + 1)
+                seen.add(i)
+
+                break
+
+    return indices
+
 # Functions to get stuff from playlists.
 async def get_tracks_from_playlist(track_names: list[str], playlist: list[dict], by_index: bool=False) -> list[dict] | Error:
     """ Get track objects from an interable `playlist` based on their names (or indices). """
@@ -483,11 +499,9 @@ async def replace_track_in_queue(
 
     return extracted_track, removed_track
 
-async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names: str, new_names: str, by_index: bool=False) -> list[tuple[dict, str]] | Error:
+async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict, str]] | Error:
     """ Bulk renames tracks in an iterable `queue`. Returns a list with a tuple with track object [0] and new name [1] or Error. """
-    
-    names = split(names)
-    new_names = split(new_names)
+
     found = []
     
     for track, new_name in zip(names, new_names):

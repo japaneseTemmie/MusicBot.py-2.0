@@ -48,9 +48,9 @@ class RoleManagerCog(commands.Cog):
         
         roles[role_to_set] = str(role.id) # Store ID instead of name so the bot doesn't pick the wrong role to check when there's 2 or more roles with the same name
 
-        success = await write_roles(interaction, roles, backup)
-        if isinstance(success, Error):
-            await interaction.response.send_message(success.msg, ephemeral=True)
+        result = await write_roles(interaction, roles, backup)
+        if isinstance(result, Error):
+            await interaction.response.send_message(result.msg, ephemeral=True)
             return
         
         await interaction.response.send_message(f"Set **{role_to_set}** role to **{role.name}** for this guild.", ephemeral=not show)
@@ -114,9 +114,9 @@ class RoleManagerCog(commands.Cog):
 
         del roles[role_to_delete]
 
-        success = await write_roles(interaction, roles, backup)
-        if isinstance(success, Error):
-            await interaction.response.send_message(success.msg, ephemeral=True)
+        result = await write_roles(interaction, roles, backup)
+        if isinstance(result, Error):
+            await interaction.response.send_message(result.msg, ephemeral=True)
             return
 
         await interaction.response.send_message(f"Removed **{role_to_delete}** role for this guild.", ephemeral=not show)
@@ -133,10 +133,10 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reset_roles(self, interaction: Interaction, show: bool=False):
-        success = await write_roles(interaction, {}, None)
+        result = await write_roles(interaction, {}, None)
 
-        if isinstance(success, Error):
-            await interaction.response.send_message(success.msg, ephemeral=True)
+        if isinstance(result, Error):
+            await interaction.response.send_message(result.msg, ephemeral=True)
             return
 
         await interaction.response.send_message("Successfully rewritten role structure.", ephemeral=not show)

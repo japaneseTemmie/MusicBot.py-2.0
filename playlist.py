@@ -16,10 +16,12 @@ class PlaylistManager:
         self.max_item_limit = 100
         self.max_name_length = 50
 
-    async def read(self, interaction: Interaction) -> dict | Error:
-        """ Safely read the content of a guild's playlist file.\n
-        Cache the content of a successful read.\n
-        If successful, returns a hashmap, Error otherwise. """
+    async def read(self, interaction: Interaction) -> dict[str, list] | Error:
+        """ Safely read the content of a guild's playlist file.
+
+        Cache the content of a successful read.
+
+        If successful, returns the playlist structure. Error otherwise. """
         if FILE_OPERATIONS_LOCKED.is_set():
             return Error("Playlist reading temporarily disabled.")
         
@@ -46,9 +48,11 @@ class PlaylistManager:
 
             return content
 
-    async def write(self, interaction: Interaction, content: dict, backup: dict=None) -> bool | Error:
-        """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.\n
-        Cache new content if written successfully.\n
+    async def write(self, interaction: Interaction, content: dict[str, list], backup: dict=None) -> bool | Error:
+        """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.
+
+        Cache new content if written successfully.
+        
         Returns a boolean [True] or Error. """
         if FILE_OPERATIONS_LOCKED.is_set():
             return Error("Playlist writing temporarily disabled.")
@@ -76,8 +80,9 @@ class PlaylistManager:
             
             return True
 
-    async def get_playlist(self, content: dict | Error, playlist_name: str) -> list[dict] | Error:
-        """ Reads the given playlist.\n
+    async def get_playlist(self, content: dict[str, list] | Error, playlist_name: str) -> list[dict] | Error:
+        """ Reads the given playlist.
+
         If successful, returns a list of tracks, otherwise, Error. """
         
         if isinstance(content, Error):
@@ -98,8 +103,9 @@ class PlaylistManager:
 
         return playlist
 
-    async def get_available(self, content: dict | Error) -> list[str] | Error:
+    async def get_available(self, content: dict[str, list] | Error) -> list[str] | Error:
         """ Get all available playlists' names.
+
         If successful, returns a list of strings, otherwise Error. """
         
         if isinstance(content, Error):
@@ -110,8 +116,9 @@ class PlaylistManager:
 
         return [key for key in content.keys()]
 
-    async def create(self, interaction: Interaction, content: dict | Error, playlist_name: str) -> bool | Error:
-        """ Creates a playlist.\n
+    async def create(self, interaction: Interaction, content: dict[str, list] | Error, playlist_name: str) -> bool | Error:
+        """ Creates a playlist.
+
         If successful, returns a boolean, otherwise, Error. """
         
         if isinstance(content, Error):
@@ -136,9 +143,11 @@ class PlaylistManager:
         
         return success
 
-    async def delete(self, interaction: Interaction, content: dict | Error, playlist_name: str, contents_only: bool) -> bool | Error | tuple[bool | Error, list[dict]]:
-        """ Deletes a playlist.\n
-        If successful, returns a boolean or Error if `contents_only` is True, otherwise a tuple with a boolean or Error indicating write success and removed tracks. """
+    async def delete(self, interaction: Interaction, content: dict[str, list] | Error, playlist_name: str, contents_only: bool) -> bool | Error | tuple[bool | Error, list[dict]]:
+        """ Deletes a playlist.
+
+        If successful, returns a boolean or Error if `contents_only` is True, otherwise
+        a tuple with a boolean or Error indicating write success and removed tracks. """
         
         if isinstance(content, Error):
             return content
@@ -173,13 +182,15 @@ class PlaylistManager:
     async def remove(
             self,
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
-            tracks: str, 
+            tracks_to_remove: list[str], 
             by_index: bool=False
-        ) -> tuple[bool | Error, list[dict]] | Error:
-        """ Removes given tracks from a playlist.\n
-        If successful, returns a tuple with a boolean or Error [0] and the list of removed tracks [1]. Error otherwise. """
+        ) -> tuple[bool | Error, list[dict], list[dict]] | Error:
+        """ Removes given tracks from a playlist.
+
+        If successful, returns a tuple with a boolean or Error indicating
+        write success [0], the list of removed tracks [1], and the playlist queue itself before track removal. Error otherwise. """
         
         if isinstance(content, Error):
             return content
@@ -197,28 +208,32 @@ class PlaylistManager:
         playlist = content[playlist_name]
         if await is_playlist_empty(playlist):
             return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot remove tracks.")
+        
+        playlist_copy = deepcopy(playlist)
 
-        found = await remove_track_from_queue(split(tracks), playlist, by_index)
+        found = await remove_track_from_queue(tracks_to_remove, playlist, by_index)
         if isinstance(found, Error):
             return found
         
         success = await self.write(interaction, content, backup)
         
-        return success, found
+        return success, found, playlist_copy
 
     async def replace(
             self,
             guild_states: dict,
             interaction: Interaction,
-            content: dict | Error,
+            content: dict[str, list] | Error,
             playlist_name: str,
             old: str,
             new: str,
             provider: app_commands.Choice | None=None,
             by_index: bool=False
         ) -> tuple[bool | Error, dict, dict] | Error:
-        """ Replaces a playlist track with an extracted track from a given query.\n
-        If successful, returns a tuple with a boolean or Error indicating write success [0], the old track [1] and the new track [2]. Error otherwise."""
+        """ Replaces a playlist track with an extracted track from a given query.
+
+        If successful, returns a tuple with a boolean or Error indicating
+        write success [0], the old track [1] and the new track [2]. Error otherwise."""
         
         if isinstance(content, Error):
             return content
@@ -248,14 +263,16 @@ class PlaylistManager:
     async def reposition(
             self, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
             track: str, 
             index: int, 
             by_index: bool=False
         ) -> tuple[bool | Error, dict, int, int] | Error:
-        """ Repositions a playlist track from its current index to the given index.\n
-        If successful, returns a tuple with a boolean or Error indicating write success [0], the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
+        """ Repositions a playlist track from its current index to the given index.
+
+        If successful, returns a tuple with a boolean or Error indicating
+        write success [0], the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
         
         if isinstance(content, Error):
             return content
@@ -287,12 +304,13 @@ class PlaylistManager:
             guild_states: dict, 
             max_track_limit: int, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
             range_start: int=0, 
             range_end: int=0
         ) -> list[dict] | Error:
-        """ Adds all playlist tracks from `range_start` to `range_end` to the queue.\n
+        """ Adds all playlist tracks from `range_start` to `range_end` to the queue.
+
         If successful, returns a list of added tracks. Error otherwise. """
         
         playlist = await self.get_playlist(content, playlist_name)
@@ -332,13 +350,14 @@ class PlaylistManager:
             guild_states: dict, 
             max_track_limit: int, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
             tracks: list[str | dict], 
             use_dict: bool=False, 
             by_index: bool=False
         ) -> list[dict] | Error:
-        """ Adds requested queries from a given playlist to the queue.\n
+        """ Adds requested queries from a given playlist to the queue.
+
         If successful, returns a list of added tracks. Error otherwise. """
         
         playlist = await self.get_playlist(content, playlist_name)
@@ -373,12 +392,14 @@ class PlaylistManager:
     async def add_queue(
             self, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
             queue: list[dict]
         ) -> tuple[bool | Error, list[dict]] | Error:
-        """ Adds a list of extracted queries to a playlist.\n
-        If successful, returns a tuple with a boolean or Error indicating write success [0], and a list containing the added tracks [1]. Error otherwise. """
+        """ Adds a list of extracted queries to a playlist.
+
+        If successful, returns a tuple with a boolean or Error indicating
+        write success [0], and a list containing the added tracks [1]. Error otherwise. """
         
         if isinstance(content, Error):
             return content
@@ -416,13 +437,14 @@ class PlaylistManager:
             self, 
             guild_states: dict, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
             queries: list[str], 
             allowed_query_types: tuple[str], 
             provider: app_commands.Choice | None=None
         ) -> tuple[bool | Error, list[dict]] | Error:
-        """ Adds a list of queries to the given playlist.\n
+        """ Adds a list of queries to the given playlist.
+
         If successful, returns same types as `add_queue()`. With the addition of extraction Errors. """
         
         if isinstance(content, Error):
@@ -447,8 +469,9 @@ class PlaylistManager:
         else:
             return found
 
-    async def delete_all(self, interaction: Interaction, content: dict | Error, locked: dict, erase: bool) -> bool | Error:
-        """ Deletes every playlist saved in the current guild.\n
+    async def delete_all(self, interaction: Interaction, content: dict[str, list] | Error, locked: dict, erase: bool) -> bool | Error:
+        """ Deletes every playlist saved in the current guild.
+
         Returns a boolean or Error. """
         
         if isinstance(content, Error) and not erase:
@@ -466,9 +489,11 @@ class PlaylistManager:
 
         return success
 
-    async def rename(self, interaction: Interaction, content: dict | Error, orig_playlist_name: str, new_playlist_name: str) -> tuple[bool | Error, str, str] | Error:
-        """ Renames a playlist to a new given name.\n
-        If successful, returns a tuple with a boolean or Error indicating write success [0], old name [1], and new name [2]. Error otherwise. """
+    async def rename(self, interaction: Interaction, content: dict[str, list] | Error, orig_playlist_name: str, new_playlist_name: str) -> tuple[bool | Error, str, str] | Error:
+        """ Renames a playlist to a new given name.
+
+        If successful, returns a tuple with a boolean or Error indicating
+        write success [0], old name [1], and new name [2]. Error otherwise. """
         
         if isinstance(content, Error):
             return content
@@ -500,14 +525,16 @@ class PlaylistManager:
     async def rename_item(
             self, 
             interaction: Interaction, 
-            content: dict | Error, 
+            content: dict[str, list] | Error, 
             playlist_name: str, 
-            names: str, 
-            new_names: str, 
+            tracks_to_rename: list[str], 
+            new_track_names: list[str], 
             by_index: bool
-        ) -> tuple[bool | Error, list[tuple[dict, str]]] | Error:
-        """ Bulk edits track names to new given ones.\n
-        if successful, returns a tuple with a boolean or Error indicating write success [0], and a list of tuples with old track [0] and the new name [1]. Error otherwise. """
+        ) -> tuple[bool | Error, list[tuple[dict, str]], list[dict]] | Error:
+        """ Bulk edits track names to new given ones.
+
+        if successful, returns a tuple with a boolean or Error indicating write success, a list of tuples with
+        old track [0] and the new name [1], and a copy of the old playlist queue [2]. Error otherwise. """
         
         if isinstance(content, Error):
             return content
@@ -525,18 +552,22 @@ class PlaylistManager:
 
         if await is_playlist_empty(playlist):
             return Error(f"Playlist {playlist_name[:self.max_name_length]} is empty. Cannot rename tracks.")
+        
+        playlist_copy = deepcopy(playlist)
 
-        found = await rename_tracks_in_queue(self.max_name_length, playlist, names, new_names, by_index)
+        found = await rename_tracks_in_queue(self.max_name_length, playlist, tracks_to_rename, new_track_names, by_index)
         if isinstance(found, Error):
             return found
 
         success = await self.write(interaction, content, backup)
         
-        return success, found
+        return success, found, playlist_copy
     
-    async def place(self, interaction: Interaction, content: dict | Error, playlist_name: str, track: dict, index: int | None) -> tuple[bool | Error, dict, int] | Error:
-        """ Place a track at a specific index. (passing None will point to the last index of the given playlist)\n
-        if successful, returns a tuple with a boolean or Error indicating write success [0], added track [1], and its new index [2]. Error otherwise. """
+    async def place(self, interaction: Interaction, content: dict[str, list] | Error, playlist_name: str, track: dict, index: int | None) -> tuple[bool | Error, dict, int] | Error:
+        """ Place a track at a specific index or append it.
+
+        if successful, returns a tuple with a boolean or Error indicating
+        write success [0], added track [1], and its new index [2]. Error otherwise. """
         
         if isinstance(content, Error):
             return content
