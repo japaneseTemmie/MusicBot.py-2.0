@@ -112,7 +112,14 @@ async def check_guild_state(
     If it matches `condition`, reply to `interaction` with `msg` and return False, else return True. """
     
     if interaction.guild.id in guild_states:
-        value = guild_states[interaction.guild.id][state]
+        guild_state = guild_states[interaction.guild.id]
+        
+        if state not in guild_state:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Cannot check state '{state}'. Not found in guild_states[{interaction.guild.id}].")
+            return False
+        
+        value = guild_state[state]
+
         if value == condition:
             await interaction.response.send_message(msg) if not interaction.response.is_done() else\
             await interaction.followup.send(msg)
@@ -178,14 +185,19 @@ async def update_guild_state(guild_states: dict, interaction: Interaction, value
     """ Update guild `state` with a new `value`. """
     
     if interaction.guild.id in guild_states:
-        guild_states[interaction.guild.id][state] = value
+
+        guild_state = guild_states[interaction.guild.id]
+        if state not in guild_state:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] No '{state}' found in guild_states[{interaction.guild.id}]. Creating state with requested value..")
+            
+        guild_state[state] = value
 
 async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
     """ Bulk update guild `states` with `values`. """
     
-    if interaction.guild.id in guild_states:
+    if interaction.guild.id in guild_states:        
         for state, value in zip(states, values):
-            guild_states[interaction.guild.id][state] = value
+            await update_guild_state(guild_states, interaction, value, state)
 
 # Functions for fetching stuff and adding it to a list
 async def fetch_query(
@@ -229,13 +241,13 @@ async def fetch_queries(guild_states: dict,
     found = []
     for i, query in enumerate(queries):
         extracted_query = await fetch_query(guild_states, interaction,
-                query=query if not isinstance(query, dict) else query["webpage_url"],
-                extraction_state_amount=i + 1,
-                extraction_state_max_length=len(queries),
-                query_name=query_names[i] if isinstance(query_names, list) else query_names,
-                allowed_query_types=allowed_query_types,
-                provider=provider
-            )
+            query=query if not isinstance(query, dict) else query["webpage_url"],
+            extraction_state_amount=i + 1,
+            extraction_state_max_length=len(queries),
+            query_name=query_names[i] if isinstance(query_names, list) else query_names,
+            allowed_query_types=allowed_query_types,
+            provider=provider
+        )
 
         if isinstance(extracted_query, Error):
             return extracted_query
@@ -318,17 +330,20 @@ async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> 
     
     if by_index:
         track = track.strip()
-        if track.isdigit():
-            index = max(1, min(int(track), len(iterable)))
-            index -= 1
 
-            return (iterable[index], index)
+        if not track.isdigit():
+            return Error(f"**{track[:50]}** is not an integer number!")
         
-        return Error(f"**{track[:50]}** is not an integer number!")
+        track_index = int(track)
+
+        if track_index < 1 or track_index > len(iterable):
+            return Error(f"Given index (**{track_index}**) is out of bounds!")
+
+        return iterable[track_index - 1], track_index - 1
 
     for i, track_info in enumerate(iterable):
         if track.lower().replace(" ", "") == track_info["title"].lower().replace(" ", ""):
-            return (track_info, i)
+            return track_info, i
         
     return Error(f"Could not find track **{track[:50]}**.")
 
@@ -421,7 +436,7 @@ async def replace_data_with_playlist_data(tracks: list[dict], playlist: list[dic
         track["title"] = playlist_track["title"]
         track["source_website"] = playlist_track["source_website"]
 
-# Remove/Reposition/etc. functions
+# Functions to modify a queue
 async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index: bool=False) -> list[dict] | Error:
     """ Remove given `tracks` from iterable `queue`. Returns removed tracks or Error. """
     
@@ -443,8 +458,8 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict], by_index: bool=False) -> tuple[dict, int, int] | Error:
     """ Repositions a track to a new index in an iterable `queue`. Returns a tuple with found track [0], old index [1], and new index [2] or Error. """
     
-    index = max(1, min(index, len(queue)))
-    index -= 1
+    if index < 1 or index > len(queue):
+        return Error(f"Given new index (**{index}**) is out of bounds!")
 
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
@@ -454,9 +469,9 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict], b
         return Error("Cannot reposition a track to the same index.")
     
     track_dict = queue.pop(found_track[1])
-    queue.insert(index, track_dict)
+    queue.insert(index - 1, track_dict)
 
-    return track_dict, found_track[1]+1, index+1
+    return track_dict, found_track[1] + 1, index
 
 async def replace_track_in_queue(
         guild_states: dict,
@@ -527,8 +542,10 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names:
 async def place_track_in_playlist(queue: list, index: int | None, track: dict) -> tuple[dict, int] | Error:
     """ Place a track at a specified or last index in an iterable `queue`. Returns a tuple with placed track [0] and its index [1]. """
     
-    index = max(1, min(index, len(queue))) if index is not None else len(queue)+1
-    index -= 1
+    if index is None:
+        index = len(queue) + 1
+    elif index < 1 or index > len(queue):
+        return Error(f"Given index (**{index}**) is out of bounds!")
     
     playlist_track = {
         'title': track['title'],
@@ -538,12 +555,12 @@ async def place_track_in_playlist(queue: list, index: int | None, track: dict) -
         'source_website': track['source_website']
     }
 
-    if playlist_track in queue and await try_index(queue, index, playlist_track):
+    if playlist_track in queue and await try_index(queue, index - 1, playlist_track):
         return Error(f"Cannot place track (**{track['title'][:50]}**) because it already exists at the specified index.")
     
-    queue.insert(index, playlist_track)
+    queue.insert(index - 1, playlist_track)
 
-    return (playlist_track, index+1)
+    return playlist_track, index
 
 # Custom split
 def split(s: str) -> list[str]:
@@ -552,14 +569,14 @@ def split(s: str) -> list[str]:
     parts = re.split(r'(?<!\\);', s)
     return [part.replace(r'\;', ';') for part in parts]
 
-# Function to get a file lock for a specific guild id
+# Function to add a file lock for a specific guild id if it doesn't exist
 async def ensure_lock(interaction: Interaction, locks: dict) -> None:
     """ Adds an `asyncio.Lock` object to a guild if not present. """
     
     if interaction.guild.id not in locks:
         locks[interaction.guild.id] = asyncio.Lock()
 
-# Connect behaviour
+# Connect behavior
 async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None:
     """ Say hi to `user` in the text channel the /join command was used in :3. """
     
@@ -583,7 +600,7 @@ async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None
         await asyncio.sleep(10) # sleepy time :3
         guild_states[user.guild.id]["greet_timeouts"][user.id] = False
 
-# Disconnect behaviour
+# Disconnect behavior
 async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]) -> None:
     """ Clean up any inactive guild's data. Called at the end of `disconnect_routine()` """
     

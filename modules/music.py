@@ -1008,7 +1008,7 @@ class MusicCog(commands.Cog):
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        if not is_looping:
+        if not is_looping or (is_looping and track_name):
             if track_name:
 
                 if not await check_guild_state(self.guild_states, interaction) or\
