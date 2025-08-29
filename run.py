@@ -6,8 +6,7 @@ from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix, executable
 from time import sleep
 from datetime import datetime
-from random import choice
-from colors import Colors, all_colors
+from init.logutils import log, separator
 
 PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
@@ -19,17 +18,11 @@ cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
-def log(msg: str, sleep_for: float=0) -> None:
-    print(f"{choice(all_colors)}[runner]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
-    if sleep_for > 0:
-        sleep(sleep_for)
-
-def separator(s: str="=", length: int=35) -> None:
-    print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
-
 def check_python_ver() -> None:
     if version_info < (3, 10):
-        log(f"Python 3.10+ is required for this project.", 2)
+        log(f"Python 3.10+ is required for this project.")
+        sleep(2)
+
         sysexit(1)
 
 def is_in_venv() -> None:
@@ -59,7 +52,7 @@ def run(command: list[str], sep_process: bool=False) -> int:
                         )
     except SubprocessError as e:
         log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}")
-        sysexit(1) # No point in continuing
+        sysexit(1)
     
     try:
         return process.wait()
@@ -78,13 +71,13 @@ def run(command: list[str], sep_process: bool=False) -> int:
                 process.terminate() # Fallback
         return process.wait()
 
-def write(fp: str, content: str) -> bool:
+def write(file_path: str, content: str) -> bool:
     try:
-        with open(fp, "w") as f:
+        with open(file_path, "w") as f:
             f.write(content)
         return True
     except OSError as e:
-        log(f"An error occurred while writing to {fp}.\nErr: {e}")
+        log(f"An error occurred while writing to {file_path}.\nErr: {e}")
         return False
 
 def handle_return_code(code: int, command: str) -> None:
@@ -117,19 +110,27 @@ def main() -> None:
     check_python_ver()
     is_in_venv()
     
-    log(f"Verifying venv installation in {VENV_PATH}",0.5)
+    log(f"Verifying venv installation in {VENV_PATH}")
+    sleep(0.5)
     if not venv_exists():
-        log(f"venv not found! Creating a new venv in {VENV_PATH}",1.5)
+        log(f"venv not found! Creating a new venv in {VENV_PATH}")
+        sleep(2)
+
         install_venv()
 
         if venv_exists():
-            log("Checking requirements.txt",0.5)
+            log("Checking requirements.txt")
+            sleep(0.5)
+
             ensure_requirements()
 
-            log("Installing dependencies through requirements.txt",0.5)
+            log("Installing dependencies through requirements.txt")
+            sleep(0.5)
+
             install_dependencies()
     else:
-        log(f"venv found at {VENV_PATH}", 0.5)
+        log(f"venv found at {VENV_PATH}")
+        sleep(0.5)
 
     try:
         log("Running main.py")
