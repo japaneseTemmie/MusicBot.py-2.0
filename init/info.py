@@ -1,3 +1,5 @@
+""" Various helpers for discord.py bot init """
+
 import discord
 from os.path import join, dirname
 from os import name

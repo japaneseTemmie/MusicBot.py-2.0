@@ -1,3 +1,5 @@
+""" Constants module for discord.py bot """
+
 import discord
 from logging import INFO, DEBUG, ERROR, WARNING, CRITICAL
 

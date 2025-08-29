@@ -101,11 +101,9 @@ class MusicCog(commands.Cog):
 
         log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
 
-        await interaction.followup.send(
-            f"Something went wrong while connecting. "
-            f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again."
-        ) if interaction.response.is_done() else\
-        await interaction.response.send_message(
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func(
             f"Something went wrong while connecting. "
             f"{f'Leave **{interaction.user.voice.channel.name}**, join back,' if interaction.user.voice else 'Join the voice channel'} and invite me again.", ephemeral=True
         )
@@ -152,8 +150,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.followup.send("An unknown error occurred.") if interaction.response.is_done() else\
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -235,8 +234,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     async def play_track(
             self, 
@@ -494,8 +494,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="skip", description="Skips to next track in the queue.")
     @app_commands.describe(
@@ -555,8 +556,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="nextinfo", description="Shows information about the next track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -658,13 +660,15 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+        
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         start_time = self.guild_states[interaction.guild.id]["start_time"]
 
         if voice_client.is_paused():
-            await interaction.response.send_message("I'm already paused!")
+            await interaction.followup.send("I'm already paused!")
             return
 
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
@@ -678,7 +682,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.response.send_message("Paused track playback.")
+        await interaction.followup.send("Paused track playback.")
 
     @pause_track.error
     async def handle_pause_track_error(self, interaction: Interaction, error: Exception):
@@ -693,7 +697,9 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="resume", description="Resumes track playback.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -705,13 +711,15 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
         
         if not voice_client.is_paused():
-            await interaction.response.send_message("I'm not paused!")
+            await interaction.followup.send("I'm not paused!")
             return
 
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
@@ -725,7 +733,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.response.send_message("Resumed track playback.")
+        await interaction.followup.send("Resumed track playback.")
 
     @resume_track.error
     async def handle_resume_track_error(self, interaction: Interaction, error: Exception):
@@ -740,7 +748,9 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="stop", description="Stops the current track and resets bot state.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -751,6 +761,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
             return
+
+        await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
@@ -765,7 +777,7 @@ class MusicCog(commands.Cog):
 
         self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
 
-        await interaction.response.send_message(f"Stopped track **{current_track['title']}** and reset bot state.")
+        await interaction.followup.send(f"Stopped track **{current_track['title']}** and reset bot state.")
 
     @stop_track.error
     async def handle_stop_track_error(self, interaction: Interaction, error: Exception):
@@ -780,7 +792,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="restart", description="Restarts the current track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -819,8 +833,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="select", description="Selects a track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
@@ -875,8 +890,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="select-random", description="Selects a random track from the queue and plays it. See entry in /help for more info.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -919,8 +935,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="replace", description="Replaces a track with another one. See entry in /help for more info.")
     @app_commands.describe(
@@ -987,8 +1004,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="loop", description="Loops the current or specified track. Functions as a toggle.")
     @app_commands.describe(
@@ -1362,8 +1380,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="rewind", description="Rewinds the track by the specified time. See entry in /help for more info.")
     @app_commands.describe(
@@ -1425,8 +1444,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="forward", description="Forwards the track by the specified time. See entry in /help for more info.")
     @app_commands.describe(
@@ -1487,8 +1507,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send("An unknown error occurred.")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="queue", description="Shows tracks of a queue page.")
     @app_commands.describe(
@@ -1870,8 +1891,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-save", description="Creates or updates a playlist with the current queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -1940,8 +1962,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-save-current", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2000,8 +2023,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-select", description="Selects tracks in a playlist and adds them to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -2078,8 +2102,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-create", description="Creates a new empty playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2126,8 +2151,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-delete", description="Deletes a saved playlist or its contents. See entry in /help for more info.")
     @app_commands.describe(
@@ -2185,8 +2211,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-remove", description="Remove specified track(s) from a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2247,8 +2274,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-delete-all", description="Deletes all playlists saved in the current guild. See entry in /help for more info.")
     @app_commands.describe(
@@ -2293,8 +2321,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-rename", description="Renames a playlist to a new specified name. See entry in /help for more info.")
     @app_commands.describe(
@@ -2350,8 +2379,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-replace", description="Replaces a playlist track with a different one. See entry in /help for more info.")
     @app_commands.describe(
@@ -2424,8 +2454,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-reposition", description="Repositions a playlist track to a new index. See entry in /help for more info.")
     @app_commands.describe(
@@ -2484,8 +2515,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-add", description="Adds specified tracks to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2559,8 +2591,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-fetch-track", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -2632,8 +2665,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-fetch-random-track", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -2713,8 +2747,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-add-yt-playlist", description="Imports a playlist from YouTube. See entry in /help for more info.")
     @app_commands.describe(
@@ -2779,8 +2814,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-rename-track", description="Renames tracks to new names. See entry in /help for more info.")
     @app_commands.describe(
@@ -2844,8 +2880,9 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-get-saved", description="Shows saved playlists for this guild.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -2888,5 +2925,6 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error)
 
-        await interaction.response.send_message('An unknown error occurred.', ephemeral=True) if not interaction.response.is_done() else\
-        await interaction.followup.send('An unknown error occurred.')
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)

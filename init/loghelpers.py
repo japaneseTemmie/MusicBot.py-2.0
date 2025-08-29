@@ -1,3 +1,5 @@
+""" Log setup helpers for discord.py bot """
+
 from logging import FileHandler, Formatter, Logger, getLogger, INFO
 from os.path import join, exists
 from os import remove

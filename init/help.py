@@ -1,3 +1,5 @@
+""" Help system functions for discord.py bot """
+
 from os.path import join, exists
 
 from iohelpers import open_file
