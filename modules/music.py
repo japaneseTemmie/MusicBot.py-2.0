@@ -29,6 +29,10 @@ class MusicCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        """ Listener function that is called every time a user (including the bot) joins or leaves a voice channel.
+        
+        Handles different cases such as member count check, disconnect cleanup, or state management on channel move. """
+        
         bot_voice_channel = member.guild.voice_client.channel if member.guild.voice_client else None
         
         if member.id != self.client.user.id:
@@ -188,7 +192,15 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        allowed_query_types = ("YouTube", "YouTube search", "YouTube Playlist", "SoundCloud", "SoundCloud search", "Bandcamp")
+        allowed_query_types = (
+            SourceWebsite.YOUTUBE.value, 
+            SourceWebsite.YOUTUBE_PLAYLIST.value, 
+            SourceWebsite.YOUTUBE_SEARCH.value, 
+            SourceWebsite.SOUNDCLOUD.value, 
+            SourceWebsite.SOUNDCLOUD_SEARCH.value, 
+            SourceWebsite.BANDCAMP.value,
+            SourceWebsite.NEWGROUNDS.value
+        )
         provider = search_provider.value if search_provider else None
 
         found = await fetch_queries(self.guild_states, interaction, queries_split, allowed_query_types=allowed_query_types, provider=provider)
@@ -456,7 +468,14 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+        allowed_query_types = (
+            SourceWebsite.YOUTUBE.value, 
+            SourceWebsite.YOUTUBE_SEARCH.value, 
+            SourceWebsite.SOUNDCLOUD.value, 
+            SourceWebsite.SOUNDCLOUD_SEARCH.value, 
+            SourceWebsite.BANDCAMP.value,
+            SourceWebsite.NEWGROUNDS.value
+        )
         provider = search_provider.value if search_provider else None
         extracted_track = await fetch_query(self.guild_states, interaction, query, allowed_query_types=allowed_query_types, provider=provider)
 
@@ -2555,7 +2574,14 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+        allowed_query_types = (
+            SourceWebsite.YOUTUBE.value, 
+            SourceWebsite.YOUTUBE_SEARCH.value, 
+            SourceWebsite.SOUNDCLOUD.value, 
+            SourceWebsite.SOUNDCLOUD_SEARCH.value, 
+            SourceWebsite.NEWGROUNDS.value,
+            SourceWebsite.BANDCAMP.value
+        )
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types=allowed_query_types, provider=search_provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
@@ -2778,8 +2804,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        allowed_query_types = ("YouTube Playlist",)
-        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)
+        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=(SourceWebsite.YOUTUBE_PLAYLIST.value,))
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)

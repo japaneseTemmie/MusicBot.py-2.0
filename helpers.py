@@ -3,7 +3,7 @@
 from settings import *
 from cachehelpers import get_cache, store_cache, invalidate_cache
 from timehelpers import format_to_minutes, format_to_seconds, format_to_seconds_extended
-from extractor import fetch, get_query_type
+from extractor import fetch, get_query_type, SourceWebsite
 from error import Error
 
 # Function to get a hashmap of queue pages to display
@@ -88,17 +88,26 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     return True
 
 async def check_vc_lock(interaction: Interaction, msg_on_locked: str | None=None) -> bool:
-    """ Check the `VOICE_OPERATION_LOCKED` event.
+    """ Check the `VOICE_OPERATIONS_LOCKED` flag.
     If True, reply to the interaction with `msg_on_locked` or a default message and return False. """
     
-    default_msg = msg_on_locked or "Voice connections temporarily disabled."
+    msg = msg_on_locked or "Voice connections temporarily disabled."
     
     if VOICE_OPERATIONS_LOCKED.is_set():
-        await interaction.response.send_message(default_msg) if not interaction.response.is_done() else\
-        await interaction.followup.send(default_msg)
+        await interaction.response.send_message(msg) if not interaction.response.is_done() else\
+        await interaction.followup.send(msg)
         return False
     
     return True
+
+async def check_file_lock(msg_on_locked: str | None=None) -> None | Error:
+    """ Check the `FILE_OPERATIONS_LOCKED` flag.
+    If True, return an error object with `msg_on_locked` or a default entry. """
+    
+    msg = msg_on_locked or "Role/Playlist reading temporarily disabled."
+    
+    if FILE_OPERATIONS_LOCKED.is_set():
+        return Error(msg)
 
 async def check_guild_state(
         guild_states: dict,
@@ -207,7 +216,7 @@ async def fetch_query(
         extraction_state_amount: int=1,
         extraction_state_max_length: int=1,
         query_name: str=None,
-        allowed_query_types: tuple[str]=None,
+        allowed_query_types: tuple[str] | None=None,
         provider: str | None=None
     ) -> dict | list[dict] | Error:
     """ Extract a query from its website, catch any errors and return the result. """
@@ -490,7 +499,14 @@ async def replace_track_in_queue(
     if isinstance(found_track, Error):
         return found_track
 
-    allowed_query_types = ("YouTube", "YouTube search", "SoundCloud", "SoundCloud search", "Bandcamp")
+    allowed_query_types = (
+        SourceWebsite.YOUTUBE.value, 
+        SourceWebsite.YOUTUBE_SEARCH.value, 
+        SourceWebsite.SOUNDCLOUD.value, 
+        SourceWebsite.SOUNDCLOUD_SEARCH.value, 
+        SourceWebsite.BANDCAMP.value,
+        SourceWebsite.NEWGROUNDS.value
+    )
     provider = provider.value if provider else None
 
     extracted_track = await fetch_query(guild_states, interaction, new_track, allowed_query_types=allowed_query_types, provider=provider)
@@ -662,7 +678,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     
     if has_pending_cleanup or\
         handling_disconnect:
-        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a disconnect action for guild ID {member.guild.id}, ignoring.")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a disconnect action for guild ID {member.guild.id}. Ignoring.")
         return
 
     await update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
@@ -834,7 +850,7 @@ async def handle_player_crash(
         interaction: Interaction, 
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
-        resume_time: int | float,
+        resume_time: int,
         play_track_func: Awaitable
     ) -> bool:
 

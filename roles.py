@@ -35,8 +35,9 @@ async def open_roles(interaction: Interaction) -> dict | Error:
     Cache the content of a successful read, return cache if already present.
     Returns: file contents or Error. """
     
-    if FILE_OPERATIONS_LOCKED.is_set():
-        return Error("Role reading temporarily disabled.")
+    locked_error = await check_file_lock("Role reading temporarily disabled.")
+    if isinstance(locked_error, Error):
+        return locked_error
     
     await ensure_lock(interaction, ROLE_LOCKS)
     file_lock = ROLE_LOCKS[interaction.guild.id]
@@ -66,8 +67,9 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
     Cache new content if successful.\n
     Returns a boolean [True] or Error. """
     
-    if FILE_OPERATIONS_LOCKED.is_set():
-        return Error("Role writing temporarily disabled.")
+    locked_error = await check_file_lock("Role writing temporarily disabled.")
+    if isinstance(locked_error, Error):
+        return locked_error
     
     await ensure_lock(interaction, ROLE_LOCKS)
     file_lock = ROLE_LOCKS[interaction.guild.id]

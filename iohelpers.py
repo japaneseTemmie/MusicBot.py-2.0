@@ -11,7 +11,7 @@ def open_file(file_path: str, json_mode: bool) -> dict | str | None:
     
     Returns: file contents (either in plain text or hashmap depending on mode) or None.
     
-    Must be sent to a thread. """
+    Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     
     try:
         with open(file_path) as f:
@@ -27,7 +27,7 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
 
     Returns a boolean.
 
-    Must be sent to a thread. """
+    Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     
     try:
         with open(file_path, "w") as f:
@@ -40,12 +40,12 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
 def ensure_paths(path: str, file: str | None=None, file_content_on_creation: str | dict={}) -> bool:
     """ Ensure that a path and, optionally, a file exist.
 
-    If a file name is passed and doesn't exist at `path`, it will be created with
+    If a file nane (as regular path) is passed and doesn't exist at `path`, it will be created with
     the contents of `file_content_on_creation` argument.
 
     Returns a boolean.
      
-    Must be sent to a thread. """
+    Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     
     if not exists(path):
         try:

@@ -22,8 +22,9 @@ class PlaylistManager:
         Cache the content of a successful read.
 
         If successful, returns the playlist structure. Error otherwise. """
-        if FILE_OPERATIONS_LOCKED.is_set():
-            return Error("Playlist reading temporarily disabled.")
+        locked_error = await check_file_lock("Playlist reading temporarily disabled.")
+        if isinstance(locked_error, Error):
+            return locked_error
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)
         file_lock = PLAYLIST_LOCKS[interaction.guild.id]
@@ -54,8 +55,9 @@ class PlaylistManager:
         Cache new content if written successfully.
         
         Returns a boolean [True] or Error. """
-        if FILE_OPERATIONS_LOCKED.is_set():
-            return Error("Playlist writing temporarily disabled.")
+        locked_error = await check_file_lock("Playlist writing temporarily disabled.")
+        if isinstance(locked_error, Error):
+            return locked_error
         
         await ensure_lock(interaction, PLAYLIST_LOCKS)
         file_lock = PLAYLIST_LOCKS[interaction.guild.id]

@@ -11,21 +11,30 @@ from settings import *
 from timehelpers import format_to_minutes
 from error import Error
 
+class SourceWebsite(Enum):
+    YOUTUBE_PLAYLIST = "YouTube Playlist"
+    YOUTUBE = "YouTube"
+    NEWGROUNDS = "Newgrounds"
+    SOUNDCLOUD = "SoundCloud"
+    BANDCAMP = "Bandcamp"
+    YOUTUBE_SEARCH = "YouTube search"
+    SOUNDCLOUD_SEARCH = "SoundCloud search"
+
 # List of regex pattern to match website URLs
-# Second item is the 'source_website'
+# Second item is the 'source_website' string
 # Remember to update parse_info() after any changes made here.
 URL_PATTERNS = [
-    (re.compile(r"(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:playlist\?list=|watch\?.*?&list=)([a-zA-Z0-9_-]+)"), "YouTube Playlist"),
-    (re.compile(r"(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|playlist\?list=|embed\/|v\/|shorts\/)?([^&=%\?]{11})"), "YouTube"),
-    (re.compile(r"(https:\/\/)?(www\.)?newgrounds\.com/audio/listen/[0-9]+\/?"), "Newgrounds"),
-    (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com/[^\/]+\/[^\/]+"), "SoundCloud"),
-    (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/track\/[a-z0-9\-]+(\/)?"), "Bandcamp")
+    (re.compile(r"(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:playlist\?list=|watch\?.*?&list=)([a-zA-Z0-9_-]+)"), SourceWebsite.YOUTUBE_PLAYLIST.value),
+    (re.compile(r"(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|playlist\?list=|embed\/|v\/|shorts\/)?([^&=%\?]{11})"), SourceWebsite.YOUTUBE.value),
+    (re.compile(r"(https:\/\/)?(www\.)?newgrounds\.com/audio/listen/[0-9]+\/?"), SourceWebsite.NEWGROUNDS.value),
+    (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com/[^\/]+\/[^\/]+"), SourceWebsite.SOUNDCLOUD.value),
+    (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/track\/[a-z0-9\-]+(\/)?"), SourceWebsite.BANDCAMP.value)
 ]
 # Hashmap of search providers
-# Key is the provider and the value is a tuple with yt-dlp search string [0] and 'source_website' [1]
+# Key is the provider and the value is a tuple with yt-dlp search string [0] and 'source_website' string [1]
 SEARCH_PROVIDERS = {
-    "soundcloud": ("scsearch:", "SoundCloud search"),
-    "youtube": ("ytsearch:", "YouTube search")
+    "soundcloud": ("scsearch:", SourceWebsite.SOUNDCLOUD_SEARCH.value),
+    "youtube": ("ytsearch:", SourceWebsite.YOUTUBE_SEARCH.value)
 }
 
 def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, str]:
@@ -37,7 +46,7 @@ def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, 
             return pattern
 
     # If no matches are found, match a search query. If not found, default to youtube.
-    return SEARCH_PROVIDERS.get(provider, ("ytsearch:", "YouTube search"))
+    return SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
 
 def prettify_info(info: dict, source_website: str | None=None) -> dict:
     """ Prettify the extracted info with cleaner values. """
@@ -67,11 +76,11 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
     source_website = query_type[1]
 
     # If it's a playlist, prettify each entry and return
-    if source_website == "YouTube Playlist" and "entries" in info:
+    if source_website == SourceWebsite.YOUTUBE_PLAYLIST.value and "entries" in info:
         return [prettify_info(entry, source_website) for entry in info["entries"]]
 
     # If it's a search, prettify the first entry and return
-    if source_website in ("YouTube search", "SoundCloud search") and "entries" in info:
+    if source_website in (SourceWebsite.YOUTUBE_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value) and "entries" in info:
         if len(info["entries"]) == 0:
             return Error(f"No results found for query `{query[:50]}`.")
         
@@ -84,7 +93,7 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
 
 def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
     """ Search a webpage and find info about the query.\n
-    Must be sent to a thread. """
+    Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
     
     try:
         with YoutubeDL(YDL_OPTIONS) as yt:

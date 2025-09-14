@@ -19,6 +19,7 @@ from inspect import getmembers, isclass
 from datetime import datetime, timedelta
 from time import monotonic as get_monotonic, time as get_unix_timestamp, sleep
 from copy import deepcopy
+from enum import Enum
 
 # OS imports
 from os.path import join, dirname, exists, isdir
