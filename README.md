@@ -1,5 +1,5 @@
 # MusicBot.py 2.0
-An improved version of **MusicBot.py**, a multipurpose Discord bot, now with **Application commands**, **multi-guild**, **multi-website** support and
+An improved version of **MusicBot.py**, a multipurpose Discord bot. Now with **Application commands**, **multi-guild**, **multi-website** support and
 an **extended** moderation module alongside other new features!
 
 ## Table of contents
@@ -22,13 +22,12 @@ an **extended** moderation module alongside other new features!
 # Key features
 - Full application commands support for a more user-friendly interface.
 - Multi-guild support.
-- Improved playlist capabilities, now with multi-playlist support.
-- Improved help command.
+- Improved playlist capabilities, with multi-playlist support and full control over them.
+- Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
-- Enhanced command functionality.
-- Multi-website support, with **YouTube** (video or playlist*), **Newgrounds**, **SoundCloud** and **Bandcamp**.
-- 40+ music commands and 15+ moderation commands.
-- Guild and voice channel auto-cleanup logic.
+- Enhanced command functionality, with 40+ music commands and 15+ moderation commands.
+- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (URL or search) and **Bandcamp**.
+- Guild and voice channel auto-cleanup functionality.
 - Sharding support.
 - Extendable with custom modules.
 - Easily self-hostable.
@@ -38,7 +37,7 @@ _*Playlist support may depend on command._
 # Quick start guide
 - Go through the [full guide](#full-bot-setup-guide) if you're inexperienced with setting up Discord bots.
   
-  Otherwise, here are the core commands for basic setup on UNIX-like systems with git:
+  Otherwise, here are the core commands for basic setup on UNIX-like systems with `git`:
 
   ```bash
   git clone https://github.com/japaneseTemmie/MusicBot.py-2.0
@@ -83,13 +82,15 @@ _*Playlist support may depend on command._
   
   If you're on a GNU/Linux distribution, they may already be installed.
   
-  If not, make sure to install them from your distribution's repositories or compile them from source.
+  If not, make sure to install them from your distribution's repositories:
 
-  `sudo apt install python3 ffmpeg` (Debian, Debian-based distro (Ubuntu, Mint, ZorinOS))
+  `sudo apt install python3 ffmpeg` (Debian, Debian-based distro (Ubuntu, Linux Mint, ZorinOS))
   
   `sudo dnf install python3 ffmpeg` (Fedora, Fedora-based distro (Bazzite, Nobara))
   
   `sudo pacman -S python3 ffmpeg` (Arch, Arch-based distro (CachyOS, Manjaro))
+
+  ... or compile them from source.
 
   On Windows/macOS, you can find guides on how to install them:
 
@@ -119,13 +120,13 @@ _*Playlist support may depend on command._
 
     The bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
 
-  - A system with a powerful CPU (8+ Cores) for many guilds.
+  - A system with a powerful CPU (8+ performance cores) for many guilds.
 
-    A powerful CPU is required for tasks like `yt-dlp` extraction, `FFmpeg` and `Discord` audio processing.
+    A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
 
 Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
 
-More up to date versions should be able to work fine.
+Up to date versions should work fine.
 
 ## Preparing the project directory
 - Unpack the source code to a directory of your choice. (Or, `git clone` it.)
@@ -135,7 +136,7 @@ More up to date versions should be able to work fine.
 
   `CMD` is necessary. `PowerShell` will break almost every command in this guide.
 
-  On UNIX-like:
+  On UNIX-like OS:
 
   `Bash`/`Zsh` is preferred. `Fish` might break some commands.
 
@@ -150,7 +151,7 @@ More up to date versions should be able to work fine.
   Example file output:
   
   ```dotenv
-  TOKEN=token_here
+  TOKEN=1a2b3c4d5e6f7g
   ```
 
 # Automatic setup
@@ -166,9 +167,9 @@ More up to date versions should be able to work fine.
   - Once it outputs '`Ready`', it will start listening for events and commands.
 
 # Manual setup
-If the automatic setup doesn't work, try manually setting it up:
+If the automatic setup doesn't work, it may be worth manually setting it up:
 
-- Create a Python virtual environment (venv):
+- Create a Python virtual environment (_venv_):
 
   `python3 -m venv ./.venv/` (UNIX-like)
 
@@ -208,11 +209,11 @@ If the automatic setup doesn't work, try manually setting it up:
 To start listening to your favourite music:
 - Join a voice channel.
 - Use the **/join** command to invite the bot to join your voice channel.
-- Use **/add** or **/playnow** to add your tracks!
+- Use **/add** or **/playnow** to add/play your tracks!
 
 Help for every command can be found using the **/help** command.
 
-# Extra Configuration (For hosts)
+# Extra Configuration (For experienced hosts)
 The bot allows configuring a custom activity.
 
 During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data, including activity.
@@ -221,7 +222,9 @@ You can modify the `enable_activity`, `activity_name`, `activity_type` and `defa
 
 Documentation for every key can be found [here](./CONFIG.md). Modify values at your own risk.
 
-Note: Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
+Notes
+- Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
+- Some config keys are automatically recreated at startup if missing.
 
 Example activity config:
 
@@ -244,21 +247,21 @@ constructor, this allows custom classes to interact with the Bot subclass of `co
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
-- Check locks before running I/O or VoiceClient operations. These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
-- Do _not_ do I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
+- Check locks before running I/O file or VoiceClient operations (.play()/.stop()/.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
+- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
-- Avoid interacting with core modules, they were not written with an API-like system in mind.
-- To log errors or messages to stdout, use `log()`. To log to the `discord.log` file, use `log_to_discord_log()` (from `settings`). 
-- Do _not_ use the `TOKEN` constant anywhere unless explicitly required (like running the bot).
+- Avoid interacting with core modules, as they were not written with an API-like system in mind.
+- To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `settings`). 
+- Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications)
-- Imports should ideally be kept in the `settings.py` file.
+- Imports should ideally be kept in the `settings.py` file. Standalone modules (modules that don't import other modules in the codebase, like `settings`) may explictly import their stuff.
 
-Then, add a new key in `config.json` named `enable_{class_name}` to allow quick enable/disable of the module, and set its value to `true`, or else the bot won't load your Cog.
+Then, add a new key in `config.json` named `enable_{class_name}` to allow enabling/disabling the module, and set its value to `true`, or else the bot won't load your Cog.
 
 Start the bot. It will attempt to auto-discover your module and load the appropriate class(es).
 
-Note: the bot will load any class that inherits from `commands.Cog`, independently of the name, adding 'Cog' at the end of your class name keeps it consistent with the default modules.
+Note: The bot will load any class that inherits from `commands.Cog`, independently of the name, adding 'Cog' at the end of your class name keeps it consistent with the default modules.
 
 # Troubleshooting
 - If the bot state ends up broken, restarting might help.
@@ -272,12 +275,8 @@ Note: the bot will load any class that inherits from `commands.Cog`, independent
     `python run.py` (Windows)
   
     if the current terminal is **_not_** in the _venv_. Otherwise:
-  
-    `source ./.venv/bin/activate`
     
     `python3 main.py` (UNIX-like)
-    
-    `.\.venv\Scripts\activate.bat`
 
     `python main.py` (Windows) 
   

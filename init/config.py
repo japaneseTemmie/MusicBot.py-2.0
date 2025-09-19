@@ -6,17 +6,17 @@ from time import sleep
 from iohelpers import open_file, write_file
 from init.logutils import log, separator
 
-from typing import NoReturn
+from typing import NoReturn, Any
 
-def get_default_yt_dlp_config_data() -> dict:
+def get_default_yt_dlp_config_data() -> dict[str, Any]:
     return {
         "quiet": True,
         "no_playlist": True,
-        "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
+        "format": "bestaudio/best",
         "no_warnings": True
     }
 
-def get_default_config_data() -> dict:
+def get_default_config_data() -> dict[str, Any]:
     return {
         "yt_dlp_options": get_default_yt_dlp_config_data(),
         "command_prefix": "?",
@@ -35,21 +35,32 @@ def get_default_config_data() -> dict:
         "enable_MyCog": False
     }
 
-def add_missing_modules_to_config(data: dict, expected_enabled: list[str], expected_disabled: list[str]) -> None:
-    for mod in expected_enabled:
-        if mod not in data:
-            data[mod] = True
+def add_missing_modules_to_config(config: dict[str, Any], expected_enabled_modules: list[str], expected_disabled_modules: list[str]) -> None:
+    """ Compares the module-related keys in `config` with given `expected_enabled_modules` and `expected_disabled_modules`, if a key is missing, it'll add it accordingly. """
+    
+    for module_name in expected_enabled_modules:
+        if module_name not in config:
+            config[module_name] = True
 
-    for mod in expected_disabled:
-        if mod not in data:
-            data[mod] = False
+    for module_name in expected_disabled_modules:
+        if module_name not in config:
+            config[module_name] = False
 
-def add_missing_yt_dlp_to_config(data: dict, expected_config: dict) -> None:
-    if data["yt_dlp_options"] != expected_config:
-        data["yt_dlp_options"] = expected_config
+def add_missing_yt_dlp_options_to_config(config: dict[str, Any], expected_yt_dlp_options: dict[str, Any]) -> None:
+    """ Compares the `expected_yt_dlp_config` keys with `config`'s `yt_dlp_options`'s keys and replaces missing keys with default ones. """
 
-def check_config(data: dict) -> dict | None:
-    orig_data = deepcopy(data)
+    if "yt_dlp_options" not in config:
+        config["yt_dlp_options"] = expected_yt_dlp_options
+        return
+
+    for key in expected_yt_dlp_options:
+        if key not in config["yt_dlp_options"]:
+            config["yt_dlp_options"][key] = expected_yt_dlp_options[key]
+
+def check_config(config: dict[str, Any]) -> dict | None:
+    """ Checks if config file has any missing keys. If so, adds them with default values. """
+    
+    orig_config = deepcopy(config)
     expected_yt_dlp_options = get_default_yt_dlp_config_data()
     expected_enabled_modules = [
         "enable_ModerationCog",
@@ -61,15 +72,19 @@ def check_config(data: dict) -> dict | None:
         "enable_MyCog"
     ]
 
-    add_missing_modules_to_config(data, expected_enabled_modules, expected_disabled_modules)
-    add_missing_yt_dlp_to_config(data, expected_yt_dlp_options)
+    add_missing_modules_to_config(config, expected_enabled_modules, expected_disabled_modules)
+    add_missing_yt_dlp_options_to_config(config, expected_yt_dlp_options)
 
-    if data != orig_data:
-        return data
+    if config != orig_config:
+        return config
     
     return None
 
-def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
+def ensure_config(path: str, default_data: dict[str, Any]) -> dict | NoReturn:
+    """ Checks if config file exists. If not, creates a new one with default settings.
+    
+    Also checks the output content for missing keys and applies the default key if missing. """
+    
     if not exists(path):
         log(f"Creating config file because config.json does not exist at {path}")
         success = write_file(path, default_data, True)
@@ -91,12 +106,12 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
 
     log("Checking config file..")
     sleep(0.5)
-    new_data = check_config(content)
+    new_content = check_config(content)
 
-    if new_data is not None:
+    if new_content is not None:
         log("Updating config file..")
         sleep(0.5)
-        write_file(path, new_data, True)
+        write_file(path, new_content, True)
     else:
         log("Config file is up to date.")
     separator()
@@ -104,6 +119,10 @@ def ensure_config(path: str, default_data: dict) -> dict | NoReturn:
     return content
 
 def get_config_data(dir: str) -> dict | NoReturn:
+    """ Return a hashmap of the `config.json` file.
+     
+    This function also ensures that there are no missing keys and file exists. """
+    
     path = join(dir, "config.json")
     default_data = get_default_config_data()
 

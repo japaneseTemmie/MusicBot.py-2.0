@@ -14,15 +14,15 @@ def separator(s: str="=", length: int=35) -> None:
     print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
 
 def log_to_discord_log(
-        msg_or_exception: str | Exception, 
+        content: str | Exception, 
         log_type: str="info",
         can_log: bool=False,
         logger: Logger | None=None
     ) -> bool:
     
     if can_log and logger is not None:
-        if isinstance(msg_or_exception, Exception):
-            logger.exception(msg_or_exception)
+        if isinstance(content, Exception):
+            logger.exception(content)
             
             return True
         
@@ -34,7 +34,7 @@ def log_to_discord_log(
         }
 
         func = log_funcs.get(log_type, logger.info)
-        func(msg_or_exception)
+        func(content)
 
         return True
     

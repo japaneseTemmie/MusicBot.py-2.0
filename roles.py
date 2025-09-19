@@ -5,8 +5,10 @@ from iohelpers import *
 from helpers import *
 
 async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
-    """ Check role ownership\n
-    If the role is in the guild or in the config file and the user has it, return True.\n
+    """ Check role ownership.
+    
+    If the role is in the guild or in the config file and the user has it, return True.
+    
     if none of the above conditions are met, return False. """
 
     roles = await open_roles(interaction)
@@ -31,8 +33,10 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     return False
 
 async def open_roles(interaction: Interaction) -> dict | Error:
-    """ Safely open a guild's roles file and return content.\n
+    """ Safely open a guild's roles file and return content.
+    
     Cache the content of a successful read, return cache if already present.
+    
     Returns: file contents or Error. """
     
     locked_error = await check_file_lock("Role reading temporarily disabled.")
@@ -63,8 +67,10 @@ async def open_roles(interaction: Interaction) -> dict | Error:
         return content
 
 async def write_roles(interaction: Interaction, content: dict, backup: dict | None) -> bool | Error:
-    """ Safely write `content` to a guild's roles file.\n
-    Cache new content if successful.\n
+    """ Safely write `content` to a guild's roles file.
+    
+    Cache new content if successful.
+    
     Returns a boolean [True] or Error. """
     
     locked_error = await check_file_lock("Role writing temporarily disabled.")

@@ -1,4 +1,5 @@
 """ I/O Helpers for discord.py bot """
+
 from json import load, dump
 from os import makedirs
 from os.path import exists
@@ -7,9 +8,9 @@ from init.logutils import log
 def open_file(file_path: str, json_mode: bool) -> dict | str | None:
     """ Open a file and return its contents.
     
-    Use `json_mode` to work with json files.
+    Use `json_mode` to work with JSON files.
     
-    Returns: file contents (either in plain text or hashmap depending on mode) or None.
+    Returns: file contents (either in plain text or hashmap depending on mode) or None (if failed).
     
     Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     
@@ -25,7 +26,7 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
 
     Use json mode to work with JSON files.
 
-    Returns a boolean.
+    Returns a boolean indicating success.
 
     Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     
@@ -43,7 +44,7 @@ def ensure_paths(path: str, file: str | None=None, file_content_on_creation: str
     If a file nane (as regular path) is passed and doesn't exist at `path`, it will be created with
     the contents of `file_content_on_creation` argument.
 
-    Returns a boolean.
+    Returns a boolean indicating success.
      
     Must be sent to a thread if working with an asyncio loop. As I/O blocks the main thread. """
     

@@ -31,7 +31,7 @@ class MyCog(commands.Cog): # Subclass commands.Cog
             except discord.errors.Forbidden: # We may receive an HTTP 403 'Forbidden' error if the user has DMs disabled or we cannot time out the member.
                 pass # Since this is a listener, it's best if we ignore it.
             except Exception as e:
-                log_to_discord_log(e) # Log other exceptions to discord.log (if active)
+                log_to_discord_log(e) # Log other exceptions to discord.log (if logging is explicitly enabled in config.json)
 
     # Define an application command
     @app_commands.command(name="my-command", description="My first custom command.") # Define a command with the command() decorator 
