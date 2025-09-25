@@ -98,17 +98,21 @@ _*Playlist support may depend on command._
 
   [Python for Windows](https://www.python.org/downloads/windows/) | [Python for macOS](https://www.python.org/downloads/macos/)
 
-- Test `Python` and `FFmpeg`:
+- Test `Python` and `FFmpeg`
 
-  `python3 -V` (UNIX-like)
+  - Python:
+
+    `python3 -V` (UNIX-like)
   
-  `python -V` (Windows)
+    `python -V` (Windows)
 
-  Expected output: `Python {VERSION}`
+    Expected output: `Python {VERSION}`
 
-  `ffmpeg -version` (UNIX-like/Windows)
+  - FFmpeg:
 
-  Expected output: `ffmpeg version {VERSION}...`
+    `ffmpeg -version` (UNIX-like/Windows)
+
+      Expected output: `ffmpeg version {VERSION}...`
 
   Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
 
@@ -118,15 +122,15 @@ _*Playlist support may depend on command._
 
   - An internet connection with **high download/upload speeds**.
   
-    Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds
+      Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds
 
   - A system with lots of RAM (>= 32GB).
 
-    The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
+      The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
 
   - A system with a powerful CPU (8+ performance cores).
 
-    A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
+      A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
 
 ## Preparing the project directory
 - Unpack the source code to a directory of your choice. (Or, `git clone` it.)
@@ -162,6 +166,7 @@ _*Playlist support may depend on command._
   `python run.py` (Windows)
 
   What it does:
+
   Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script.
 
   - Once it outputs '`Ready`', it will start listening for events and commands.
@@ -176,6 +181,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
   `python -m venv .\.venv\` (Windows)
 
   What it does:
+
   Invokes the Python interpreter with the _venv_ module, passing the current path as the installation directory.
 
 - If successful, activate the venv:
@@ -185,6 +191,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
   `.\.venv\Scripts\activate.bat` (Windows)
 
   What it does:
+
   Runs the activation script for the _venv_.
 
 - Install the required dependencies for the project:
@@ -192,6 +199,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
   `pip install -r requirements.txt` (UNIX-like/Windows)
 
   What it does:
+
   Runs the pip package manager, passing the contents of 'requirements.txt' as the packages to install.
 
 - Finally, if successful, run the main entry point:
@@ -201,6 +209,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
   `python main.py` (Windows)
 
   What it does:
+
   Invokes the Python interpreter with the main.py file.
 
   - Once it outputs '`Ready`', it will start listening for events and commands.
@@ -224,7 +233,7 @@ Documentation for every key can be found [here](./CONFIG.md). Modify values at y
 
 Notes
 - Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
-- Some config keys are automatically recreated at startup if missing.
+- Most config keys are automatically recreated at startup if missing.
 
 Example activity config:
 
@@ -247,7 +256,7 @@ constructor, this allows custom classes to interact with the Bot subclass of `co
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
-- Check locks before running I/O file or VoiceClient operations (.play()/.stop()/.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
+- Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
 - Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
@@ -267,6 +276,7 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
 - If the bot state ends up broken, restarting might help.
 
   To restart the bot:
+  
   - **Gracefully** terminate the process with **CTRL + C**, this is the preferred way and allows the bot to properly clean up before exiting.
   - Then, run:
   
