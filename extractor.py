@@ -41,9 +41,9 @@ def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, 
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. """
 
     # Match URLs first.
-    for pattern in URL_PATTERNS:
-        if pattern[0].match(query):
-            return pattern
+    for regex, source_website in URL_PATTERNS:
+        if regex.match(query):
+            return regex, source_website
 
     # If no matches are found, match a search query. If not found, default to youtube.
     return SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
@@ -92,16 +92,17 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
     return prettify_info(info, source_website)
 
 def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
-    """ Search a webpage and find info about the query.\n
+    """ Search a webpage and find info about the query.
+
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
     
+    search_string = query_type[0]
     try:
-        with YoutubeDL(YDL_OPTIONS) as yt:
-            search_string = query_type[0]
+        with YoutubeDL(YDL_OPTIONS) as ydl:
             if isinstance(search_string, str):
-                info = yt.extract_info(search_string + query, download=False)
+                info = ydl.extract_info(search_string + query, download=False)
             else:
-                info = yt.extract_info(query, download=False)
+                info = ydl.extract_info(query, download=False)
     except Exception as e:
         log_to_discord_log(e)
 

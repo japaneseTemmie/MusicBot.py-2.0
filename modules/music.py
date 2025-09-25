@@ -334,7 +334,7 @@ class MusicCog(commands.Cog):
         if interaction.guild.id not in self.guild_states:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with non-existent guild state. Ignoring.")
             return
-        
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
@@ -344,9 +344,8 @@ class MusicCog(commands.Cog):
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
         voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
-        user_forced = self.guild_states[interaction.guild.id]["user_interrupted_playback"]
-        start_time = self.guild_states[interaction.guild.id]["start_time"]
-        current_track = self.guild_states[interaction.guild.id]["current_track"]
+
+        send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
         if stop_flag:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag. Ignoring.")
@@ -362,32 +361,10 @@ class MusicCog(commands.Cog):
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with no users in channel. Ignoring.")
             return
 
-        if current_track is not None and not user_forced:
-            current_time = int(get_monotonic() - start_time)
-            track_duration_in_seconds = format_to_seconds(current_track["duration"])
-            expected_elapsed_time = track_duration_in_seconds - PLAYBACK_END_GRACE_PERIOD
-            
-            playback_ended_unexpectedly = current_time < expected_elapsed_time
-
-            if playback_ended_unexpectedly:
-                await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
-                approximate_resume_time = max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
-                await interaction.channel.send(
-                    f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream..\nAttempting to recover.."
-                )
-
-                success = await handle_player_crash(interaction, current_track, voice_client, approximate_resume_time, self.play_track)
-
-                await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
-                if success:
-                    await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
-                    return
-                else:
-                    await interaction.channel.send(f"Failed to recover. Skipping..")
-
-        if user_forced:
-            await update_guild_state(self.guild_states, interaction, False, "user_interrupted_playback")
+        recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
+        if recovered_from_crash:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Recovered player crash in guild ID {interaction.guild.id}")
+            return
 
         if not queue and not\
             is_looping and not\
@@ -398,8 +375,7 @@ class MusicCog(commands.Cog):
                 await update_guild_state(self.guild_states, interaction, None, "voice_status")
                 await set_voice_status(self.guild_states, interaction)
 
-            await interaction.channel.send("Queue is empty.") if interaction.is_expired()\
-            else await interaction.followup.send("Queue is empty.")
+            await send_func("Queue is empty.")
             return
     
         if not queue and queue_to_loop:
@@ -408,20 +384,14 @@ class MusicCog(commands.Cog):
 
             queue = self.guild_states[interaction.guild.id]["queue"]
 
-        if track_to_loop and is_looping:
-            track = track_to_loop
-        elif is_random:
-            track = queue.pop(queue.index(choice(queue)))
-        else:
-            track = queue.pop(0)
+        track = await get_next_track(is_random, is_looping, track_to_loop, queue)
 
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
         await self.play_track(interaction, voice_client, track)
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         if not is_looping:
-            await interaction.channel.send(f"Now playing: **{track['title']}**") if interaction.is_expired()\
-            else await interaction.followup.send(f"Now playing: **{track['title']}**")
+            await send_func(f"Now playing: **{track['title']}**")
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction) -> None:
         if error is not None:
@@ -599,7 +569,7 @@ class MusicCog(commands.Cog):
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         
-        next_track = await get_next(is_random, is_looping, track_to_loop, queue, queue_to_loop)
+        next_track = await get_next_visual_track(is_random, is_looping, track_to_loop, queue, queue_to_loop)
         if isinstance(next_track, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
             
@@ -642,7 +612,7 @@ class MusicCog(commands.Cog):
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         history = self.guild_states[interaction.guild.id]["queue_history"]
         
-        previous = await get_previous(current_track, history)
+        previous = await get_previous_visual_track(current_track, history)
         if isinstance(previous, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
             

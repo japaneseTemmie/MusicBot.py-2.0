@@ -356,7 +356,7 @@ async def find_track(track: str, iterable: list[dict], by_index: bool=False) -> 
         
     return Error(f"Could not find track **{track[:50]}**.")
 
-async def get_previous(current: dict | None, history: list[dict] | list) -> dict | Error:
+async def get_previous_visual_track(current: dict | None, history: list[dict] | list) -> dict | Error:
     """ Return the previous track in an iterable `history` based on the current track.
     Does not remove the returned track. """
     
@@ -371,20 +371,33 @@ async def get_previous(current: dict | None, history: list[dict] | list) -> dict
     
     return history[length - 2] if current is not None else history[length - 1] # len - 1 = current, len - 2 = actual previous track
 
-async def get_next(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
+async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
     """ Get the next track in an iterable `queue` (and `queue_to_loop`) based on different states.
-    Does not remove the returned track. """
+    Does not remove the returned track from the queue. """
     
-    if is_random:
-        return Error("Next track will be random.")
-    elif is_looping and track_to_loop:
+    if is_looping and track_to_loop:
         next_track = track_to_loop
+    elif is_random:
+        return Error("Next track will be random.")
     elif queue:
         next_track = queue[0]
     elif queue_to_loop:
         next_track = queue_to_loop[0]
     else:
         return Error("Queue is empty. Nothing to preview.")
+    
+    return next_track
+
+async def get_next_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict]) -> dict:
+    """ Get the next track based on different states.
+    Removes the returned track from the queue. """
+    
+    if is_looping and track_to_loop:
+        next_track = track_to_loop
+    elif is_random:
+        next_track = queue.pop(queue.index(choice(queue)))
+    else:
+        next_track = queue.pop(0)
     
     return next_track
 
@@ -633,7 +646,8 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
             log(f"[GUILDSTATE] Cleaned up guild ID {guild_id} from guild states, cache and locks.")
 
 async def check_users_in_channel(guild_states: dict, member: discord.Member | Interaction) -> bool:
-    """ Check if there are any users in a voice channel.
+    """ Check if there are any users in a voice channel and disconnects if not.
+
     Returns True if none are left and the bot is disconnected, False otherwise. """
     
     if VOICE_OPERATIONS_LOCKED.is_set():
@@ -744,6 +758,7 @@ async def handle_channel_move(
         after_state: discord.VoiceState
     ) -> None:
     """ Function that runs every time the voice client is unexpectedly moved to another channel.
+
     Waits for users and resumes session in new channel. """
 
     handling_move_action = guild_states[member.guild.id]["handling_move_action"]
@@ -810,7 +825,7 @@ async def set_voice_status(guild_states: dict, interaction: Interaction) -> None
 
         await voice_client.channel.edit(status=status)
 
-# FFmpeg stuff and stream validation
+# FFmpeg options, stream validation and ffmpeg crash handler.
 async def get_ffmpeg_options(position: int) -> dict:
     """ Return a hashmap containing ffmpeg `before_options` and `options` in their respective keys.
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
@@ -881,6 +896,42 @@ async def handle_player_crash(
     except Exception as e:
         log_to_discord_log(e)
         return False
+
+async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:
+    current_track = guild_states[interaction.guild.id]["current_track"]
+    user_forced = guild_states[interaction.guild.id]["user_interrupted_playback"]
+    start_time = guild_states[interaction.guild.id]["start_time"]
+    voice_client = guild_states[interaction.guild.id]["voice_client"]
+    recovery_success = False
+
+    if current_track is not None and not user_forced:
+        current_time = int(get_monotonic() - start_time)
+        track_duration_in_seconds = format_to_seconds(current_track["duration"])
+        expected_elapsed_time = track_duration_in_seconds - PLAYBACK_END_GRACE_PERIOD
+        
+        playback_ended_unexpectedly = current_time < expected_elapsed_time
+
+        if playback_ended_unexpectedly:
+            await update_guild_state(guild_states, interaction, True, "voice_client_locked")
+
+            approximate_resume_time = max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
+            await interaction.channel.send(
+                f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream.\nAttempting to recover.."
+            )
+
+            recovery_success = await handle_player_crash(interaction, current_track, voice_client, approximate_resume_time, play_track_func)
+
+            await update_guild_state(guild_states, interaction, False, "voice_client_locked")
+            if recovery_success:
+                await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
+                return recovery_success
+            else:
+                await interaction.channel.send(f"Failed to recover. Skipping..")
+
+    if user_forced:
+        await update_guild_state(guild_states, interaction, False, "user_interrupted_playback")
+
+    return recovery_success
 
 # Playlist functions
 async def playlist_exists(content: dict, playlist_name: str) -> bool:

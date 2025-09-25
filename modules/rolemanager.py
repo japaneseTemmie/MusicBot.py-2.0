@@ -44,7 +44,7 @@ class RoleManagerCog(commands.Cog):
             await interaction.response.send_message(f"Default **{role_to_set}** role already set!", ephemeral=True)
             return
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(roles)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(roles)
         
         roles[role_to_set] = str(role.id) # Store ID instead of name so the bot doesn't pick the wrong role to check when there's 2 or more roles with the same name
 
@@ -78,10 +78,11 @@ class RoleManagerCog(commands.Cog):
             await interaction.response.send_message(f"Default **{role_to_look_for}** role has not been set for this guild yet!", ephemeral=True)
             return
         
-        role = roles[role_to_look_for]
-        role_obj = await get_role(interaction.guild.roles, role, True)
+        role_id = roles[role_to_look_for]
+        role_obj = await get_role(interaction.guild.roles, role_id, True)
+        
         if role_obj is None:
-            await interaction.response.send_message(f"Role **{role}** not found in guild!", ephemeral=True)
+            await interaction.response.send_message(f"Role (ID **{role_id}**) not found in guild!", ephemeral=True)
             return
 
         await interaction.response.send_message(f"Default **{role_to_look_for}** role for this guild is **{role_obj.name}**.", ephemeral=not show)
@@ -104,7 +105,7 @@ class RoleManagerCog(commands.Cog):
             await interaction.response.send_message(roles.msg, ephemeral=True)
             return
 
-        backup = None if not CONFIG["enable_file_backups"] else deepcopy(roles)
+        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(roles)
         role_to_delete = "playlist" if playlist else "music"
         if role_to_delete not in roles:
             display_role = role_to_delete[0].upper() + role_to_delete[1:]
@@ -134,7 +135,6 @@ class RoleManagerCog(commands.Cog):
     @app_commands.guild_only
     async def reset_roles(self, interaction: Interaction, show: bool=False):
         result = await write_roles(interaction, {}, None)
-
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return

@@ -16,9 +16,8 @@ def get_default_yt_dlp_config_data() -> dict[str, Any]:
         "no_warnings": True
     }
 
-def get_default_config_data() -> dict[str, Any]:
+def get_other_default_config_data() -> dict[str, Any]:
     return {
-        "yt_dlp_options": get_default_yt_dlp_config_data(),
         "command_prefix": "?",
         "enable_activity": False,
         "activity_name": "with the API",
@@ -27,13 +26,28 @@ def get_default_config_data() -> dict[str, Any]:
         "enable_file_backups": True,
         "enable_logging": True,
         "log_level": "normal",
-        "use_sharding": False,
+        "use_sharding": False
+    }
+
+def get_default_config_data() -> dict[str, Any]:
+    config = {
+        "yt_dlp_options": get_default_yt_dlp_config_data(),
         "enable_ModerationCog": True,
         "enable_RoleManagerCog": True,
         "enable_UtilsCog": True,
         "enable_MusicCog": True,
         "enable_MyCog": False
     }
+    config.update(get_other_default_config_data())
+
+    return config
+
+def add_other_missing_settings_to_config(config: dict[str, Any], expected_settings: dict[str, Any]) -> None:
+    """ Compares the `expected_settings` keys with `config`'s keys and replaces missing ones with default ones. """
+    
+    for key in expected_settings:
+        if key not in config:
+            config[key] = expected_settings[key]
 
 def add_missing_modules_to_config(config: dict[str, Any], expected_enabled_modules: list[str], expected_disabled_modules: list[str]) -> None:
     """ Compares the module-related keys in `config` with given `expected_enabled_modules` and `expected_disabled_modules`, if a key is missing, it'll add it accordingly. """
@@ -62,6 +76,7 @@ def check_config(config: dict[str, Any]) -> dict | None:
     
     orig_config = deepcopy(config)
     expected_yt_dlp_options = get_default_yt_dlp_config_data()
+    expected_other_settings = get_other_default_config_data()
     expected_enabled_modules = [
         "enable_ModerationCog",
         "enable_RoleManagerCog",
@@ -72,8 +87,9 @@ def check_config(config: dict[str, Any]) -> dict | None:
         "enable_MyCog"
     ]
 
-    add_missing_modules_to_config(config, expected_enabled_modules, expected_disabled_modules)
     add_missing_yt_dlp_options_to_config(config, expected_yt_dlp_options)
+    add_other_missing_settings_to_config(config, expected_other_settings)
+    add_missing_modules_to_config(config, expected_enabled_modules, expected_disabled_modules)
 
     if config != orig_config:
         return config

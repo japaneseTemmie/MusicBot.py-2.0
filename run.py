@@ -31,7 +31,8 @@ def is_in_venv() -> None:
         sysexit(1)
 
 def run(command: list[str], sep_process: bool=False) -> int:
-    """ Spawn the process in a separate group so it's not affected by the runner script. """
+    """ Run a command. """
+
     if name == "posix":
         from os import setsid
 
@@ -45,11 +46,11 @@ def run(command: list[str], sep_process: bool=False) -> int:
     
     try:
         process = Popen(command,
-                        stdout=PIPE if sep_process else None,
-                        stderr=PIPE if sep_process else None,
-                        creationflags=creationflags,
-                        preexec_fn=preexec_fn
-                        )
+            stdout=PIPE if sep_process else None,
+            stderr=PIPE if sep_process else None,
+            creationflags=creationflags,
+            preexec_fn=preexec_fn
+        )
     except SubprocessError as e:
         log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}")
         sysexit(1)
