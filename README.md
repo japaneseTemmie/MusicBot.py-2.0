@@ -92,13 +92,13 @@ _*Playlist support may depend on command._
 
   ... or compile them from source.
 
-  On Windows/macOS, you can find guides on how to install them:
+  For Windows/macOS, you can official download links:
 
   [FFmpeg for macOS/Windows](https://ffmpeg.org/download.html)
 
   [Python for Windows](https://www.python.org/downloads/windows/) | [Python for macOS](https://www.python.org/downloads/macos/)
 
-  Test Python and FFmpeg:
+- Test `Python` and `FFmpeg`:
 
   `python3 -V` (UNIX-like)
   
@@ -110,23 +110,23 @@ _*Playlist support may depend on command._
 
   Expected output: `ffmpeg version {VERSION}...`
 
+  Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
+
+  Up to date versions should work fine.
+
 - Optional, but preferred if hosting on many guilds:
 
   - An internet connection with **high download/upload speeds**.
   
-    (Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds)
+    Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds
 
-  - A system with lots of RAM (>= 32GB) for many guilds.
+  - A system with lots of RAM (>= 32GB).
 
-    The bot caches roles and playlists extensively for faster lookup and lower disk activity at the expense of using more RAM.
+    The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
 
-  - A system with a powerful CPU (8+ performance cores) for many guilds.
+  - A system with a powerful CPU (8+ performance cores).
 
     A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
-
-Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
-
-Up to date versions should work fine.
 
 ## Preparing the project directory
 - Unpack the source code to a directory of your choice. (Or, `git clone` it.)
