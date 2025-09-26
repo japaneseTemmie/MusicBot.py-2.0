@@ -57,8 +57,11 @@ def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str |
 
     file_path = join(path, file_name)
     if file_name and not exists(file_path):
+        
+        file_content_on_creation = {} if file_content_on_creation is None else file_content_on_creation
         json_mode = isinstance(file_content_on_creation, dict)
-        result = write_file(file_path, file_content_on_creation or ({} if json_mode else ""), json_mode)
+
+        result = write_file(file_path, file_content_on_creation, json_mode)
         if not result:
             return False
         
