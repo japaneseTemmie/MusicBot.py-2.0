@@ -1,8 +1,15 @@
 """ Bot subclass setup module for discord.py bot """
 
-from settings import *
-from guild import check_guild_data
+from settings import USE_SHARDING, ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, log_to_discord_log
+from init.logutils import log, separator
+from init.constants import MAX_IO_SYNC_WAIT_TIME
+from guild import ensure_guild_data
+from random import randint
+from time import monotonic
 from loader import ModuleLoader
+
+import asyncio
+from discord.ext import commands
 
 class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """
@@ -93,7 +100,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
         await asyncio.sleep(0.3)
 
-        await check_guild_data(self, self.guilds)
+        await ensure_guild_data(self, self.guilds)
         separator()
 
         await self.load_cogs()
@@ -142,10 +149,10 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
         log("Waiting for read/write sync..")
 
-        start_time = get_monotonic() # Track elapsed time and continue anyways if it times out.
+        start_time = monotonic() # Track elapsed time and continue anyways if it times out.
 
         while (any(playlist_lock.locked() for playlist_lock in PLAYLIST_LOCKS.values()) or\
-            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (get_monotonic() - start_time < MAX_IO_SYNC_WAIT_TIME):
+            any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (monotonic() - start_time < MAX_IO_SYNC_WAIT_TIME):
             
             await asyncio.sleep(0.1)
 

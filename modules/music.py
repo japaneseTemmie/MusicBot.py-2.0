@@ -2,12 +2,36 @@
 
 Includes a class with methods for managing a queue and track playback."""
 
-from settings import *
-from helpers import *
-from roles import *
-from embedgenerator import *
+from settings import COOLDOWNS, log_to_discord_log
+from init.logutils import log
+from helpers import (
+    close_voice_clients, check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move, check_vc_lock, get_default_state,
+    check_channel, check_guild_state, update_guild_state, update_guild_states, update_query_extraction_state, check_input_length, check_player_crash,
+    check_queue_length, split, is_playlist_locked, update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace, fetch_queries, fetch_query,
+    add_results_to_queue, get_ffmpeg_options, resolve_expired_url, validate_stream, get_next_track, get_next_visual_track, get_previous_visual_track,
+    set_voice_status, get_queue_indices, find_track, replace_track_in_queue, remove_track_from_queue, reposition_track_in_queue, get_pages, get_random_tracks_from_playlist,
+    lock_playlist, unlock_playlist, unlock_all_playlists,
+)
+from timehelpers import format_to_minutes, format_to_seconds
+from roles import user_has_role
+from embedgenerator import (
+    generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
+    generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed, generate_skipped_tracks_embed,
+)
+from error import Error
+from extractor import SourceWebsite
 from playlist import PlaylistManager
 from bot import Bot
+
+import discord
+import asyncio
+from time import monotonic, time as get_unix_timestamp
+from copy import deepcopy
+from random import choice, shuffle
+from datetime import datetime
+from discord import app_commands
+from discord.interactions import Interaction
+from discord.ext import commands
 
 class MusicCog(commands.Cog):
     def __init__(self, client: Bot):
@@ -302,7 +326,7 @@ class MusicCog(commands.Cog):
         if not first_track_start_date:
             await update_guild_state(self.guild_states, interaction, datetime.now(), "first_track_start_date")
 
-        await update_guild_states(self.guild_states, interaction, (get_monotonic() - position, position), ("start_time", "elapsed_time"))
+        await update_guild_states(self.guild_states, interaction, (monotonic() - position, position), ("start_time", "elapsed_time"))
         
         """Update track to loop if looping is enabled
         Cases in which this is useful:
@@ -663,7 +687,7 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
         voice_client.pause()
-        await update_guild_state(self.guild_states, interaction, int(get_monotonic() - start_time), "elapsed_time")
+        await update_guild_state(self.guild_states, interaction, int(monotonic() - start_time), "elapsed_time")
 
         if can_update_status:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{current_track['title']}' (paused)", "voice_status")
@@ -714,7 +738,7 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
         voice_client.resume()
-        await update_guild_state(self.guild_states, interaction, int(get_monotonic() - elapsed_time), "start_time")
+        await update_guild_state(self.guild_states, interaction, int(monotonic() - elapsed_time), "start_time")
 
         if can_update_status:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{current_track['title']}'", "voice_status")
@@ -1407,7 +1431,7 @@ class MusicCog(commands.Cog):
             await update_guild_state(
                 self.guild_states,
                 interaction,
-                min(int(get_monotonic() - start_time), format_to_seconds(current_track["duration"])),
+                min(int(monotonic() - start_time), format_to_seconds(current_track["duration"])),
                 "elapsed_time"
             )
         
@@ -1471,7 +1495,7 @@ class MusicCog(commands.Cog):
             await update_guild_state(
                 self.guild_states,
                 interaction,
-                min(int(get_monotonic() - start_time), format_to_seconds(current_track["duration"])),
+                min(int(monotonic() - start_time), format_to_seconds(current_track["duration"])),
                 "elapsed_time"
             )
 
@@ -1708,7 +1732,7 @@ class MusicCog(commands.Cog):
         queue_state_being_modified = self.guild_states[interaction.guild.id]["is_reading_queue"] or self.guild_states[interaction.guild.id]["is_modifying"]
         
         if voice_client.is_playing():
-            fixed_elapsed_time = min(int(get_monotonic() - self.guild_states[interaction.guild.id]["start_time"]), format_to_seconds(info["duration"]))
+            fixed_elapsed_time = min(int(monotonic() - self.guild_states[interaction.guild.id]["start_time"]), format_to_seconds(info["duration"]))
             elapsed_time = format_to_minutes(fixed_elapsed_time)
         else:
             elapsed_time = format_to_minutes(int(self.guild_states[interaction.guild.id]["elapsed_time"]))

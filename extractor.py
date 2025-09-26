@@ -7,9 +7,14 @@ Supported websites
 - SoundCloud
 - Bandcamp """
 
-from settings import *
+from settings import YDL_OPTIONS, log_to_discord_log
 from timehelpers import format_to_minutes
 from error import Error
+
+import re
+from enum import Enum
+from datetime import datetime
+from yt_dlp import YoutubeDL
 
 class SourceWebsite(Enum):
     YOUTUBE_PLAYLIST = "YouTube Playlist"

@@ -1,11 +1,10 @@
+from iohelpers import open_file, write_file
+from init.logutils import log, separator
+
 from copy import deepcopy
 from os.path import join, exists
 from sys import exit as sysexit
 from time import sleep
-
-from iohelpers import open_file, write_file
-from init.logutils import log, separator
-
 from typing import NoReturn, Any
 
 def get_default_yt_dlp_config_data() -> dict[str, Any]:

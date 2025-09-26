@@ -1,6 +1,8 @@
 """ Embed generator module for discord.py bot. """
 
-from settings import *
+import discord
+from random import randint
+from datetime import datetime
 
 def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
     """ Generated an embed showing elapsed time since the very first track. """

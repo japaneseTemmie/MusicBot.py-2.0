@@ -1,6 +1,6 @@
 """ Helper functions for working with durations for discord.py bot. """
 
-from settings import *
+from settings import log_to_discord_log
 
 def add_zeroes(parts: list[str], length_limit: int):
     missing = length_limit - len(parts)

@@ -1,9 +1,9 @@
 """ Help system functions for discord.py bot """
 
-from os.path import join, exists
-
 from iohelpers import open_file
 from init.logutils import log, separator
+
+from os.path import join, exists
 
 def open_help_file(dir: str) -> dict[str, str] | None:
     """ Attempts to open the `help.json` file in the `dir` folder. If unreadable or missing, returns None. Otherwise, returns the contents of the file in hashmap. """

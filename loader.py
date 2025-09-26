@@ -2,11 +2,21 @@
 
 Helper module to dynamically load all modules found in a specified directory. """
 
-from settings import *
+from settings import CONFIG, log_to_discord_log
+from init.logutils import log
+
+from discord.ext import commands
+from os.path import isdir
+from os import listdir
+from inspect import getmembers, isclass
+from importlib import import_module
+from types import ModuleType
 
 class ModuleLoader:
-    """ Loader class\n
-    Dynamically load all modules found in modules_dir. """
+    """ Loader class
+
+    Dynamically loads all modules found in `modules_directory`. """
+    
     def __init__(self, modules_directory: str):
         self.path = modules_directory
         

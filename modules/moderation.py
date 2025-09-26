@@ -3,9 +3,17 @@
 Includes a class with a few methods for managing
 a Discord guild and its users. """
 
-from settings import *
-from helpers import *
+from settings import COOLDOWNS, log_to_discord_log
 from bot import Bot
+from helpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
+from timehelpers import format_to_seconds_extended
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+from discord.interactions import Interaction
+from datetime import datetime
+from time import time as get_unix_timestamp
 
 class ModerationCog(commands.Cog):
     def __init__(self, client: Bot):

@@ -1,6 +1,7 @@
 """ Logging utilities module for discord.py bot """
 
 from colors import Colors, all_colors
+
 from datetime import datetime
 from random import choice
 from logging import Logger

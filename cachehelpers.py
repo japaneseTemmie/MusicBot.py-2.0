@@ -1,6 +1,6 @@
 """ Cache helper functions for discord.py bot. """
 
-from settings import *
+from typing import Any
 
 # Caching tools
 def store_cache(content: Any, id: str | int, cache: dict) -> None:

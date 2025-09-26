@@ -1,8 +1,12 @@
 """ Utilities module for discord.py bot\n
 Includes a short class for help commands. """
 
-from settings import *
+from settings import COOLDOWNS, HELP, log_to_discord_log
 from bot import Bot
+
+from discord import app_commands
+from discord.interactions import Interaction
+from discord.ext import commands
 
 class UtilsCog(commands.Cog):
     def __init__(self, client: Bot):

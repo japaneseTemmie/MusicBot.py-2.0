@@ -1,12 +1,11 @@
 """ Log setup helpers for discord.py bot """
 
-from logging import FileHandler, Formatter, Logger, getLogger, INFO
-from os.path import join, exists
-from os import remove
-
 from init.constants import VALID_LOG_LEVELS
 from init.logutils import log, separator
 
+from logging import FileHandler, Formatter, Logger, getLogger, INFO
+from os.path import join, exists
+from os import remove
 from typing import Any
 
 def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:

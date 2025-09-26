@@ -1,6 +1,14 @@
 """ Guild helper functions for discord.py bot """
 
-from settings import *
+from settings import PATH
+from init.logutils import log, separator
+
+import asyncio
+import discord
+from os.path import join, isdir, exists
+from os import listdir, makedirs
+from shutil import rmtree
+from sys import exit as sysexit
 
 def is_in_guild(id: int, guilds: list[discord.Guild]) -> bool:
     return discord.utils.get(guilds, id=int(id)) is not None
@@ -36,7 +44,7 @@ def delete_guild_dirs(to_delete: list[str]) -> bool:
     for path in to_delete:
         delete_guild_tree(path)
 
-def check_guild_data_path(path: str) -> None:
+def ensure_guild_data_path(path: str) -> None:
     if not exists(path):
         log(f"Creating {path} directory.")
 
@@ -49,7 +57,7 @@ def check_guild_data_path(path: str) -> None:
     else:
         log(f"Found guild data at {path}.")
 
-async def check_guild_data(client, guilds: list[discord.Guild]) -> None:
+async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
     """ Compare the guilds the bot's currently in
     with the guild IDs in the guild_data directory
     and delete any that aren't in the `guilds` parameter list. """
@@ -57,7 +65,7 @@ async def check_guild_data(client, guilds: list[discord.Guild]) -> None:
     guild_count = len(guilds)
     guild_data_path = join(PATH, "guild_data")
 
-    check_guild_data_path(guild_data_path)
+    ensure_guild_data_path(guild_data_path)
     separator()
 
     log(f"{client.user.name} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")

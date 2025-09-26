@@ -1,8 +1,14 @@
 """ Role helper checks and I/O operations for discord.py bot. """
+from settings import PATH, ROLE_LOCKS, ROLE_FILE_CACHE
+from error import Error
+from helpers import check_file_lock, ensure_lock
+from cachehelpers import get_cache, store_cache
+from iohelpers import open_file, write_file, ensure_paths
 
-from settings import *
-from iohelpers import *
-from helpers import *
+import discord
+import asyncio
+from discord.interactions import Interaction
+from os.path import join
 
 async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     """ Check role ownership.
@@ -54,7 +60,7 @@ async def open_roles(interaction: Interaction) -> dict | Error:
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
         
-        success = await asyncio.to_thread(ensure_paths, path, file)
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json")
         if success == False:
             return Error("Failed to create guild data.")
 
@@ -84,7 +90,7 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
 
-        success = await asyncio.to_thread(ensure_paths, path, file)
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json")
         if success == False:
             return Error("Failed to create guild data.")
 

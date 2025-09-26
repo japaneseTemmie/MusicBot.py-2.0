@@ -3,10 +3,23 @@
 Includes a few methods for managing playlists
 and fetching tracks from them. """
 
-from settings import *
-from helpers import *
-from iohelpers import *
+from settings import PATH, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ENABLE_FILE_BACKUPS
+from helpers import (
+    check_file_lock, ensure_lock,
+    has_playlists, sanitize_name, is_playlist_empty, is_playlist_full, is_content_full, playlist_exists, name_exceeds_length,
+    remove_track_from_queue, replace_track_in_queue, reposition_track_in_queue, fetch_queries, replace_data_with_playlist_data,
+    add_results_to_queue, update_loop_queue_add, get_tracks_from_playlist, cleanup_locked_playlists, rename_tracks_in_queue, place_track_in_playlist
+)
+from cachehelpers import get_cache, store_cache
+from iohelpers import open_file, write_file, ensure_paths
+from error import Error
 from bot import Bot
+
+import asyncio
+from discord.interactions import Interaction
+from discord import app_commands
+from os.path import join
+from copy import deepcopy
 
 class PlaylistManager:
     def __init__(self, client: Bot):
@@ -37,7 +50,7 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
 
-            success = await asyncio.to_thread(ensure_paths, path, file)
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json")
             if success == False:
                 return Error("Failed to create guild data.")
 
@@ -66,7 +79,7 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
                 
-            success = await asyncio.to_thread(ensure_paths, path, file)
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json")
             if success == False:
                 return Error("Failed to create guild data.")
 

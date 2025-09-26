@@ -2,9 +2,17 @@
 
 Includes a class with methods to manage music and playlist permissions. """
 
-from settings import *
-from roles import *
+from settings import COOLDOWNS, ENABLE_FILE_BACKUPS, log_to_discord_log
+from roles import open_roles, write_roles
+from helpers import get_role
+from error import Error
 from bot import Bot
+
+import discord
+from discord import app_commands
+from discord.interactions import Interaction
+from discord.ext import commands
+from copy import deepcopy
 
 class RoleManagerCog(commands.Cog):
     def __init__(self, client: Bot):

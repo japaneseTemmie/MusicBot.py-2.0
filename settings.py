@@ -1,45 +1,20 @@
 """ General settings configuration for discord.py bot """
 
-import asyncio
-import re
-
-# Discord imports
-import discord
-from discord.ext import commands
-from discord.interactions import Interaction
-from discord import Intents, app_commands
-
-# Misc imports
-from yt_dlp import YoutubeDL
-from logging import INFO
-from random import choice, randint, shuffle, sample
-from cachetools import TTLCache
-from importlib import import_module
-from inspect import getmembers, isclass
-from datetime import datetime, timedelta
-from time import monotonic as get_monotonic, time as get_unix_timestamp, sleep
-from copy import deepcopy
-from enum import Enum
-
-# OS imports
-from os.path import join, dirname, exists, isdir
-from os import listdir, remove, makedirs, getenv, name
-from shutil import rmtree, which
-from subprocess import PIPE, DEVNULL
-from sys import exit as sysexit
-from dotenv import load_dotenv
-
-# Types
-from typing import NoReturn, Callable, Any, Awaitable
-from types import ModuleType
-
-# Custom modules
-from init.logutils import log, separator, log_to_discord_log as _log_to_discord_log
-from init.loghelpers import set_up_logging, remove_log
-from init.info import get_current_directory, get_os, get_activity, get_activity_data, get_python, get_status, handle_ffmpeg_path_output
-from init.help import open_help_file
+from init.info import get_current_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_ffmpeg_path_output
 from init.config import get_config_data, get_default_yt_dlp_config_data
-from init.constants import VALID_ACTIVITY_TYPES, VALID_LOG_LEVELS, VALID_STATUSES, PLAYBACK_END_GRACE_PERIOD, MAX_IO_SYNC_WAIT_TIME
+from init.help import open_help_file
+from init.loghelpers import set_up_logging, remove_log
+from init.logutils import log, separator, log_to_discord_log as _log_to_discord_log
+
+import asyncio
+import discord
+from discord import Intents
+from cachetools import TTLCache
+from os import getenv
+from sys import exit as sysexit
+from time import sleep
+from shutil import which
+from dotenv import load_dotenv
 
 log("Finished importing libraries")
 separator()

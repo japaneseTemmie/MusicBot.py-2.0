@@ -1,10 +1,23 @@
 """ Helper functions for discord.py bot """
 
-from settings import *
-from cachehelpers import get_cache, store_cache, invalidate_cache
-from timehelpers import format_to_minutes, format_to_seconds, format_to_seconds_extended
+from settings import VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ROLE_FILE_CACHE, ROLE_LOCKS, log_to_discord_log
+from init.constants import PLAYBACK_END_GRACE_PERIOD
+from init.logutils import log, separator
+from cachehelpers import invalidate_cache
+from timehelpers import format_to_minutes, format_to_seconds
 from extractor import fetch, get_query_type, SourceWebsite
 from error import Error
+
+import re
+import asyncio
+import discord
+from discord import app_commands
+from discord.interactions import Interaction
+from discord.ext import commands
+from copy import deepcopy
+from time import monotonic
+from random import choice, sample
+from typing import Any, Awaitable, Callable
 
 # Function to get a hashmap of queue pages to display
 def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
@@ -791,7 +804,7 @@ async def handle_channel_move(
         
         if voice_client.is_playing():
             voice_client.pause()
-            elapsed_time = int(get_monotonic() - start_time)
+            elapsed_time = int(monotonic() - start_time)
             await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
 
         await text_channel.send(f"Waiting **10** seconds for users in new channel **{voice_client.channel.name}**.")
@@ -805,7 +818,7 @@ async def handle_channel_move(
 
     if voice_client.is_paused():
         voice_client.resume()
-        start_time = int(get_monotonic() - elapsed_time)
+        start_time = int(monotonic() - elapsed_time)
         await update_guild_state(guild_states, member, start_time, "start_time")
 
         if can_update_status and current_status:
@@ -905,7 +918,7 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
     recovery_success = False
 
     if current_track is not None and not user_forced:
-        current_time = int(get_monotonic() - start_time)
+        current_time = int(monotonic() - start_time)
         track_duration_in_seconds = format_to_seconds(current_track["duration"])
         expected_elapsed_time = track_duration_in_seconds - PLAYBACK_END_GRACE_PERIOD
         

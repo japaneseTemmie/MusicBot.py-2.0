@@ -2,7 +2,7 @@
 
 from json import load, dump
 from os import makedirs
-from os.path import exists
+from os.path import exists, join
 from init.logutils import log
 
 def open_file(file_path: str, json_mode: bool) -> dict | str | None:
@@ -24,7 +24,7 @@ def open_file(file_path: str, json_mode: bool) -> dict | str | None:
 def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
     """ Write to a file and return None.
 
-    Use json mode to work with JSON files.
+    Use `json_mode` to work with JSON files.
 
     Returns a boolean indicating success.
 
@@ -38,10 +38,10 @@ def write_file(file_path: str, content: dict | str, json_mode: bool) -> bool:
         log(f"An error occurred while writing to {file_path}.\nErr: {e}")
         return False
 
-def ensure_paths(path: str, file: str | None=None, file_content_on_creation: str | dict={}) -> bool:
+def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str | dict=None) -> bool:
     """ Ensure that a path and, optionally, a file exist.
 
-    If a file nane (as regular path) is passed and doesn't exist at `path`, it will be created with
+    If a file name is passed as `file_name` and doesn't exist at `path`, it will be created with
     the contents of `file_content_on_creation` argument.
 
     Returns a boolean indicating success.
@@ -55,9 +55,10 @@ def ensure_paths(path: str, file: str | None=None, file_content_on_creation: str
             log(f"An error occurred while making directory {path}.\nErr: {e}")
             return False
 
-    if file and not exists(file):
+    file_path = join(path, file_name)
+    if file_name and not exists(file_path):
         json_mode = isinstance(file_content_on_creation, dict)
-        result = write_file(file, file_content_on_creation, json_mode)
+        result = write_file(file_path, file_content_on_creation or ({} if json_mode else ""), json_mode)
         if not result:
             return False
         

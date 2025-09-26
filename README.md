@@ -43,7 +43,7 @@ _*Playlist support may depend on command._
   git clone https://github.com/japaneseTemmie/MusicBot.py-2.0
   cd MusicBot.py-2.0
   echo "TOKEN=your_bot_token" > .env
-  python3 run.py
+  python3 start.py
   ```
 
 # Full Bot Setup Guide
@@ -161,9 +161,9 @@ _*Playlist support may depend on command._
 # Automatic setup
 - Prepare and run automatically using the helper script:
 
-  `python3 run.py` (UNIX-like)
+  `python3 start.py` (UNIX-like)
   
-  `python run.py` (Windows)
+  `python start.py` (Windows)
 
   What it does:
 
@@ -249,22 +249,19 @@ Example activity config:
 # Extending the bot (For devs)
 To add your own modules, simply create a new **.py** file in the `modules` directory.
 
-In that file, import everything from the `settings.py` module, which contains useful variables and other modules to help writing your custom module.
-
 Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter of type `Bot` (from module `bot`) in its
 constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot` or `commands.AutoShardedBot`.
 
 Best practices:
 - Check out the [example module](./modules/custom_example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
-- Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings, docs included).
+- Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from settings).
 - Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
-- To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `settings`). 
+- To log errors or messages to stdout, use `log()` (from `init.logutils`). Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `settings`). 
 - Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications)
-- Imports should ideally be kept in the `settings.py` file. Standalone modules (modules that don't import other modules in the codebase, like `settings`) may explictly import their stuff.
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow enabling/disabling the module, and set its value to `true`, or else the bot won't load your Cog.
 
@@ -280,9 +277,9 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
   - **Gracefully** terminate the process with **CTRL + C**, this is the preferred way and allows the bot to properly clean up before exiting.
   - Then, run:
   
-    `python3 run.py` (UNIX-like)
+    `python3 start.py` (UNIX-like)
   
-    `python run.py` (Windows)
+    `python start.py` (Windows)
   
     if the current terminal is **_not_** in the _venv_. Otherwise:
     
@@ -290,7 +287,7 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
 
     `python main.py` (Windows) 
   
-    Note: The script `run.py` can be used to launch the bot even after first time configuration.
+    Note: The script `start.py` can be used to launch the bot even after first time configuration.
 
 - If the bot fails to play tracks, ensure the libraries (specifically, `yt_dlp`) are up to date.
 
