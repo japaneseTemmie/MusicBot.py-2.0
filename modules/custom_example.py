@@ -1,4 +1,7 @@
-from settings import log_to_discord_log
+""" Example module for discord.py bot """
+
+from settings import CAN_LOG, LOGGER
+from init.logutils import log_to_discord_log
 from bot import Bot
 
 import discord
@@ -25,7 +28,7 @@ class MyCog(commands.Cog): # Subclass commands.Cog
         except discord.errors.Forbidden: # We may receive an HTTP 403 'Forbidden' error if the user has DMs disabled or we cannot time out the member.
             pass # Since this is a listener, it's best if we ignore it.
         except Exception as e:
-            log_to_discord_log(e) # Log other exceptions to discord.log (if logging is explicitly enabled in config.json)
+            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER) # Log other exceptions to discord.log (if logging is explicitly enabled in config.json)
 
     async def check_message(self, message: discord.Message) -> None:
         # Timeout a user that sends attachments in general and delete message
@@ -67,6 +70,6 @@ class MyCog(commands.Cog): # Subclass commands.Cog
     async def handle_say_hi_error(self, interaction: Interaction, error: Exception):
         """ This function will be called when an exception in say_hi() is raised. """
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.")

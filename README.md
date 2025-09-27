@@ -259,7 +259,7 @@ Best practices:
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
 - Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
-- To log errors or messages to stdout, use `log()` (from `init.logutils`). Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `settings`). 
+- To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `init.logutils`). 
 - Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications)
 

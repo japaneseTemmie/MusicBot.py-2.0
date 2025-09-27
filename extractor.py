@@ -7,7 +7,8 @@ Supported websites
 - SoundCloud
 - Bandcamp """
 
-from settings import YDL_OPTIONS, log_to_discord_log
+from settings import YDL_OPTIONS, CAN_LOG, LOGGER
+from init.logutils import log_to_discord_log
 from timehelpers import format_to_minutes
 from error import Error
 
@@ -109,7 +110,7 @@ def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[d
             else:
                 info = ydl.extract_info(query, download=False)
     except Exception as e:
-        log_to_discord_log(e)
+        log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
         return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
 

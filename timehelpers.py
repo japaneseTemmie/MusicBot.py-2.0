@@ -1,6 +1,7 @@
 """ Helper functions for working with durations for discord.py bot. """
 
-from settings import log_to_discord_log
+from settings import CAN_LOG, LOGGER
+from init.logutils import log_to_discord_log
 
 def add_zeroes(parts: list[str], length_limit: int):
     missing = length_limit - len(parts)
@@ -28,11 +29,10 @@ def format_to_seconds(minutes_str: str) -> int | None:
         
         hours, minutes, seconds = map(int, parts)
         return int(hours * 3600 + minutes * 60 + seconds)
+    except ValueError:
+        return None
     except Exception as e:
-
-        if not isinstance(e, ValueError):
-            log_to_discord_log(e)
-
+        log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
         return None
 
 def format_to_seconds_extended(minutes_str: str) -> int | None:
@@ -51,8 +51,8 @@ def format_to_seconds_extended(minutes_str: str) -> int | None:
 
         days, hours, minutes, seconds = map(int, parts)
         return int(days * 86400 + hours * 3600 + minutes * 60 + seconds)
+    except ValueError:
+        return None
     except Exception as e:
-        if not isinstance(e, ValueError):
-            log_to_discord_log(e)
-            
+        log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
         return None

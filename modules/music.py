@@ -2,8 +2,8 @@
 
 Includes a class with methods for managing a queue and track playback."""
 
-from settings import COOLDOWNS, log_to_discord_log
-from init.logutils import log
+from settings import COOLDOWNS, CAN_LOG, LOGGER
+from init.logutils import log, log_to_discord_log
 from helpers import (
     close_voice_clients, check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move, check_vc_lock, get_default_state,
     check_channel, check_guild_state, update_guild_state, update_guild_states, update_query_extraction_state, check_input_length, check_player_crash,
@@ -125,7 +125,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
 
@@ -176,7 +176,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -268,7 +268,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -422,7 +422,7 @@ class MusicCog(commands.Cog):
             asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end. Skipping..") if interaction.response.is_done() else\
                                             interaction.response.send_message("An error occurred while handling playback end. Skipping.."), self.client.loop)
             
-            log_to_discord_log(error)
+            log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         asyncio.run_coroutine_threadsafe(self.play_next(interaction), self.client.loop)
 
@@ -505,7 +505,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "is_extracting", "voice_client_locked"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -567,7 +567,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -617,7 +617,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -659,7 +659,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -708,7 +708,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -759,7 +759,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -803,7 +803,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -844,7 +844,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -901,7 +901,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -946,7 +946,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1015,7 +1015,7 @@ class MusicCog(commands.Cog):
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1071,7 +1071,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1102,7 +1102,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1151,7 +1151,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1201,7 +1201,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1255,7 +1255,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1301,7 +1301,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1340,7 +1340,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1368,17 +1368,16 @@ class MusicCog(commands.Cog):
             await interaction.followup.send("No track is currently playing!")
             return
 
-        position_seconds = format_to_seconds(time.strip())
-        
-        if position_seconds is None:
+        time_in_seconds = format_to_seconds(time.strip())
+        if time_in_seconds is None: # allow seek to 0
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
         await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
-        await self.play_track(interaction, voice_client, current_track, position_seconds, "seek")
+        await self.play_track(interaction, voice_client, current_track, time_in_seconds, "seek")
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_to_minutes(position_seconds)}**.")
+        await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_to_minutes(time_in_seconds)}**.")
 
     @seek_to.error
     async def handle_seek_to_error(self, interaction: Interaction, error: Exception):
@@ -1391,7 +1390,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1420,9 +1419,8 @@ class MusicCog(commands.Cog):
             await interaction.followup.send("No track is currently playing!")
             return
 
-        time_seconds = format_to_seconds(time.strip())
-        
-        if time_seconds is None:
+        time_in_seconds = format_to_seconds(time.strip())
+        if not time_in_seconds:
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
@@ -1435,14 +1433,14 @@ class MusicCog(commands.Cog):
                 "elapsed_time"
             )
         
-        rewind_time = self.guild_states[interaction.guild.id]["elapsed_time"] - time_seconds
+        rewind_time = self.guild_states[interaction.guild.id]["elapsed_time"] - time_in_seconds
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))        
         await self.play_track(interaction, voice_client, current_track, rewind_time, "rewind")
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
-        await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_to_minutes(time_seconds)}**. Now at **{format_to_minutes(elapsed_time)}**")
+        await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_to_minutes(time_in_seconds)}**. Now at **{format_to_minutes(elapsed_time)}**")
 
     @rewind_track.error
     async def handle_rewind_track_error(self, interaction: Interaction, error: Exception):
@@ -1455,7 +1453,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1485,8 +1483,7 @@ class MusicCog(commands.Cog):
             return
 
         time_in_seconds = format_to_seconds(time.strip())
-        
-        if time_in_seconds is None:
+        if not time_in_seconds:
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
@@ -1518,7 +1515,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("voice_client_locked", "stop_flag"))
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1567,7 +1564,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1613,7 +1610,7 @@ class MusicCog(commands.Cog):
             
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1643,7 +1640,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1677,7 +1674,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1710,7 +1707,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1763,7 +1760,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1793,7 +1790,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1840,7 +1837,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
@@ -1902,7 +1899,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -1973,7 +1970,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2034,7 +2031,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2113,7 +2110,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2162,7 +2159,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2222,7 +2219,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2285,7 +2282,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2332,7 +2329,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2390,7 +2387,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2465,7 +2462,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2526,7 +2523,7 @@ class MusicCog(commands.Cog):
         
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2609,7 +2606,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2683,7 +2680,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2765,7 +2762,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2831,7 +2828,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2897,7 +2894,7 @@ class MusicCog(commands.Cog):
 
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
@@ -2942,7 +2939,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 

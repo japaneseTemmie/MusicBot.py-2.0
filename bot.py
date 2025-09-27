@@ -1,7 +1,7 @@
 """ Bot subclass setup module for discord.py bot """
 
-from settings import USE_SHARDING, ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, log_to_discord_log
-from init.logutils import log, separator
+from settings import USE_SHARDING, ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG
+from init.logutils import log, separator, log_to_discord_log
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from guild import ensure_guild_data
 from random import randint
@@ -42,7 +42,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         try:
             await self.add_cog(cog)
         except Exception as e:
-            log_to_discord_log(e)
+            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
             log(f"An error occurred while loading {cog.__class__.__name__}\nErr: {e}")
             return False
@@ -88,7 +88,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
             synced_commands = await self.tree.sync()
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
         except Exception as e:
-            log_to_discord_log(e)
+            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
             
             log(f"An error occurred while syncing app commands to Discord.\nErr: {e}")
 
@@ -181,4 +181,4 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
         log(f"Bai bai :{'3' * randint(1, 10)}")
 
-        log_to_discord_log("Connection closed by host.\nEnd of log.")
+        log_to_discord_log("Connection closed by host.\nEnd of log.", can_log=CAN_LOG, logger=LOGGER)

@@ -1,7 +1,8 @@
 """ Utilities module for discord.py bot\n
 Includes a short class for help commands. """
 
-from settings import COOLDOWNS, HELP, log_to_discord_log
+from settings import COOLDOWNS, HELP, CAN_LOG, LOGGER
+from init.logutils import log_to_discord_log
 from bot import Bot
 
 from discord import app_commands
@@ -23,7 +24,7 @@ class UtilsCog(commands.Cog):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.")
 
@@ -56,6 +57,6 @@ class UtilsCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)

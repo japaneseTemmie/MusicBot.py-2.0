@@ -1,8 +1,8 @@
 """ Helper functions for discord.py bot """
 
-from settings import VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ROLE_FILE_CACHE, ROLE_LOCKS, log_to_discord_log
+from settings import VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ROLE_FILE_CACHE, ROLE_LOCKS, CAN_LOG, LOGGER
 from init.constants import PLAYBACK_END_GRACE_PERIOD
-from init.logutils import log, separator
+from init.logutils import log, separator, log_to_discord_log
 from cachehelpers import invalidate_cache
 from timehelpers import format_to_minutes, format_to_seconds
 from extractor import fetch, get_query_type, SourceWebsite
@@ -907,7 +907,7 @@ async def handle_player_crash(
 
         return True
     except Exception as e:
-        log_to_discord_log(e)
+        log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
         return False
 
 async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:

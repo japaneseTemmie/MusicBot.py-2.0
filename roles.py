@@ -1,4 +1,5 @@
 """ Role helper checks and I/O operations for discord.py bot. """
+
 from settings import PATH, ROLE_LOCKS, ROLE_FILE_CACHE
 from error import Error
 from helpers import check_file_lock, ensure_lock

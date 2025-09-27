@@ -3,7 +3,8 @@
 Includes a class with a few methods for managing
 a Discord guild and its users. """
 
-from settings import COOLDOWNS, log_to_discord_log
+from settings import COOLDOWNS, CAN_LOG, LOGGER
+from init.logutils import log_to_discord_log
 from bot import Bot
 from helpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
 from timehelpers import format_to_seconds_extended
@@ -55,10 +56,10 @@ class ModerationCog(commands.Cog):
             elif isinstance(error.original, discord.errors.HTTPException):
                 await send_func("Something went wrong while requesting changes. Try again later.", ephemeral=True)
             
-            log_to_discord_log(error.original)
+            log_to_discord_log(error.original, can_log=CAN_LOG, logger=LOGGER)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await send_func("An unknown error occurred.", ephemeral=True)
 

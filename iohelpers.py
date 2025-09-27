@@ -42,7 +42,7 @@ def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str |
     """ Ensure that a path and, optionally, a file exist.
 
     If a file name is passed as `file_name` and doesn't exist at `path`, it will be created with
-    the contents of `file_content_on_creation` argument.
+    the contents of `file_content_on_creation` argument. Which is an empty hashmap by default.
 
     Returns a boolean indicating success.
      

@@ -2,8 +2,8 @@
 
 Helper module to dynamically load all modules found in a specified directory. """
 
-from settings import CONFIG, log_to_discord_log
-from init.logutils import log
+from settings import CONFIG, CAN_LOG, LOGGER
+from init.logutils import log, log_to_discord_log
 
 from discord.ext import commands
 from os.path import isdir
@@ -33,6 +33,8 @@ class ModuleLoader:
             return tree
         except OSError as e:
             log(f"An error occured while opening directory '{self.path}'\nErr: {e}")
+            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
+            
             return None
 
     def get_module_names(self) -> list[str] | list:
@@ -61,7 +63,7 @@ class ModuleLoader:
             except Exception as e:
                 log(f"An error occured while importing module '{name}'")
 
-                log_to_discord_log(e)
+                log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
         return imported_modules
     

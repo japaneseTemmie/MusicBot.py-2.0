@@ -2,9 +2,10 @@
 
 Includes a class with methods to manage music and playlist permissions. """
 
-from settings import COOLDOWNS, ENABLE_FILE_BACKUPS, log_to_discord_log
+from settings import COOLDOWNS, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
 from roles import open_roles, write_roles
 from helpers import get_role
+from init.logutils import log_to_discord_log
 from error import Error
 from bot import Bot
 
@@ -26,7 +27,7 @@ class RoleManagerCog(commands.Cog):
             await interaction.response.send_message("You do not have permission to modify this!", ephemeral=True)
             return
 
-        log_to_discord_log(error)
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 

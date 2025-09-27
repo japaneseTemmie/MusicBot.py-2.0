@@ -4,7 +4,7 @@ from init.info import get_current_directory, get_python, get_os, get_activity, g
 from init.config import get_config_data, get_default_yt_dlp_config_data
 from init.help import open_help_file
 from init.loghelpers import set_up_logging, remove_log
-from init.logutils import log, separator, log_to_discord_log as _log_to_discord_log
+from init.logutils import log, separator
 
 import asyncio
 import discord
@@ -63,17 +63,6 @@ COOLDOWNS = {
 # Logging
 # Set up file handler and formatter for discord.py's logging lib, if requested.
 HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
-# Redefine func because better :3
-def log_to_discord_log(content: str | Exception, log_type: str="info"):
-    """
-    Log a message or exception to `discord.log` file if logging is enabled.
-    When `content` is an exception, it is logged directly.
-    When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `content` is a string. The message will be logged as `log_type`.
-
-    Return value indicates log success.
-    """
-
-    return _log_to_discord_log(content, log_type, CAN_LOG, LOGGER)
 
 FFMPEG = which("ffmpeg")
 handle_ffmpeg_path_output(SYSTEM, FFMPEG)
