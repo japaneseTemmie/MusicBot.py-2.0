@@ -463,7 +463,7 @@ async def add_filters(filters: dict[str, Any], min_duration: int | None, max_dur
     for key, filter in filters_to_apply.items():
         if filter is not None:
             filters[key] = filter
-            added[key] = filter
+            added[key] = True
 
     return added
 
