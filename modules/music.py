@@ -10,7 +10,7 @@ from helpers import (
     check_queue_length, split, is_playlist_locked, update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace, fetch_queries, fetch_query,
     add_results_to_queue, get_ffmpeg_options, resolve_expired_url, validate_stream, get_next_track, get_next_visual_track, get_previous_visual_track,
     set_voice_status, get_queue_indices, find_track, replace_track_in_queue, remove_track_from_queue, reposition_track_in_queue, get_pages, get_random_tracks_from_playlist,
-    lock_playlist, unlock_playlist, unlock_all_playlists,
+    lock_playlist, unlock_playlist, unlock_all_playlists, add_filters, clear_filters
 )
 from timehelpers import format_to_minutes, format_to_seconds
 from roles import user_has_role
@@ -282,8 +282,7 @@ class MusicCog(commands.Cog):
             position: int=0, 
             state: str | None=None
         ) -> None:
-        if not voice_client or\
-            not voice_client.is_connected() or\
+        if not voice_client.is_connected() or\
             track is None:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions. Ignoring.")
             return
@@ -319,7 +318,7 @@ class MusicCog(commands.Cog):
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
             if is_looping:
                 await update_guild_state(self.guild_states, interaction, False, "is_looping")
-
+            
             self.handle_playback_end(e, interaction)
             return
 
@@ -328,7 +327,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (monotonic() - position, position), ("start_time", "elapsed_time"))
         
-        """Update track to loop if looping is enabled
+        """ Update track to loop if looping is enabled
         Cases in which this is useful:
         We already have a track set to loop, we use /playnow or something that overrides this, now we need to update the track to loop."""
 
@@ -360,6 +359,7 @@ class MusicCog(commands.Cog):
             return
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        filters = self.guild_states[interaction.guild.id]["filters"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
@@ -408,11 +408,13 @@ class MusicCog(commands.Cog):
 
             queue = self.guild_states[interaction.guild.id]["queue"]
 
-        track = await get_next_track(is_random, is_looping, track_to_loop, queue)
+        track = await get_next_track(is_random, is_looping, track_to_loop, filters, queue)
 
-        await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-        await self.play_track(interaction, voice_client, track)
-        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        try:
+            await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+            await self.play_track(interaction, voice_client, track)
+        finally:
+            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
         if not is_looping:
             await send_func(f"Now playing: **{track['title']}**")
@@ -592,8 +594,9 @@ class MusicCog(commands.Cog):
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         queue = self.guild_states[interaction.guild.id]["queue"]
+        filters = self.guild_states[interaction.guild.id]["filters"]
         
-        next_track = await get_next_visual_track(is_random, is_looping, track_to_loop, queue, queue_to_loop)
+        next_track = await get_next_visual_track(is_random, is_looping, track_to_loop, filters, queue, queue_to_loop)
         if isinstance(next_track, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
             
@@ -1711,6 +1714,155 @@ class MusicCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
 
+    @app_commands.command(name="filter", description="Applies filters for track playback.")
+    @app_commands.describe(
+        author="The author to match. Case sensitive.",
+        min_duration="The minimum duration range to match. Must be HH:MM:SS.",
+        max_duration="The maximum duration range to match. Must be HH:MM:SS.",
+        website="The website to match."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.choices(
+        website=[
+            app_commands.Choice(name=SourceWebsite.YOUTUBE.value, value=SourceWebsite.YOUTUBE.value),
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD.value, value=SourceWebsite.SOUNDCLOUD.value),
+            app_commands.Choice(name=SourceWebsite.BANDCAMP.value, value=SourceWebsite.BANDCAMP.value),
+            app_commands.Choice(name=SourceWebsite.NEWGROUNDS.value, value=SourceWebsite.NEWGROUNDS.value)
+        ]
+    )
+    @app_commands.guild_only
+    async def apply_track_filters(self, interaction: Interaction, min_duration: str=None, max_duration: str=None, author: str=None, website: app_commands.Choice[str]=None):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        filters = self.guild_states[interaction.guild.id]["filters"]
+        min_duration_in_seconds, max_duration_in_seconds = format_to_seconds(min_duration), format_to_seconds(max_duration)
+        if (min_duration and min_duration_in_seconds is None) or\
+            (max_duration and max_duration_in_seconds is None):
+            await interaction.followup.send("Invalid duration. Must be **HH:MM:SS** and **MM** and **SS** must not be > **59**.")
+            return
+        
+        added = await add_filters(filters, min_duration_in_seconds, max_duration_in_seconds, author, website.value if website else None)
+        added_count = len(added)
+
+        if not added:
+            await interaction.followup.send("No filters applied.")
+            return
+
+        await interaction.followup.send(
+            f"Applied **{added_count}** track filter{'s' if added_count > 1 else ''}.\n"
+            f"- Author: [ `{filters.get('uploader')}` ]\n"
+            f"- Minimum duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
+            f"- Maximum duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
+            f"- Website: [ `{filters.get('source_website')}` ]\n"
+        )
+
+    @apply_track_filters.error
+    async def handle_apply_track_filters_error(self, interaction: Interaction, error: Exception):        
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        await interaction.followup.send("An unknown error occurred")
+
+    @app_commands.command(name="clear-filter", description="Clears given filters.")
+    @app_commands.describe(
+        min_duration="Whether or not to clear the minimum duration filter. (default False)",
+        max_duration="Whether or not to clear the maximum duration filter. (default False)",
+        author="Whether or not to clear the author filter. (default False)",
+        website="Whether or not to clear the website filter. (default False)"
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def clear_track_filters(self, interaction: Interaction, min_duration: bool=False, max_duration: bool=False, author: bool=False, website: bool=False):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        filters = self.guild_states[interaction.guild.id]["filters"]
+
+        removed = await clear_filters(filters, min_duration, max_duration, author, website)
+        removed_count = len(removed)
+
+        if not removed:
+            await interaction.followup.send("No filters removed.")
+            return
+        
+        await interaction.followup.send(
+            f"Cleared **{removed_count}** filter{'s' if removed_count > 1 else ''}.\n"
+            f"- Author: [ `{filters.get('uploader')}` ]\n"
+            f"- Minimum duration: [ `{filters.get('min_duration')}` ]\n"
+            f"- Maximum duration: [ `{filters.get('max_duration')}` ]\n"
+            f"- Website: [ `{filters.get('source_website')}` ]"
+        )
+
+    @clear_track_filters.error
+    async def handle_clear_track_filters_error(self, interaction: Interaction, error: Exception):        
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        await interaction.followup.send("An unknown error occurred")
+
+    @app_commands.command(name="view-filters", description="View the currently active filters.")
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def show_filters(self, interaction: Interaction):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        filters = self.guild_states[interaction.guild.id]["filters"]
+        filter_count = len(filters)
+
+        if not filters:
+            await interaction.followup.send("No filters are currently active.")
+            return
+        
+        await interaction.followup.send(
+            f"There {'are' if filter_count > 1 else 'is'} **{filter_count}** currently active filter{'s' if filter_count > 1 else ''}.\n"
+            f"- Author: [ `{filters.get('uploader')}` ]\n"
+            f"- Min duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
+            f"- Max duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
+            f"- Website: [ `{filters.get('source_website')}` ]"
+        )
+
+    @show_filters.error
+    async def handle_show_filters_error(self, interaction: Interaction, error: Exception):        
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        await interaction.followup.send("An unknown error occurred")
+
     @app_commands.command(name="nowplaying", description="Shows rich information about the current track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1722,6 +1874,7 @@ class MusicCog(commands.Cog):
             return
         
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
+        filters = self.guild_states[interaction.guild.id]["filters"]
         info = self.guild_states[interaction.guild.id]["current_track"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
@@ -1747,7 +1900,8 @@ class MusicCog(commands.Cog):
             looping=is_looping,
             random=is_random,
             is_looping_queue=is_looping_queue,
-            is_modifying_queue=queue_state_being_modified
+            is_modifying_queue=queue_state_being_modified,
+            filters=filters
         )
         await interaction.response.send_message(embed=embed)
 
@@ -2659,7 +2813,7 @@ class MusicCog(commands.Cog):
             await interaction.followup.send(result.msg)
         elif isinstance(result, list):
             if not voice_client.is_playing() and\
-            not voice_client.is_paused():
+                not voice_client.is_paused():
                 await self.play_next(interaction)
 
             embed = generate_added_track_embed(result, False)

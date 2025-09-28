@@ -1,6 +1,6 @@
 """ Helper functions for discord.py bot """
 
-from settings import VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ROLE_FILE_CACHE, ROLE_LOCKS, CAN_LOG, LOGGER
+from settings import VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ROLE_FILE_CACHE, ROLE_LOCKS, CAN_LOG, LOGGER, EXTRACTOR_SEMAPHORE
 from init.constants import PLAYBACK_END_GRACE_PERIOD
 from init.logutils import log, separator, log_to_discord_log
 from cachehelpers import invalidate_cache
@@ -16,7 +16,7 @@ from discord.interactions import Interaction
 from discord.ext import commands
 from copy import deepcopy
 from time import monotonic
-from random import choice, sample
+from random import randint, sample
 from typing import Any, Awaitable, Callable
 
 # Function to get a hashmap of queue pages to display
@@ -71,6 +71,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "queue_history": [],
         "queue_to_loop": [],
         "locked_playlists": {},
+        "filters": {},
         "pending_cleanup": False,
         "handling_disconnect_action": False,
         "handling_move_action": False,
@@ -221,7 +222,7 @@ async def update_guild_states(guild_states: dict, interaction: Interaction, valu
         for state, value in zip(states, values):
             await update_guild_state(guild_states, interaction, value, state)
 
-# Functions for fetching stuff and adding it to a list
+# Functions for fetching stuff from source websites
 async def fetch_query(
         guild_states: dict,
         interaction: Interaction,
@@ -247,7 +248,8 @@ async def fetch_query(
     if allowed_query_types is not None and source_website not in allowed_query_types:
         return Error(f"Query type **{source_website}** not supported for this command!")
 
-    extracted_track = await asyncio.to_thread(fetch, query, query_type)
+    async with EXTRACTOR_SEMAPHORE:
+        extracted_track = await asyncio.to_thread(fetch, query, query_type)
 
     return extracted_track
 
@@ -287,7 +289,9 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     provider = None
     query_type = get_query_type(webpage_url, provider)
     
-    new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
+    async with EXTRACTOR_SEMAPHORE:
+        new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
+    
     if isinstance(new_extracted_track, Error):
         return None
     
@@ -384,7 +388,7 @@ async def get_previous_visual_track(current: dict | None, history: list[dict] | 
     
     return history[length - 2] if current is not None else history[length - 1] # len - 1 = current, len - 2 = actual previous track
 
-async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
+async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, filters: dict[str, Any] | None, queue: list[dict], queue_to_loop: list[dict]) -> dict | Error:
     """ Get the next track in an iterable `queue` (and `queue_to_loop`) based on different states.
     Does not remove the returned track from the queue. """
     
@@ -392,6 +396,14 @@ async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop
         next_track = track_to_loop
     elif is_random:
         return Error("Next track will be random.")
+    elif filters:
+        return Error(
+            f"Next track will be chosen according to these filters.\n"
+            f"- Author: [ `{filters.get('uploader')}` ]\n"
+            f"- Minimum duration: [ `{filters.get('min_duration')}` ]\n"
+            f"- Maximum duration: [ `{filters.get('max_duration')}` ]\n"
+            f"- Website: [ `{filters.get('source_website')}` ]"
+        )
     elif queue:
         next_track = queue[0]
     elif queue_to_loop:
@@ -401,14 +413,16 @@ async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop
     
     return next_track
 
-async def get_next_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, queue: list[dict]) -> dict:
+async def get_next_track(is_random: bool, is_looping: bool, track_to_loop: dict | None, filters: dict[str, Any] | None, queue: list[dict]) -> dict:
     """ Get the next track based on different states.
     Removes the returned track from the queue. """
     
     if is_looping and track_to_loop:
         next_track = track_to_loop
+    elif filters:
+        next_track = await find_next_filtered_track(queue, filters)
     elif is_random:
-        next_track = queue.pop(queue.index(choice(queue)))
+        next_track = queue.pop(randint(0, len(queue) - 1))
     else:
         next_track = queue.pop(0)
     
@@ -438,6 +452,75 @@ async def get_queue_indices(queue: list[dict], tracks: list[dict]) -> list[int]:
                 break
 
     return indices
+
+# Playback filters
+async def add_filters(filters: dict[str, Any], min_duration: int | None, max_duration: int | None, author: str | None, website: str | None) -> None:
+    """ Get a filter hashmap based on given input. """
+
+    added = {}
+    filters_to_apply = {"uploader": author, "min_duration": min_duration, "max_duration": max_duration, "source_website": website}
+        
+    for key, filter in filters_to_apply.items():
+        if filter is not None:
+            filters[key] = filter
+            added[key] = filter
+
+    return added
+
+async def clear_filters(filters: dict[str, Any], min_duration: bool, max_duration: bool, author: bool, website: bool) -> dict[str, bool]:
+    """ Remove given filters from `filters`. """
+    
+    removed = {}
+    filters_to_remove = {"uploader": author, "min_duration": min_duration, "max_duration": max_duration, "source_website": website}
+
+    for key, filter in filters_to_remove.items():
+        if filter and key in filters:
+            del filters[key]
+            removed[key] = True
+
+    return removed
+
+async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
+    """ Match given `filters` to `track`. """
+    
+    matches = []
+    track_uploader, track_duration, track_website = track.get("uploader"), format_to_seconds(track.get("duration")), track.get("source_website")
+    
+    filter_uploader = filters.get("uploader")
+    filter_min_duration, filter_max_duration = filters.get("min_duration") or float("-inf"), filters.get("max_duration") or float("inf")
+    filter_website = filters.get("source_website")
+    
+    if filter_uploader:
+        matches.append(filter_uploader == track_uploader)
+    if filter_min_duration or filter_max_duration:
+        matches.append(filter_min_duration <= track_duration <= filter_max_duration)
+    if filter_website:
+        
+        if filter_website == SourceWebsite.SOUNDCLOUD.value:
+            matches.append(track_website in (
+                SourceWebsite.SOUNDCLOUD.value,
+                SourceWebsite.SOUNDCLOUD_SEARCH.value
+            ))
+        elif filter_website == SourceWebsite.YOUTUBE.value:
+            matches.append(track_website in (
+                SourceWebsite.YOUTUBE.value,
+                SourceWebsite.YOUTUBE_SEARCH.value,
+                SourceWebsite.YOUTUBE_PLAYLIST.value
+            ))
+        else:
+            matches.append(filter_website == track_website)
+
+    return all(matches)
+
+async def find_next_filtered_track(queue: list[dict], filters: dict[str, Any]) -> dict:
+    """ Find the next track with the given filters. """
+    
+    for i, track in enumerate(queue.copy()):
+
+        if await match_filters(track, filters):
+            return queue.pop(i)
+        
+    return queue.pop(0)
 
 # Functions to get stuff from playlists.
 async def get_tracks_from_playlist(track_names: list[str], playlist: list[dict], by_index: bool=False) -> list[dict] | Error:

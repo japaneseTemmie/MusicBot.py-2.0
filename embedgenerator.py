@@ -3,6 +3,7 @@
 import discord
 from random import randint
 from datetime import datetime
+from typing import Any
 
 def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
     """ Generated an embed showing elapsed time since the very first track. """
@@ -123,7 +124,8 @@ def generate_current_track_embed(
         looping: bool,
         random: bool,
         is_looping_queue: bool,
-        is_modifying_queue: bool
+        is_modifying_queue: bool,
+        filters: dict[str, Any]
     ) -> discord.Embed:
     """ Generate an embed to show detailed info about the current track. """
 
@@ -149,6 +151,8 @@ def generate_current_track_embed(
     embed.add_field(name="Elapsed time", value=f"[ `{elapsed_time}` ]", inline=True)
     if looping:
         embed.add_field(name="Next track", value=f"[ `{track_to_loop.get('title')} (looping)` ]", inline=False)
+    elif filters:
+        embed.add_field(name="Next track", value="[ `Filtered` ]", inline=False)
     elif random:
         embed.add_field(name="Next track", value="[ `Random` ]", inline=False)
     else:
@@ -165,6 +169,7 @@ def generate_current_track_embed(
     embed.add_field(name="Loop", value="[ `Enabled` ]" if looping else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Randomization", value="[ `Enabled` ]" if random else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Queue loop", value="[ `Enabled` ]" if is_looping_queue else "[ `Disabled` ]", inline=True)
+    embed.add_field(name="Filters", value="[ `Enabled` ]" if filters else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Source", value=f"[ `{info.get('source_website', 'Unknown')}` ]", inline=False)
     embed.set_image(url=info.get("thumbnail", None))
     embed.set_footer(text=f"Total tracks in queue: {len(queue)}")

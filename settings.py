@@ -5,6 +5,7 @@ from init.config import get_config_data, get_default_yt_dlp_config_data
 from init.help import open_help_file
 from init.loghelpers import set_up_logging, remove_log
 from init.logutils import log, separator
+from init.constants import MAX_FETCH_CALLS
 
 import asyncio
 import discord
@@ -81,6 +82,9 @@ PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 # Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED = asyncio.Event()
 VOICE_OPERATIONS_LOCKED = asyncio.Event()
+
+# asyncio Semaphore for extractor.
+EXTRACTOR_SEMAPHORE = asyncio.Semaphore(MAX_FETCH_CALLS)
 
 # API stuff
 ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data(CONFIG)

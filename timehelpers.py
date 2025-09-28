@@ -9,7 +9,10 @@ def add_zeroes(parts: list[str], length_limit: int):
     for _ in range(missing):
         parts.insert(0, "00")
 
-def format_to_minutes(seconds: int) -> str:
+def format_to_minutes(seconds: int) -> str | None:
+    if seconds is None:
+        return None
+
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     remaining_seconds = seconds % 60
@@ -18,13 +21,16 @@ def format_to_minutes(seconds: int) -> str:
 
 def format_to_seconds(minutes_str: str) -> int | None:
     try:
+        if minutes_str is None:
+            return None
+
         parts = minutes_str.split(":")
         
         if len(parts) < 3:
             add_zeroes(parts, 3)
         
         for i, part in enumerate(parts):
-            if int(part) > 59 and i > 0:
+            if int(part) < 0 or (int(part) > 59 and i > 0):
                 return None
         
         hours, minutes, seconds = map(int, parts)
