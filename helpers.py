@@ -1002,6 +1002,9 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
 
     if current_track is not None and not user_forced:
         current_time = int(monotonic() - start_time)
+        if current_time <= 1: # Ignore if it crashes at the start
+            return recovery_success
+
         track_duration_in_seconds = format_to_seconds(current_track["duration"])
         expected_elapsed_time = track_duration_in_seconds - PLAYBACK_END_GRACE_PERIOD
         

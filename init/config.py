@@ -35,6 +35,7 @@ def get_default_config_data() -> dict[str, Any]:
         "enable_RoleManagerCog": True,
         "enable_UtilsCog": True,
         "enable_MusicCog": True,
+        "enable_PlaylistCog": True,
         "enable_MyCog": False
     }
     config.update(get_other_default_config_data())
@@ -80,7 +81,9 @@ def check_config(config: dict[str, Any]) -> dict | None:
         "enable_ModerationCog",
         "enable_RoleManagerCog",
         "enable_UtilsCog",
-        "enable_MusicCog"
+        "enable_MusicCog",
+        "enable_PlaylistCog",
+        "enable_VoiceCog"
     ]
     expected_disabled_modules = [
         "enable_MyCog"

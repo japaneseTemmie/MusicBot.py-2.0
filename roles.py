@@ -61,7 +61,7 @@ async def open_roles(interaction: Interaction) -> dict | Error:
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
         
-        success = await asyncio.to_thread(ensure_paths, path, "roles.json")
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {})
         if success == False:
             return Error("Failed to create guild data.")
 
@@ -91,7 +91,7 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
 
-        success = await asyncio.to_thread(ensure_paths, path, "roles.json")
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {})
         if success == False:
             return Error("Failed to create guild data.")
 

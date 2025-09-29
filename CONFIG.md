@@ -11,11 +11,11 @@ Here's the documentation for each key and its function in the `config.json` file
   in case of a bad write. Requires double the memory needed to open the file for each call.
 - enable_logging: Enables logging of `discord.py` errors/debug messages/warnings depending on the selected `log_level`.
 - log_level: Level of log verbosity. Can be:
-    - `normal`: Info about some bot actions.
+    - `normal`: Log basic info.
     - `verbose`: Log everything.
-    - `warning`: Logs warnings.
-    - `errors`: Logs errors.
-    - `critical`: Logs critical errors.
+    - `warning`: Log warnings.
+    - `errors`: Log errors.
+    - `critical`: Log critical errors.
 - use_sharding: Enables sharding. Required by Discord for bots that are in >= 2500 guilds.
 
 # Module settings
@@ -26,3 +26,5 @@ and reduce memory usage if unused.
 - enable_RoleManagerCog: Enables users to run commands from the `rolemanager` module.
 - enable_UtilsCog: Enables users to run commands from the `utils` module. Contains important UX commands like **/help**. It is highly discouraged to disable this.
 - enable_MusicCog: Enables users to run commands from the `music` module.
+- enable_VoiceCog: Enables users to run commands from the `voice` module.
+- enable_PlaylistCog: Enables users to run commands from the `playlist` module.

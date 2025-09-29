@@ -50,7 +50,7 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
 
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json")
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {})
             if success == False:
                 return Error("Failed to create guild data.")
 
@@ -79,7 +79,7 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
                 
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json")
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {})
             if success == False:
                 return Error("Failed to create guild data.")
 

@@ -13,7 +13,7 @@ from importlib import import_module
 from types import ModuleType
 
 class ModuleLoader:
-    """ Loader class
+    """ Loader object.
 
     Dynamically loads all modules found in `modules_directory`. """
     
@@ -62,8 +62,9 @@ class ModuleLoader:
                 imported_modules.append(module)
             except Exception as e:
                 log(f"An error occured while importing module '{name}'")
-
                 log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
+                
+                continue
 
         return imported_modules
     

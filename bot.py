@@ -16,9 +16,15 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
     
     def __init__(self, command_prefix: str, **options) -> None:
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
+        
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
         self.is_sharded = issubclass(Bot, commands.AutoShardedBot)
+
         self.guild_states = {}
+
+        self.max_track_limit = 100
+        self.max_history_track_limit = 200
+        self.max_query_limit = 25
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
