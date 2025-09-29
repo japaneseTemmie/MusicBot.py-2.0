@@ -28,17 +28,23 @@ def get_other_default_config_data() -> dict[str, Any]:
         "use_sharding": False
     }
 
-def get_default_config_data() -> dict[str, Any]:
-    config = {
-        "yt_dlp_options": get_default_yt_dlp_config_data(),
+def get_default_modules_config_data() -> dict[str, bool]:
+    return {
         "enable_ModerationCog": True,
         "enable_RoleManagerCog": True,
         "enable_UtilsCog": True,
         "enable_MusicCog": True,
         "enable_PlaylistCog": True,
+        "enable_VoiceCog": True,
         "enable_MyCog": False
     }
+
+def get_default_config_data() -> dict[str, Any]:
+    config = {
+        "yt_dlp_options": get_default_yt_dlp_config_data(),
+    }
     config.update(get_other_default_config_data())
+    config.update(get_default_modules_config_data())
 
     return config
 
