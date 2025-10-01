@@ -80,23 +80,23 @@ _*Playlist support may depend on command._
 - UNIX-like/Windows OS. Code should work cross-platform, but works best on Linux (BSD/macOS not tested, but likely to work).
 - Make sure `Python 3.10+` and `FFmpeg` are installed on your system.
   
-  If you're on a GNU/Linux distribution, they may already be installed.
+  - On a GNU/Linux distribution, they may already be installed.
   
-  If not, make sure to install them from your distribution's repositories:
+    If not, make sure to install them from your distribution's repositories:
 
-  `sudo apt install python3 ffmpeg` (Debian, Debian-based distro (Ubuntu, Linux Mint, ZorinOS))
+      `sudo apt install python3 ffmpeg` (Debian, Debian-based distro (Ubuntu, Linux Mint, ZorinOS))
   
-  `sudo dnf install python3 ffmpeg` (Fedora, Fedora-based distro (Bazzite, Nobara))
+      `sudo dnf install python3 ffmpeg` (Fedora, Fedora-based distro (Bazzite, Nobara))
   
-  `sudo pacman -S python3 ffmpeg` (Arch, Arch-based distro (CachyOS, Manjaro))
+      `sudo pacman -S python3 ffmpeg` (Arch, Arch-based distro (CachyOS, Manjaro))
 
-  ... or compile them from source.
+      ... or compile them from source.
 
-  For Windows/macOS, you can official download links:
+  - For Windows/macOS, you can find official download links & installation guides:
 
-  [FFmpeg for macOS/Windows](https://ffmpeg.org/download.html)
+    [FFmpeg for macOS/Windows](https://ffmpeg.org/download.html)
 
-  [Python for Windows](https://www.python.org/downloads/windows/) | [Python for macOS](https://www.python.org/downloads/macos/)
+    [Python for Windows](https://www.python.org/downloads/windows/) | [Python for macOS](https://www.python.org/downloads/macos/)
 
 - Test `Python` and `FFmpeg`
 
@@ -112,7 +112,7 @@ _*Playlist support may depend on command._
 
     `ffmpeg -version` (UNIX-like/Windows)
 
-      Expected output: `ffmpeg version {VERSION}...`
+      Expected output: `ffmpeg version {VERSION} ...`
 
   Project was tested on  `Python 3.12.3` and `FFmpeg 6.1`.
 
@@ -136,13 +136,13 @@ _*Playlist support may depend on command._
 - Unpack the source code to a directory of your choice. (Or, `git clone` it.)
 - Open a terminal in that directory.
 
-  On Windows:
+  - On Windows:
 
-  `CMD` is necessary. `PowerShell` will break almost every command in this guide.
+    `CMD` is necessary. `PowerShell` will break almost every command in this guide.
 
-  On UNIX-like OS:
+  - On UNIX-like OS:
 
-  `Bash`/`Zsh` is preferred. `Fish` might break some commands.
+    `Bash`/`Zsh` is preferred. `Fish` might break some commands.
 
 - Create a `.env` file with the following contents by running:
 
@@ -167,7 +167,7 @@ _*Playlist support may depend on command._
 
   What it does:
 
-  Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script.
+  Automatically determines if a Python _venv_ is installed, creates one if not, installs dependencies and runs the main script. Essentially, it spares you the manual setup commands.
 
   - Once it outputs '`Ready`', it will start listening for events and commands.
 
@@ -218,7 +218,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
 To start listening to your favourite music:
 - Join a voice channel.
 - Use the **/join** command to invite the bot to join your voice channel.
-- Use **/add** or **/playnow** to add/play your tracks!
+- Use **/add** or **/playnow** to add / play your tracks!
 
 Help for every command can be found using the **/help** command.
 
