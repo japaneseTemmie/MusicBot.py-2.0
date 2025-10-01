@@ -499,6 +499,7 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
         if filter_website == SourceWebsite.SOUNDCLOUD.value:
             matches.append(track_website in (
                 SourceWebsite.SOUNDCLOUD.value,
+                SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
                 SourceWebsite.SOUNDCLOUD_SEARCH.value
             ))
         elif filter_website == SourceWebsite.YOUTUBE.value:

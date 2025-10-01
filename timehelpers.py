@@ -10,6 +10,8 @@ def add_zeroes(parts: list[str], length_limit: int):
         parts.insert(0, "00")
 
 def format_to_minutes(seconds: int) -> str | None:
+    """ Format `seconds` into a HH:MM:SS string. Returns None if `seconds` is None. """
+    
     if seconds is None:
         return None
 
@@ -20,6 +22,8 @@ def format_to_minutes(seconds: int) -> str | None:
     return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
 
 def format_to_seconds(minutes_str: str) -> int | None:
+    """ Format a HH:MM:SS `minutes_str` into seconds. Returns None if `minutes_str` is None. """
+    
     try:
         if minutes_str is None:
             return None
@@ -42,6 +46,11 @@ def format_to_seconds(minutes_str: str) -> int | None:
         return None
 
 def format_to_seconds_extended(minutes_str: str) -> int | None:
+    """ Format a DD:HH:MM:SS `minutes_str` into seconds. Returns None if `minutes_str` is None. """
+    
+    if minutes_str is None:
+        return None
+
     try:
         parts = minutes_str.split(":")
         
@@ -51,7 +60,8 @@ def format_to_seconds_extended(minutes_str: str) -> int | None:
         for i, part in enumerate(parts):
             if (i < 1 and int(part) > 28) or\
                 (i == 1 and int(part) > 23) or\
-                (i > 1 and int(part) > 59):
+                (i > 1 and int(part) > 59) or\
+                int(part) < 0:
                 
                 return None
 

@@ -39,8 +39,8 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     await interaction.response.send_message(f"You do not have the required **{role_to_look_for}** role to use this command!", ephemeral=True)
     return False
 
-async def open_roles(interaction: Interaction) -> dict | Error:
-    """ Safely open a guild's roles file and return content.
+async def open_roles(interaction: Interaction) -> dict[str, str] | Error:
+    """ Safely open a guild's roles file and return its content.
     
     Cache the content of a successful read, return cache if already present.
     

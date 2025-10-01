@@ -28,28 +28,28 @@ class UtilsCog(commands.Cog):
 
         await interaction.response.send_message("An unknown error occurred.")
 
-    @app_commands.command(name="help", description="Show general help or help entry for <command>.")
+    @app_commands.command(name="help", description="Show specified help entry.")
     @app_commands.describe(
-        command="The command name."
+        entry="The help entry's name."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["HELP_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
-    async def show_help(self, interaction: Interaction, command: str="general"):
+    async def show_help(self, interaction: Interaction, entry: str="general"):
         if HELP is None:
             await interaction.response.send_message("No help available.", ephemeral=True)
             return
         
-        clean_command = command.lower().strip()
+        entry = entry.lower().strip()
 
-        if clean_command not in HELP:
+        if entry not in HELP:
             await interaction.response.send_message(
-                f"Could not find help for {command}.\n"
+                f"Could not find help for {entry}.\n"
                 f"Available commands: {', '.join(HELP.keys())}", ephemeral=True
             )
             return
         
-        entry = HELP.get(clean_command)
+        help_string = HELP.get(entry)
 
-        await interaction.response.send_message(entry, ephemeral=True)
+        await interaction.response.send_message(help_string, ephemeral=True)
 
     @show_help.error
     async def handle_show_help_error(self, interaction: Interaction, error):

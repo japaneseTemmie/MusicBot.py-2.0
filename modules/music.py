@@ -90,7 +90,8 @@ class MusicCog(commands.Cog):
             SourceWebsite.YOUTUBE.value, 
             SourceWebsite.YOUTUBE_PLAYLIST.value, 
             SourceWebsite.YOUTUBE_SEARCH.value, 
-            SourceWebsite.SOUNDCLOUD.value, 
+            SourceWebsite.SOUNDCLOUD.value,
+            SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
             SourceWebsite.SOUNDCLOUD_SEARCH.value, 
             SourceWebsite.BANDCAMP.value,
             SourceWebsite.NEWGROUNDS.value

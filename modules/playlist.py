@@ -958,10 +958,10 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-add-yt-playlist", description="Imports a playlist from YouTube. See entry in /help for more info.")
+    @app_commands.command(name="playlist-import", description="Imports a playlist from a supported website. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to add the tracks to's name.",
-        query="A YouTube playlist URL."
+        query="A supported playlist URL."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -985,7 +985,12 @@ class PlaylistCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=(SourceWebsite.YOUTUBE_PLAYLIST.value,))
+        allowed_query_types = (
+            SourceWebsite.YOUTUBE_PLAYLIST.value,
+            SourceWebsite.SOUNDCLOUD_PLAYLIST.value
+        )
+
+        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)

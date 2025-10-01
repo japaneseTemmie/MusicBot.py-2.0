@@ -12,6 +12,7 @@ from helpers import (
 import asyncio
 import discord
 from discord.interactions import Interaction
+from typing import Any
 from datetime import datetime
 from time import monotonic
 from copy import deepcopy
@@ -27,7 +28,7 @@ class AudioPlayer:
             self, 
             interaction: Interaction, 
             voice_client: discord.VoiceClient, 
-            track: dict, 
+            track: dict[str, Any], 
             position: int=0, 
             state: str | None=None
         ) -> None:
