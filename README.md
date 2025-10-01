@@ -26,7 +26,7 @@ an **extended** moderation module alongside other new features!
 - Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
 - Enhanced command functionality, with 40+ music commands and 15+ moderation commands.
-- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (URL or search) and **Bandcamp**.
+- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or playlist*) and **Bandcamp**.
 - Guild and voice channel auto-cleanup functionality.
 - Sharding support.
 - Extendable with custom modules.
