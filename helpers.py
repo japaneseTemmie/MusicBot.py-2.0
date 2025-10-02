@@ -508,6 +508,11 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
                 SourceWebsite.YOUTUBE_SEARCH.value,
                 SourceWebsite.YOUTUBE_PLAYLIST.value
             ))
+        elif filter_website == SourceWebsite.BANDCAMP.value:
+            matches.append(track_website in (
+                SourceWebsite.BANDCAMP.value,
+                SourceWebsite.BANDCAMP_PLAYLIST.value
+            ))
         else:
             matches.append(filter_website == track_website)
 
@@ -1019,6 +1024,7 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
             recovery_success = await handle_player_crash(interaction, current_track, voice_client, approximate_resume_time, play_track_func)
 
             await update_guild_state(guild_states, interaction, False, "voice_client_locked")
+
             if recovery_success:
                 await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
                 return recovery_success

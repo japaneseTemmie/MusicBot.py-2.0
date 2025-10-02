@@ -987,7 +987,8 @@ class PlaylistCog(commands.Cog):
 
         allowed_query_types = (
             SourceWebsite.YOUTUBE_PLAYLIST.value,
-            SourceWebsite.SOUNDCLOUD_PLAYLIST.value
+            SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
+            SourceWebsite.BANDCAMP_PLAYLIST.value
         )
 
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)

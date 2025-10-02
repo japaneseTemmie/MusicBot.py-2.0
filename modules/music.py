@@ -92,7 +92,8 @@ class MusicCog(commands.Cog):
             SourceWebsite.YOUTUBE_SEARCH.value, 
             SourceWebsite.SOUNDCLOUD.value,
             SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
-            SourceWebsite.SOUNDCLOUD_SEARCH.value, 
+            SourceWebsite.SOUNDCLOUD_SEARCH.value,
+            SourceWebsite.BANDCAMP_PLAYLIST.value,
             SourceWebsite.BANDCAMP.value,
             SourceWebsite.NEWGROUNDS.value
         )
@@ -304,6 +305,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
         
         is_random = self.guild_states[interaction.guild.id]["is_random"]
@@ -317,14 +320,14 @@ class MusicCog(commands.Cog):
         if isinstance(next_track, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
             
-            await interaction.response.send_message(next_track.msg)
+            await interaction.followup.send(next_track.msg)
             return
         
         embed = generate_generic_track_embed(next_track, "Next track")
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_next_track.error
     async def handle_show_next_track_error(self, interaction: Interaction, error: Exception):
@@ -339,7 +342,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="previousinfo", description="Shows information about the previous track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -351,6 +355,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
     
         current_track = self.guild_states[interaction.guild.id]["current_track"]
@@ -360,13 +366,13 @@ class MusicCog(commands.Cog):
         if isinstance(previous, Error):
             await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
             
-            await interaction.response.send_message(previous.msg)
+            await interaction.followup.send(previous.msg)
             return
         
         embed = generate_generic_track_embed(previous, "Previous track")
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
         
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_previous_track.error
     async def handle_show_previous_track_error(self, interaction: Interaction, error: Exception):
@@ -381,7 +387,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="pause", description="Pauses track playback.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -755,6 +762,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+        
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         queue = self.guild_states[interaction.guild.id]["queue"]
@@ -769,7 +778,7 @@ class MusicCog(commands.Cog):
                 found_track = await find_track(track_name, queue, by_index)
 
                 if isinstance(found_track, Error):
-                    await interaction.response.send_message(found_track.msg)
+                    await interaction.followup.send(found_track.msg)
                     return
                 
                 await update_guild_state(self.guild_states, interaction, found_track[0], "track_to_loop")
@@ -777,10 +786,10 @@ class MusicCog(commands.Cog):
                 await update_guild_state(self.guild_states, interaction, current_track, "track_to_loop")
             await update_guild_state(self.guild_states, interaction, True, "is_looping")
             
-            await interaction.response.send_message(f"Loop enabled!\nWill loop '**{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**'.")
+            await interaction.followup.send(f"Loop enabled!\nWill loop '**{self.guild_states[interaction.guild.id]['track_to_loop']['title']}**'.")
         else:
             await update_guild_states(self.guild_states, interaction, (None, False), ("track_to_loop", "is_looping"))
-            await interaction.response.send_message("Loop disabled!")
+            await interaction.followup.send("Loop disabled!")
 
     @loop_track.error
     async def handle_loop_track_error(self, interaction: Interaction, error: Exception):
@@ -793,7 +802,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="random", description="Randomizes track selection. Functions as a toggle.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -804,14 +814,16 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
+        await interaction.response.defer(thinking=True)
+
         is_random = self.guild_states[interaction.guild.id]["is_random"]
 
         if not is_random:
             await update_guild_state(self.guild_states, interaction, True, "is_random")
-            await interaction.response.send_message("Track randomization enabled!\nWill choose a random track from the queue at next playback.")
+            await interaction.followup.send("Track randomization enabled!\nWill choose a random track from the queue at next playback.")
         else:
             await update_guild_state(self.guild_states, interaction, False, "is_random")
-            await interaction.response.send_message("Track randomization disabled!")
+            await interaction.followup.send("Track randomization disabled!")
 
     @randomize_track_selection.error
     async def handle_randomize_track_selection_error(self, interaction: Interaction, error: Exception):
@@ -824,7 +836,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="queueloop", description="Loops the queue. Functions as a toggle.")
     @app_commands.describe(
@@ -839,13 +852,15 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         if not queue and not is_looping_queue:
-            await interaction.response.send_message("Queue is empty, cannot enable queue loop!")
+            await interaction.followup.send("Queue is empty, cannot enable queue loop!")
             return
 
         if not is_looping_queue:
@@ -855,12 +870,12 @@ class MusicCog(commands.Cog):
 
             await update_guild_states(self.guild_states, interaction, (True, new_queue), ("is_looping_queue", "queue_to_loop"))
             
-            await interaction.response.send_message(f"Queue loop enabled!\nWill loop **{len(new_queue)}** tracks at the end of the queue.")
+            await interaction.followup.send(f"Queue loop enabled!\nWill loop **{len(new_queue)}** tracks at the end of the queue.")
         else:
             await update_guild_state(self.guild_states, interaction, False, "is_looping_queue")
             queue_to_loop.clear()
             
-            await interaction.response.send_message("Queue loop disabled!")
+            await interaction.followup.send("Queue loop disabled!")
 
     @loop_queue.error
     async def handle_loop_queue_error(self, interaction: Interaction, error: Exception):
@@ -873,7 +888,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="clear", description="Removes every track from the queue.")
     @app_commands.describe(
@@ -889,6 +905,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
         track_history = self.guild_states[interaction.guild.id]["queue_history"]
@@ -906,8 +924,10 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False)
 
-        await interaction.response.send_message(f"The queue is now empty.\n"
-                                                f"Removed **{track_count}** items from queue{f' and **{track_history_count}** items from track history' if clear_history else ''}.")
+        await interaction.followup.send(
+            f"The queue is now empty.\n"
+            f"Removed **{track_count}** items from queue{f' and **{track_history_count}** items from track history' if clear_history else ''}."
+        )
 
     @clear_queue.error
     async def handle_clear_queue_error(self, interaction: Interaction, error: Exception):
@@ -923,7 +943,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="remove", description="Removes given tracks from the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -940,6 +961,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_copy = deepcopy(queue)
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
@@ -948,10 +971,11 @@ class MusicCog(commands.Cog):
 
         track_names_split = split(track_names)
         result = await remove_track_from_queue(track_names_split, queue, by_index)
+        
         if isinstance(result, Error):
             await update_guild_state(self.guild_states, interaction, False)
             
-            await interaction.response.send_message(result.msg)
+            await interaction.followup.send(result.msg)
             return
 
         if is_looping_queue:
@@ -962,7 +986,7 @@ class MusicCog(commands.Cog):
         removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else track_names_split
 
         embed = generate_removed_tracks_embed(result, removed_tracks_indices)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @remove_track.error
     async def handle_remove_track_error(self, interaction: Interaction, error: Exception):
@@ -977,7 +1001,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="reposition", description="Repositions a track from its original index to a new index. See entry in /help for more info.")
     @app_commands.describe(
@@ -995,6 +1020,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         await update_guild_state(self.guild_states, interaction, True)
@@ -1003,12 +1030,12 @@ class MusicCog(commands.Cog):
         if isinstance(result, Error):
             await update_guild_state(self.guild_states, interaction, False)
 
-            await interaction.response.send_message(result.msg)
+            await interaction.followup.send(result.msg)
             return
 
         await update_guild_state(self.guild_states, interaction, False)
         
-        await interaction.response.send_message(f"Repositioned track **{result[0]['title']}** from index **{result[1]}** to **{result[2]}**.")
+        await interaction.followup.send(f"Repositioned track **{result[0]['title']}** from index **{result[1]}** to **{result[2]}**.")
 
     @reposition_track.error
     async def handle_reposition_track_error(self, interaction: Interaction, error: Exception):
@@ -1023,7 +1050,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="shuffle", description="Shuffles the queue randomly.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1036,9 +1064,11 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
         if len(queue) < 2:
-            await interaction.response.send_message("There are not enough tracks to shuffle! (Need 2 atleast)")
+            await interaction.followup.send("There are not enough tracks to shuffle! (Need 2 atleast)")
             return
 
         await update_guild_state(self.guild_states, interaction, True)
@@ -1047,7 +1077,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False)
 
-        await interaction.response.send_message("Queue shuffled successfully!")
+        await interaction.followup.send("Queue shuffled successfully!")
 
     @shuffle_queue.error
     async def handle_shuffle_queue_error(self, interaction: Interaction, error: Exception):
@@ -1062,7 +1092,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="seek", description="Seeks to specified position in current track. See entry in /help for more info.")
     @app_commands.describe(
@@ -1255,6 +1286,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="I'm already reading the queue!"):
             return
         
+        await interaction.response.defer(thinking=True)
+
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
@@ -1271,7 +1304,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
         
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_queue.error
     async def handle_show_queue_error(self, interaction: Interaction, error: Exception):
@@ -1286,7 +1319,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="history", description="Shows tracks of a history page.")
     @app_commands.describe(
@@ -1300,6 +1334,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, "queue_history", [], "Track history is empty. Nothing to view.") or\
             not await check_guild_state(self.guild_states, interaction, state="is_reading_history", msg="I'm already reading track history!"):
             return
+        
+        await interaction.response.defer(thinking=True)
         
         track_history = self.guild_states[interaction.guild.id]["queue_history"]
         
@@ -1317,7 +1353,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_history.error
     async def handle_show_history_error(self, interaction: Interaction, error: Exception):
@@ -1332,7 +1368,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="progress", description="Show info about the current extraction process. (if any)")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1343,13 +1380,15 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, "is_extracting", False, "I'm not extracting anything!"):
             return
 
+        await interaction.response.defer(thinking=True)
+
         name = self.guild_states[interaction.guild.id]["progress_item_name"]
         total = self.guild_states[interaction.guild.id]["progress_total"]
         current = self.guild_states[interaction.guild.id]["progress_current"]
 
         embed = generate_extraction_progress_embed(name, total, current)
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_extraction.error
     async def handle_show_extraction_error(self, interaction: Interaction, error: Exception):
@@ -1362,7 +1401,8 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="epoch", description="Shows the elapsed time since the first track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1371,11 +1411,13 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction):
             return
+        
+        await interaction.response.defer(thinking=True)
 
         first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
 
         if not first_track_start_date:
-            await interaction.response.send_message("Play a track first.")
+            await interaction.followup.send("Play a track first.")
             return
         
         formatted_start_time = format_to_minutes(int(get_unix_timestamp() - first_track_start_date.timestamp()))
@@ -1383,7 +1425,7 @@ class MusicCog(commands.Cog):
 
         embed = generate_epoch_embed(formatted_join_time, formatted_start_time)
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_start_time.error
     async def handle_show_start_time_error(self, interaction: Interaction, error: Exception):
@@ -1396,7 +1438,8 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="yoink", description="DMs current track info to the user who invoked the command.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1408,20 +1451,24 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
 
+        await interaction.response.defer(ephemeral=True)
+
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         embed = generate_generic_track_embed(current_track)
         
         await interaction.user.send(embed=embed)
-        await interaction.response.send_message("Message sent!", ephemeral=True)
+        await interaction.followup.send("Message sent!")
 
     @dm_track_info.error
     async def handle_dm_track_info_error(self, interaction: Interaction, error: Exception):
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
         elif isinstance(error, discord.errors.Forbidden):
-            await interaction.response.send_message("I cannot send a message to you! Check your privacy settings and try again.", ephemeral=True)
+            await send_func("I cannot send a message to you! Check your privacy settings and try again.", ephemeral=True)
             return
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
@@ -1429,7 +1476,7 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="filter", description="Applies filters for track playback.")
     @app_commands.describe(
@@ -1490,7 +1537,8 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.followup.send("An unknown error occurred")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred")
 
     @app_commands.command(name="clear-filter", description="Clears given filters.")
     @app_commands.describe(
@@ -1538,7 +1586,8 @@ class MusicCog(commands.Cog):
         
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.followup.send("An unknown error occurred")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred")
 
     @app_commands.command(name="view-filters", description="View the currently active filters.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1578,7 +1627,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.followup.send("An unknown error occurred")
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred")
 
     @app_commands.command(name="nowplaying", description="Shows rich information about the current track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1590,6 +1640,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         filters = self.guild_states[interaction.guild.id]["filters"]
         info = self.guild_states[interaction.guild.id]["current_track"]
@@ -1620,7 +1672,7 @@ class MusicCog(commands.Cog):
             is_modifying_queue=queue_state_being_modified,
             filters=filters
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @show_current_track_info.error
     async def handle_show_current_track_info_error(self, interaction: Interaction, error: Exception):
@@ -1633,7 +1685,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="allow-greetings", description="Enables/Disables the bot from greeting users that join the current voice channel.")
     @app_commands.describe(
@@ -1648,9 +1701,11 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
             return
         
+        await interaction.response.defer(thinking=True)
+
         await update_guild_state(self.guild_states, interaction, enable, "allow_greetings")
 
-        await interaction.response.send_message("Settings updated!")
+        await interaction.followup.send("Settings updated!")
 
     @set_allow_greetings.error
     async def handle_set_allow_greetings_error(self, interaction: Interaction, error: Exception):
@@ -1663,7 +1718,8 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="allow-voice-status-edit", description="Enables/Disables the bot from changing the voice status to 'Listening to...'")
     @app_commands.describe(
@@ -1677,6 +1733,8 @@ class MusicCog(commands.Cog):
             not await check_guild_state(self.guild_states, interaction, state="allow_voice_status_edit", condition=enable, msg=f"Setting is already {'enabled' if enable else 'disabled'}.") or\
             not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
             return
+        
+        await interaction.response.defer(thinking=True)
         
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_status = self.guild_states[interaction.guild.id]["voice_status"]
@@ -1695,7 +1753,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.response.send_message("Settings updated!")
+        await interaction.followup.send("Settings updated!")
 
     @set_allow_voice_status_edit.error
     async def handle_set_voice_status_edit_error(self, interaction: Interaction, error: Exception):
@@ -1710,4 +1768,5 @@ class MusicCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)

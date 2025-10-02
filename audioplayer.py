@@ -170,9 +170,8 @@ class AudioPlayer:
             await send_func(f"Now playing: **{track['title']}**")
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction) -> None:
-        if error is not None:
-            asyncio.run_coroutine_threadsafe(interaction.followup.send("An error occurred while handling playback end. Skipping..") if interaction.response.is_done() else\
-                                            interaction.response.send_message("An error occurred while handling playback end. Skipping.."), self.client.loop)
+        if error:
+            asyncio.run_coroutine_threadsafe(interaction.channel.send("An error occurred while handling playback end."), self.client.loop)
             
             log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 

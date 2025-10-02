@@ -1,12 +1,12 @@
 """ Bot subclass setup module for discord.py bot """
 
 from settings import USE_SHARDING, ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG
-from init.logutils import log, separator, log_to_discord_log
 from init.constants import MAX_IO_SYNC_WAIT_TIME
-from guild import ensure_guild_data
-from random import randint
-from time import monotonic
 from loader import ModuleLoader
+from random import randint
+from init.logutils import log, separator, log_to_discord_log
+from guild import ensure_guild_data
+from time import monotonic
 
 import asyncio
 from discord.ext import commands

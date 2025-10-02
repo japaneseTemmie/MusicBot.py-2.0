@@ -23,6 +23,7 @@ class SourceWebsite(Enum):
     NEWGROUNDS = "Newgrounds"
     SOUNDCLOUD_PLAYLIST = "SoundCloud Playlist"
     SOUNDCLOUD = "SoundCloud"
+    BANDCAMP_PLAYLIST = "Bandcamp Playlist"
     BANDCAMP = "Bandcamp"
     YOUTUBE_SEARCH = "YouTube search"
     SOUNDCLOUD_SEARCH = "SoundCloud search"
@@ -35,7 +36,8 @@ URL_PATTERNS = [
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}(&list=[a-zA-Z0-9_-]+)?(&index=[0-9])?(\/)?"), SourceWebsite.YOUTUBE.value),
     (re.compile(r"(https:\/\/)?(www\.)?newgrounds\.com/audio/listen/[0-9]+(\/)?"), SourceWebsite.NEWGROUNDS.value),
     (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com\/[a-zA-Z0-9_-]+\/sets\/[a-zA-Z0-9_-]+(\/)?"), SourceWebsite.SOUNDCLOUD_PLAYLIST.value),
-    (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com/[^\/]+\/[^\/]+"), SourceWebsite.SOUNDCLOUD.value),
+    (re.compile(r"(https:\/\/)?(www\.)?soundcloud\.com/[^\/]+\/[^\/]+(\/)?"), SourceWebsite.SOUNDCLOUD.value),
+    (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/album\/[a-z0-9\-]+(\/)?"), SourceWebsite.BANDCAMP_PLAYLIST.value),
     (re.compile(r"(https:\/\/)?(www\.)?([a-z0-9\-]+)\.bandcamp\.com\/track\/[a-z0-9\-]+(\/)?"), SourceWebsite.BANDCAMP.value)
 ]
 # Hashmap of search providers
@@ -84,7 +86,7 @@ def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str])
     source_website = query_type[1]
 
     # If it's a playlist, prettify each entry and return
-    if source_website in (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value) and "entries" in info:
+    if source_website in (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.BANDCAMP_PLAYLIST.value) and "entries" in info:
         return [prettify_info(entry, source_website) for entry in info["entries"]]
 
     # If it's a search, prettify the first entry and return
