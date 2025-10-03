@@ -1,12 +1,13 @@
 """ Guild helper functions for discord.py bot """
 
-from settings import PATH
+from settings import PATH, CAN_LOG, LOGGER
 from init.logutils import log, separator
+from iohelpers import make_path
 
 import asyncio
 import discord
 from os.path import join, isdir, exists
-from os import listdir, makedirs
+from os import listdir
 from shutil import rmtree
 from sys import exit as sysexit
 
@@ -48,12 +49,11 @@ def ensure_guild_data_path(path: str) -> None:
     if not exists(path):
         log(f"Creating {path} directory.")
 
-        try:
-            makedirs(path, exist_ok=True)
-            log(f"Created guild data directory at {path}")
-        except OSError as e:
-            log(f"An error occurred while creating {path}\nErr: {e}")
+        result = make_path(path, can_log=CAN_LOG, logger=LOGGER)
+        if not result:
             sysexit(1)
+        
+        log(f"Created {path} directory.")
     else:
         log(f"Found guild data at {path}.")
 
@@ -65,7 +65,7 @@ async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
     guild_count = len(guilds)
     guild_data_path = join(PATH, "guild_data")
 
-    ensure_guild_data_path(guild_data_path)
+    await asyncio.to_thread(ensure_guild_data_path, guild_data_path)
     separator()
 
     log(f"{client.user.name} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
@@ -75,9 +75,9 @@ async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
 
     separator()
     log(f"Checking for leftover guilds in {guild_data_path}.")
-    to_delete = get_guilds_to_delete(client.user.name, guilds)
+    to_delete = await asyncio.to_thread(get_guilds_to_delete, client.user.name, guilds)
 
     if to_delete:
-        delete_guild_dirs(to_delete)
+        await asyncio.to_thread(delete_guild_dirs, to_delete)
     else:
         log("Success! No issues found.")

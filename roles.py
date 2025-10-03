@@ -1,6 +1,6 @@
 """ Role helper checks and I/O operations for discord.py bot. """
 
-from settings import PATH, ROLE_LOCKS, ROLE_FILE_CACHE
+from settings import PATH, ROLE_LOCKS, ROLE_FILE_CACHE,  CAN_LOG, LOGGER
 from error import Error
 from helpers import check_file_lock, ensure_lock
 from cachehelpers import get_cache, store_cache
@@ -61,11 +61,11 @@ async def open_roles(interaction: Interaction) -> dict[str, str] | Error:
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
         
-        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {})
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {}, CAN_LOG, LOGGER)
         if success == False:
             return Error("Failed to create guild data.")
 
-        content = await asyncio.to_thread(open_file, file, True)
+        content = await asyncio.to_thread(open_file, file, True, CAN_LOG, LOGGER)
         if content is None:
             return Error("Failed to read role contents.")
     
@@ -91,15 +91,15 @@ async def write_roles(interaction: Interaction, content: dict, backup: dict | No
         path = join(PATH, "guild_data", str(interaction.guild.id))
         file = join(path, "roles.json")
 
-        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {})
+        success = await asyncio.to_thread(ensure_paths, path, "roles.json", {}, CAN_LOG, LOGGER)
         if success == False:
             return Error("Failed to create guild data.")
 
-        result = await asyncio.to_thread(write_file, file, content, True)
+        result = await asyncio.to_thread(write_file, file, content, True, CAN_LOG, LOGGER)
 
         if result == False:
             if backup is not None:
-                await asyncio.to_thread(write_file, file, backup, True)
+                await asyncio.to_thread(write_file, file, backup, True, CAN_LOG, LOGGER)
 
             return Error("Failed to apply changes to roles.")
         

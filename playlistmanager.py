@@ -3,7 +3,7 @@
 Includes a few methods for managing playlists
 and fetching tracks from them. """
 
-from settings import PATH, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ENABLE_FILE_BACKUPS
+from settings import PATH, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
 from helpers import (
     check_file_lock, ensure_lock,
     has_playlists, sanitize_name, is_playlist_empty, is_playlist_full, is_content_full, playlist_exists, name_exceeds_length,
@@ -50,11 +50,11 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
 
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {})
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {}, CAN_LOG, LOGGER)
             if success == False:
                 return Error("Failed to create guild data.")
 
-            content = await asyncio.to_thread(open_file, file, True)
+            content = await asyncio.to_thread(open_file, file, True, CAN_LOG, LOGGER)
             if content is None:
                 return Error("Failed to read playlist contents.")
             
@@ -79,15 +79,15 @@ class PlaylistManager:
             path = join(PATH, "guild_data", str(interaction.guild.id))
             file = join(path, "playlists.json")
                 
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {})
+            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {}, CAN_LOG, LOGGER)
             if success == False:
                 return Error("Failed to create guild data.")
 
-            result = await asyncio.to_thread(write_file, file, content, True)
+            result = await asyncio.to_thread(write_file, file, content, True, CAN_LOG, LOGGER)
 
             if result == False:
                 if backup is not None:
-                    await asyncio.to_thread(write_file, file, backup, True)
+                    await asyncio.to_thread(write_file, file, backup, True, CAN_LOG, LOGGER)
 
                 return Error("Failed to apply changes to playlist.")
             
