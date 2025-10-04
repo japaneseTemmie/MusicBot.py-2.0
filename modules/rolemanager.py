@@ -2,9 +2,8 @@
 
 Includes a class with methods to manage music and playlist permissions. """
 
-from settings import COOLDOWNS, ROLE_LOCKS, ROLE_FILE_CACHE, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
-from guildhelpers import open_guild_json, write_guild_json
-from helpers import get_role
+from settings import COOLDOWNS, CAN_LOG, LOGGER
+from roles import RoleManager
 from init.logutils import log_to_discord_log
 from error import Error
 from bot import Bot
@@ -18,6 +17,7 @@ from copy import deepcopy
 class RoleManagerCog(commands.Cog):
     def __init__(self, client: Bot):
         self.client = client
+        self.roles = RoleManager(self.client)
 
     async def handle_command_error(self, interaction: Interaction, error: Exception) -> None:
         if isinstance(error, app_commands.CommandOnCooldown):
@@ -42,43 +42,15 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def set_music_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool=False, show: bool=False):
-        roles = await open_guild_json(
-            interaction,
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role reading temporarily disabled.",
-            "Failed to read role contents."
-        )
-        if isinstance(roles, Error):
-            await interaction.response.send_message(roles.msg, ephemeral=True)
-            return
-        
-        role_to_set = "playlist" if playlist else "music"
-
-        if role_to_set in roles and not overwrite:
-            await interaction.response.send_message(f"Default **{role_to_set}** role already set!", ephemeral=True)
-            return
-
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(roles)
-        
-        roles[role_to_set] = str(role.id) # Store ID instead of name so the bot doesn't pick the wrong role to check when there's 2 or more roles with the same name
-
-        result = await write_guild_json(
-            interaction,
-            roles,
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role writing temporarily disabled.",
-            "Failed to apply changes to roles.",
-            backup
-        )
+        result = await self.roles.set_role(interaction, role, playlist, overwrite)
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return
         
-        await interaction.response.send_message(f"Set **{role_to_set}** role to **{role.name}** for this guild.", ephemeral=not show)
+        role_type = result[0]
+        role_name = result[1]
+        
+        await interaction.response.send_message(f"Set **{role_type}** role to **{role_name}** for this guild.", ephemeral=not show)
 
     @set_music_role.error
     async def handle_set_role_error(self, interaction: Interaction, error: Exception):
@@ -93,31 +65,15 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def get_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
-        roles = await open_guild_json(
-            interaction,
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role reading temporarily disabled.",
-            "Failed to read role contents."
-        )
-        if isinstance(roles, Error):
-            await interaction.response.send_message(roles.msg, ephemeral=True)
-            return
-
-        role_to_look_for = "playlist" if playlist else "music"
-        if role_to_look_for not in roles:
-            await interaction.response.send_message(f"Default **{role_to_look_for}** role has not been set for this guild yet!", ephemeral=True)
+        result = await self.roles.get_role(interaction, playlist)
+        if isinstance(result, Error):
+            await interaction.response.send_message(result.msg, ephemeral=True)
             return
         
-        role_id = roles[role_to_look_for]
-        role_obj = await get_role(interaction.guild.roles, role_id, True)
-        
-        if role_obj is None:
-            await interaction.response.send_message(f"Role (ID **{role_id}**) not found in guild!", ephemeral=True)
-            return
+        role_type = result[0]
+        role_name = result[1]
 
-        await interaction.response.send_message(f"Default **{role_to_look_for}** role for this guild is **{role_obj.name}**.", ephemeral=not show)
+        await interaction.response.send_message(f"Default **{role_type}** role for this guild is **{role_name}**.", ephemeral=not show)
 
     @get_music_role.error
     async def handle_get_role_error(self, interaction: Interaction, error: Exception):
@@ -132,43 +88,14 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def wipe_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
-        roles = await open_guild_json(
-            interaction,
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role reading temporarily disabled.",
-            "Failed to read role contents."
-        )
-        if isinstance(roles, Error):
-            await interaction.response.send_message(roles.msg, ephemeral=True)
-            return
-
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(roles)
-        role_to_delete = "playlist" if playlist else "music"
-        if role_to_delete not in roles:
-            display_role = role_to_delete[0].upper() + role_to_delete[1:]
-
-            await interaction.response.send_message(f"**{display_role}** role is already empty!", ephemeral=True)
-            return
-
-        del roles[role_to_delete]
-
-        result = await write_guild_json(
-            interaction,
-            roles,
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role writing temporarily disabled.",
-            "Failed to apply changes to roles.",
-            backup
-        )
+        result = await self.roles.wipe_role(interaction, playlist)
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return
+        
+        role_type = result
 
-        await interaction.response.send_message(f"Removed **{role_to_delete}** role for this guild.", ephemeral=not show)
+        await interaction.response.send_message(f"Removed **{role_type}** role for this guild.", ephemeral=not show)
 
     @wipe_music_role.error
     async def handle_wipe_role_error(self, interaction: Interaction, error: Exception):
@@ -182,20 +109,11 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reset_roles(self, interaction: Interaction, show: bool=False):
-        result = await write_guild_json(
-            interaction,
-            {},
-            "roles.json",
-            ROLE_LOCKS,
-            ROLE_FILE_CACHE,
-            "Role writing temporarily disabled.",
-            "Failed to apply changes to roles.",
-            None
-        )
+        result = await self.roles.reset(interaction)
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return
-
+        
         await interaction.response.send_message("Successfully rewritten role structure.", ephemeral=not show)
 
     @reset_roles.error
