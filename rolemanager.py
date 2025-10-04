@@ -1,3 +1,5 @@
+""" Role manager module for discord.py bot """
+
 from settings import ENABLE_FILE_BACKUPS, ROLE_LOCKS, ROLE_FILE_CACHE
 from guildhelpers import open_guild_json, write_guild_json
 from helpers import get_role
@@ -12,6 +14,10 @@ class RoleManager:
         self.client = client
 
     async def read(self, interaction: Interaction) -> dict | Error:
+        """ Read the contents of `roles.json`.
+         
+        Returns the role structure or Error. """
+        
         return await open_guild_json(
             interaction,
             "roles.json",
@@ -22,6 +28,10 @@ class RoleManager:
         )
         
     async def write(self, interaction: Interaction, content: dict, backup: dict | None=None) -> bool | Error:
+        """ Write the modified content to `roles.json`.
+         
+        Returns True or Error. """
+        
         return await write_guild_json(
             interaction,
             content,
