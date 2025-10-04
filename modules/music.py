@@ -12,7 +12,7 @@ from helpers import (
     replace_track_in_queue, remove_track_from_queue, reposition_track_in_queue, get_pages, add_filters, clear_filters
 )
 from timehelpers import format_to_minutes, format_to_seconds
-from roles import user_has_role
+from guildhelpers import user_has_role
 from embedgenerator import (
     generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
     generate_queue_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,

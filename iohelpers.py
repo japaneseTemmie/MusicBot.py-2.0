@@ -63,7 +63,7 @@ def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str |
     """ Ensure that a path and, optionally, a file exist.
 
     If a file name is passed as `file_name` and doesn't exist at `path`, it will be created with
-    the contents of `file_content_on_creation` argument.
+    the contents of `file_content_on_creation` argument. (which will be empty by default)
 
     Returns a boolean indicating success.
      
@@ -74,12 +74,17 @@ def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str |
         if not result:
             return False
 
-    file_path = join(path, file_name)
-    if file_name and not exists(file_path):
-        json_mode = isinstance(file_content_on_creation, dict)
-        result = write_file(file_path, file_content_on_creation if file_content_on_creation is not None else '', json_mode)
+    if file_name:
+        full_fp = join(path, file_name)
 
-        if not result:
-            return False
+        if not exists(full_fp):
+            result = write_file(
+                full_fp, 
+                file_content_on_creation if file_content_on_creation is not None else '', 
+                isinstance(file_content_on_creation, dict)
+            )
+
+            if not result:
+                return False
         
     return True

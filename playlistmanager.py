@@ -3,28 +3,23 @@
 Includes a few methods for managing playlists
 and fetching tracks from them. """
 
-from settings import PATH, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
+from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS
 from helpers import (
-    check_file_lock, ensure_lock,
     has_playlists, sanitize_name, is_playlist_empty, is_playlist_full, is_content_full, playlist_exists, name_exceeds_length,
     remove_track_from_queue, replace_track_in_queue, reposition_track_in_queue, fetch_queries, replace_data_with_playlist_data,
     add_results_to_queue, update_loop_queue_add, get_tracks_from_playlist, cleanup_locked_playlists, rename_tracks_in_queue, place_track_in_playlist
 )
-from cachehelpers import get_cache, store_cache
-from iohelpers import open_file, write_file, ensure_paths
+from guildhelpers import open_guild_json, write_guild_json
 from error import Error
 from bot import Bot
 
-import asyncio
 from discord.interactions import Interaction
 from discord import app_commands
-from os.path import join
 from copy import deepcopy
 
 class PlaylistManager:
     def __init__(self, client: Bot):
         self.client = client
-        self.file_path = join(PATH, "guild_data")
         self.max_limit = 5
         self.max_item_limit = 100
         self.max_name_length = 50
@@ -35,32 +30,15 @@ class PlaylistManager:
         Cache the content of a successful read.
 
         If successful, returns the playlist structure. Error otherwise. """
-        locked_error = await check_file_lock("Playlist reading temporarily disabled.")
-        if isinstance(locked_error, Error):
-            return locked_error
         
-        await ensure_lock(interaction, PLAYLIST_LOCKS)
-        file_lock = PLAYLIST_LOCKS[interaction.guild.id]
-
-        async with file_lock:
-            content = get_cache(PLAYLIST_FILE_CACHE, interaction.guild.id)
-            if content:
-                return content
-
-            path = join(PATH, "guild_data", str(interaction.guild.id))
-            file = join(path, "playlists.json")
-
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {}, CAN_LOG, LOGGER)
-            if success == False:
-                return Error("Failed to create guild data.")
-
-            content = await asyncio.to_thread(open_file, file, True, CAN_LOG, LOGGER)
-            if content is None:
-                return Error("Failed to read playlist contents.")
-            
-            store_cache(content, interaction.guild.id, PLAYLIST_FILE_CACHE)
-
-            return content
+        return await open_guild_json(
+            interaction, 
+            "playlists.json", 
+            PLAYLIST_LOCKS, 
+            PLAYLIST_FILE_CACHE, 
+            "Playlist reading temporarily disabled.", 
+            "Failed to read playlist contents."
+        )
 
     async def write(self, interaction: Interaction, content: dict[str, list], backup: dict=None) -> bool | Error:
         """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.
@@ -68,32 +46,17 @@ class PlaylistManager:
         Cache new content if written successfully.
         
         Returns a boolean [True] or Error. """
-        locked_error = await check_file_lock("Playlist writing temporarily disabled.")
-        if isinstance(locked_error, Error):
-            return locked_error
         
-        await ensure_lock(interaction, PLAYLIST_LOCKS)
-        file_lock = PLAYLIST_LOCKS[interaction.guild.id]
-
-        async with file_lock:
-            path = join(PATH, "guild_data", str(interaction.guild.id))
-            file = join(path, "playlists.json")
-                
-            success = await asyncio.to_thread(ensure_paths, path, "playlists.json", {}, CAN_LOG, LOGGER)
-            if success == False:
-                return Error("Failed to create guild data.")
-
-            result = await asyncio.to_thread(write_file, file, content, True, CAN_LOG, LOGGER)
-
-            if result == False:
-                if backup is not None:
-                    await asyncio.to_thread(write_file, file, backup, True, CAN_LOG, LOGGER)
-
-                return Error("Failed to apply changes to playlist.")
-            
-            store_cache(content, interaction.guild.id, PLAYLIST_FILE_CACHE)
-            
-            return True
+        return await write_guild_json(
+            interaction, 
+            content, 
+            "playlists.json", 
+            PLAYLIST_LOCKS, 
+            PLAYLIST_FILE_CACHE, 
+            "Playlist writing temporarily disabled.", 
+            "Failed to apply changes to playlist.",
+            backup
+        )
 
     async def get_playlist(self, content: dict[str, list] | Error, playlist_name: str) -> list[dict] | Error:
         """ Reads the given playlist.

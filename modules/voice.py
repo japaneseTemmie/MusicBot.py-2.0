@@ -9,7 +9,7 @@ from helpers import (
     check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move,
     check_vc_lock, get_default_state, check_channel, check_guild_state, update_guild_state, is_playlist_locked
 )
-from roles import user_has_role
+from guildhelpers import user_has_role
 
 import discord
 from discord import app_commands

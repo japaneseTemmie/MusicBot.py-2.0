@@ -2,8 +2,8 @@
 
 Includes a class with methods to manage music and playlist permissions. """
 
-from settings import COOLDOWNS, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
-from roles import open_roles, write_roles
+from settings import COOLDOWNS, ROLE_LOCKS, ROLE_FILE_CACHE, ENABLE_FILE_BACKUPS, CAN_LOG, LOGGER
+from guildhelpers import open_guild_json, write_guild_json
 from helpers import get_role
 from init.logutils import log_to_discord_log
 from error import Error
@@ -42,7 +42,14 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def set_music_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool=False, show: bool=False):
-        roles = await open_roles(interaction)
+        roles = await open_guild_json(
+            interaction,
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role reading temporarily disabled.",
+            "Failed to read role contents."
+        )
         if isinstance(roles, Error):
             await interaction.response.send_message(roles.msg, ephemeral=True)
             return
@@ -57,7 +64,16 @@ class RoleManagerCog(commands.Cog):
         
         roles[role_to_set] = str(role.id) # Store ID instead of name so the bot doesn't pick the wrong role to check when there's 2 or more roles with the same name
 
-        result = await write_roles(interaction, roles, backup)
+        result = await write_guild_json(
+            interaction,
+            roles,
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role writing temporarily disabled.",
+            "Failed to apply changes to roles.",
+            backup
+        )
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return
@@ -77,7 +93,14 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def get_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
-        roles = await open_roles(interaction)
+        roles = await open_guild_json(
+            interaction,
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role reading temporarily disabled.",
+            "Failed to read role contents."
+        )
         if isinstance(roles, Error):
             await interaction.response.send_message(roles.msg, ephemeral=True)
             return
@@ -109,7 +132,14 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def wipe_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
-        roles = await open_roles(interaction)
+        roles = await open_guild_json(
+            interaction,
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role reading temporarily disabled.",
+            "Failed to read role contents."
+        )
         if isinstance(roles, Error):
             await interaction.response.send_message(roles.msg, ephemeral=True)
             return
@@ -124,7 +154,16 @@ class RoleManagerCog(commands.Cog):
 
         del roles[role_to_delete]
 
-        result = await write_roles(interaction, roles, backup)
+        result = await write_guild_json(
+            interaction,
+            roles,
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role writing temporarily disabled.",
+            "Failed to apply changes to roles.",
+            backup
+        )
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return
@@ -143,7 +182,16 @@ class RoleManagerCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reset_roles(self, interaction: Interaction, show: bool=False):
-        result = await write_roles(interaction, {}, None)
+        result = await write_guild_json(
+            interaction,
+            {},
+            "roles.json",
+            ROLE_LOCKS,
+            ROLE_FILE_CACHE,
+            "Role writing temporarily disabled.",
+            "Failed to apply changes to roles.",
+            None
+        )
         if isinstance(result, Error):
             await interaction.response.send_message(result.msg, ephemeral=True)
             return

@@ -9,7 +9,7 @@ from audioplayer import AudioPlayer
 from error import Error
 from extractor import SourceWebsite
 from init.logutils import log_to_discord_log
-from roles import user_has_role
+from guildhelpers import user_has_role
 from embedgenerator import generate_added_track_embed, generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed
 from helpers import (
     check_channel, lock_playlist, unlock_playlist, unlock_all_playlists, is_playlist_locked, get_pages, get_queue_indices, check_users_in_channel, check_guild_state,

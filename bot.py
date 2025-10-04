@@ -18,7 +18,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
         
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
-        self.is_sharded = issubclass(Bot, commands.AutoShardedBot)
+        self.is_sharded = isinstance(self, commands.AutoShardedBot)
 
         self.guild_states = {}
 
