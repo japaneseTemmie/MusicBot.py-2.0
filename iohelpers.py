@@ -26,7 +26,7 @@ def open_file(file_path: str, json_mode: bool, can_log: bool=False, logger: Logg
         return None
 
 def write_file(file_path: str, content: dict | str, json_mode: bool, can_log: bool=False, logger: Logger | None=None) -> bool:
-    """ Write to a file and return None.
+    """ Write content to a file.
 
     Use `json_mode` to work with JSON files.
 
@@ -47,6 +47,8 @@ def write_file(file_path: str, content: dict | str, json_mode: bool, can_log: bo
 
 def make_path(directory: str, can_log: bool=False, logger: Logger | None=None) -> bool:
     """ Create a directory tree.
+
+    Returns a boolean indicating success.
      
     Must be sent to a thread if working with an asyncio loop. """
     
