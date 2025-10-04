@@ -20,9 +20,10 @@ from copy import deepcopy
 class PlaylistManager:
     def __init__(self, client: Bot):
         self.client = client
-        self.max_limit = 5
-        self.max_item_limit = 100
-        self.max_name_length = 50
+
+        self.max_limit = self.client.max_playlist_limit
+        self.max_item_limit = self.client.max_playlist_item_limit
+        self.max_name_length = self.client.max_playlist_name_length
 
     async def read(self, interaction: Interaction) -> dict[str, list] | Error:
         """ Safely read the content of a guild's playlist file.

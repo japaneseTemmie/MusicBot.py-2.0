@@ -26,6 +26,10 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         self.max_history_track_limit = 200
         self.max_query_limit = 25
 
+        self.max_playlist_limit = 5
+        self.max_playlist_item_limit = 100
+        self.max_playlist_name_length = 50
+
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
         
