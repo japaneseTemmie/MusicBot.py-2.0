@@ -85,7 +85,7 @@ def check_config(config: dict[str, Any]) -> dict | None:
     expected_other_settings = get_other_default_config_data()
     expected_enabled_modules = [
         "enable_ModerationCog",
-        "enable_RoleManagerCog",
+        "enable_RolesCog",
         "enable_UtilsCog",
         "enable_MusicCog",
         "enable_PlaylistCog",

@@ -3,7 +3,7 @@
 Includes a class with methods to manage music and playlist permissions. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
-from roles import RoleManager
+from rolemanager import RoleManager
 from init.logutils import log_to_discord_log
 from error import Error
 from bot import Bot
@@ -12,9 +12,8 @@ import discord
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
-from copy import deepcopy
 
-class RoleManagerCog(commands.Cog):
+class RolesCog(commands.Cog):
     def __init__(self, client: Bot):
         self.client = client
         self.roles = RoleManager(self.client)
