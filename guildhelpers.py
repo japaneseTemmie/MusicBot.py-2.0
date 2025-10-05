@@ -95,7 +95,7 @@ async def write_guild_json(
 async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     """ Check role ownership.
     
-    If the role is in the guild or in the config file and the user has it, return True.
+    If the role is in the guild and in `roles.json` and the user has it, return True.
     
     if none of the above conditions are met, return False. """
 
@@ -120,6 +120,10 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
 
     user_roles = interaction.user.roles
     role = discord.utils.get(interaction.guild.roles, id=int(role_id))
+
+    if role is None:
+        await interaction.response.send_message(f"I cannot verify your roles.\nError: Role (ID **{role_id}**) not found in guild.", ephemeral=True)
+        return
 
     if role in user_roles:
         return True
