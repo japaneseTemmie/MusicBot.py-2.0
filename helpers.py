@@ -454,7 +454,7 @@ async def get_queue_indices(queue: list[dict], tracks: list[dict]) -> list[int]:
     return indices
 
 # Playback filters
-async def add_filters(filters: dict[str, Any], min_duration: int | None, max_duration: int | None, author: str | None, website: str | None) -> None:
+async def add_filters(filters: dict[str, Any], min_duration: int | None, max_duration: int | None, author: str | None, website: str | None) -> dict[str, bool]:
     """ Get a filter hashmap based on given input. """
 
     added = {}
@@ -701,11 +701,15 @@ def split(s: str) -> list[str]:
     return [part.replace(r'\;', ';') for part in parts]
 
 # Function to add a file lock for a specific guild id if it doesn't exist
-async def ensure_lock(interaction: Interaction, locks: dict) -> None:
-    """ Adds an `asyncio.Lock` object to a guild if not present. """
+async def ensure_lock(interaction: Interaction, locks: dict) -> asyncio.Lock:
+    """ Adds an `asyncio.Lock` object to a guild if not present.
+     
+    Returns the created lock. """
     
     if interaction.guild.id not in locks:
         locks[interaction.guild.id] = asyncio.Lock()
+
+    return locks[interaction.guild.id]
 
 # Connect behavior
 async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None:

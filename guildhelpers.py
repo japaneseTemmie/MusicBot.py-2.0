@@ -28,8 +28,7 @@ async def open_guild_json(
     if isinstance(locked_error, Error):
         return locked_error
     
-    await ensure_lock(interaction, file_locks)
-    file_lock = file_locks[interaction.guild.id]
+    file_lock = await ensure_lock(interaction, file_locks)
 
     async with file_lock:
         content = get_cache(cache, interaction.guild.id)
@@ -71,8 +70,7 @@ async def write_guild_json(
     if isinstance(locked_error, Error):
         return locked_error
     
-    await ensure_lock(interaction, file_locks)
-    file_lock = file_locks[interaction.guild.id]
+    file_lock = await ensure_lock(interaction, file_locks)
 
     async with file_lock:
         path = join(PATH, "guild_data", str(interaction.guild.id))
