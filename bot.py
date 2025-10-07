@@ -17,7 +17,9 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
     def __init__(self, command_prefix: str, **options) -> None:
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
         
+        self.on_ready_lock = asyncio.Lock()
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
+
         self.is_sharded = isinstance(self, commands.AutoShardedBot)
 
         self.guild_states = {}
@@ -129,27 +131,28 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         separator()
 
     async def on_ready(self) -> None:
-        if self.has_finished_on_ready:
-            log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
-            return
-        
-        VOICE_OPERATIONS_LOCKED.set()
-        FILE_OPERATIONS_LOCKED.set()
+        async with self.on_ready_lock:
+            if self.has_finished_on_ready:
+                log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
+                return
+            
+            VOICE_OPERATIONS_LOCKED.set()
+            FILE_OPERATIONS_LOCKED.set()
 
-        log(f"Logged in as {self.user.name}")
-        separator()
-        await self.post_login_tasks()
+            log(f"Logged in as {self.user.name}")
+            separator()
+            await self.post_login_tasks()
 
-        log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
-        separator()
+            log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
+            separator()
 
-        log(f"Ready :{'3' * randint(1, 10)}")
-        separator()
+            log(f"Ready :{'3' * randint(1, 10)}")
+            separator()
 
-        self.has_finished_on_ready = True
+            self.has_finished_on_ready = True
 
-        VOICE_OPERATIONS_LOCKED.clear()
-        FILE_OPERATIONS_LOCKED.clear()
+            VOICE_OPERATIONS_LOCKED.clear()
+            FILE_OPERATIONS_LOCKED.clear()
 
     async def on_shard_ready(self, shard_id: int) -> None:
         log(f"Shard {shard_id} is ready.")
