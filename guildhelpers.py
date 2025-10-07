@@ -108,8 +108,8 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
         "Failed to read role contents."
     )
     if isinstance(roles, Error):
-        await interaction.response.send_message("I cannot verify your roles temporarily.", ephemeral=True) # A corrupted file can be abused to get access, therefore we cannot return True here.
-        return False
+        await interaction.response.send_message(f"I cannot verify your roles temporarily.\nError: {roles.msg}", ephemeral=True) 
+        return False # A corrupted file can be abused to get access, therefore we cannot return True here.
 
     role_to_look_for = "playlist" if playlist else "music"
     role_id = roles.get(role_to_look_for, None)
@@ -123,7 +123,7 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
 
     if role is None:
         await interaction.response.send_message(f"I cannot verify your roles.\nError: Role (ID **{role_id}**) not found in guild.", ephemeral=True)
-        return
+        return False
 
     if role in user_roles:
         return True
