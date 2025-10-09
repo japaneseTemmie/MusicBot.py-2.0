@@ -2,7 +2,7 @@
 
 from settings import PATH, CAN_LOG, LOGGER
 from init.logutils import log, separator
-from iohelpers import make_path
+from helpers.iohelpers import make_path
 
 import asyncio
 import discord

@@ -223,17 +223,16 @@ To start listening to your favourite music:
 Help for every command can be found using the **/help** command.
 
 # Extra Configuration (For experienced hosts)
-The bot allows configuring a custom activity.
+During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data.
 
-During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data, including activity.
+To enable or modify the activity the bot displays in its profile, you can modify the `enable_activity`, `activity_name`, `activity_type` and `default_status`
+values to set your own custom activity.
 
-You can modify the `enable_activity`, `activity_name`, `activity_type` and `default_status` values to set your own custom activity.
-
-Documentation for every key can be found [here](./CONFIG.md). Modify values at your own risk.
+Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
 
 Notes
 - Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
-- Most config keys are automatically recreated at startup if missing.
+- Config keys are automatically recreated at startup if missing.
 
 Example activity config:
 
@@ -257,7 +256,7 @@ Best practices:
 - Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from `settings`).
 - Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
 - Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
-- Keep helper functions in `helpers.py`. If it grows too big, move your custom functions to a new module.
+- Custom helpers should be kept in a new module in `./helpers`.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
 - To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `init.logutils`). 
 - Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)

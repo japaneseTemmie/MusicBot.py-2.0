@@ -6,8 +6,8 @@ a Discord guild and its users. """
 from settings import COOLDOWNS, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
 from bot import Bot
-from helpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
-from timehelpers import format_to_seconds_extended
+from helpers.moderationhelpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
+from helpers.timehelpers import format_to_seconds_extended
 
 import discord
 from discord import app_commands

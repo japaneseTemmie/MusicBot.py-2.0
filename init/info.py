@@ -4,7 +4,7 @@ from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
 from init.logutils import log, separator
 
 import discord
-from os.path import join, dirname
+from os.path import dirname
 from os import name
 from platform import python_implementation, python_version, system
 from sys import exit as sysexit

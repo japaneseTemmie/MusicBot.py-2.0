@@ -9,7 +9,7 @@ Supported websites
 
 from settings import YDL_OPTIONS, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
-from timehelpers import format_to_minutes
+from helpers.timehelpers import format_to_minutes
 from error import Error
 
 import re

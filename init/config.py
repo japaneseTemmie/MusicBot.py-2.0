@@ -1,4 +1,4 @@
-from iohelpers import open_file, write_file
+from helpers.iohelpers import open_file, write_file
 from init.logutils import log, separator
 
 from copy import deepcopy

@@ -1,6 +1,6 @@
 """ Help system functions for discord.py bot """
 
-from iohelpers import open_file
+from helpers.iohelpers import open_file
 from init.logutils import log, separator
 
 from os.path import join, exists

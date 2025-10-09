@@ -1,8 +1,8 @@
 """ Role manager module for discord.py bot """
 
 from settings import ENABLE_FILE_BACKUPS, ROLE_LOCKS, ROLE_FILE_CACHE
-from guildhelpers import open_guild_json, write_guild_json
-from helpers import get_role
+from helpers.guildhelpers import open_guild_json, write_guild_json
+from helpers.moderationhelpers import get_role
 from error import Error
 
 import discord

@@ -5,11 +5,9 @@ Handles voice clients and guild resource allocation. """
 from settings import COOLDOWNS, CAN_LOG, LOGGER
 from bot import Bot
 from init.logutils import log, log_to_discord_log
-from helpers import (
-    check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move,
-    check_vc_lock, get_default_state, check_channel, check_guild_state, update_guild_state, is_playlist_locked
-)
-from guildhelpers import user_has_role
+from helpers.voicehelpers import check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move
+from helpers.guildhelpers import user_has_role, check_vc_lock, get_default_state, check_guild_state, update_guild_state, check_channel
+from helpers.playlisthelpers import is_playlist_locked
 
 import discord
 from discord import app_commands

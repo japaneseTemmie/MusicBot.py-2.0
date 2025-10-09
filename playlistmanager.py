@@ -4,12 +4,16 @@ Includes a few methods for managing playlists
 and fetching tracks from them. """
 
 from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS
-from helpers import (
-    has_playlists, sanitize_name, is_playlist_empty, is_playlist_full, is_content_full, playlist_exists, name_exceeds_length,
-    remove_track_from_queue, replace_track_in_queue, reposition_track_in_queue, fetch_queries, replace_data_with_playlist_data,
-    add_results_to_queue, update_loop_queue_add, get_tracks_from_playlist, cleanup_locked_playlists, rename_tracks_in_queue, place_track_in_playlist
+from helpers.playlisthelpers import (
+    has_playlists, playlist_exists, is_playlist_empty, is_content_full,
+    is_playlist_full, cleanup_locked_playlists
 )
-from guildhelpers import open_guild_json, write_guild_json
+from helpers.queuehelpers import (
+    remove_track_from_queue, reposition_track_in_queue, replace_track_in_queue, rename_tracks_in_queue, replace_data_with_playlist_data,
+    update_loop_queue_add, get_tracks_from_playlist, place_track_in_playlist, sanitize_name, name_exceeds_length
+)
+from helpers.extractorhelpers import fetch_queries, add_results_to_queue
+from helpers.guildhelpers import open_guild_json, write_guild_json
 from error import Error
 from bot import Bot
 

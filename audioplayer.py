@@ -3,11 +3,13 @@
 from settings import CAN_LOG, LOGGER
 from bot import Bot
 from init.logutils import log, log_to_discord_log
-from timehelpers import format_to_seconds
-from helpers import (
-    get_ffmpeg_options, validate_stream, resolve_expired_url, check_player_crash,
-    get_next_track, check_users_in_channel, set_voice_status, update_guild_state, update_guild_states
+from helpers.timehelpers import format_to_seconds
+from helpers.ffmpeghelpers import (
+    get_ffmpeg_options, validate_stream, resolve_expired_url, check_player_crash
 )
+from helpers.guildhelpers import update_guild_state, update_guild_states
+from helpers.voicehelpers import set_voice_status, check_users_in_channel
+from helpers.queuehelpers import get_next_track
 
 import asyncio
 import discord
