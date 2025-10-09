@@ -26,13 +26,13 @@ an **extended** moderation module alongside other new features!
 - Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
 - Enhanced command functionality, with 40+ music commands and 15+ moderation commands.
-- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or playlist*) and **Bandcamp**.
+- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or sets*) and **Bandcamp** (song or album*).
 - Guild and voice channel auto-cleanup functionality.
 - Sharding support.
 - Extendable with custom modules.
 - Easily self-hostable.
 
-_*Playlist support may depend on command._
+_*Support may depend on command._
 
 # Quick start guide
 - Go through the [full guide](#full-bot-setup-guide) if you're inexperienced with setting up Discord bots.
