@@ -47,9 +47,8 @@ class RolesCog(commands.Cog):
             return
         
         role_type = result[0]
-        role_name = result[1]
         
-        await interaction.response.send_message(f"Set **{role_type}** role to **{role_name}** for this guild.", ephemeral=not show)
+        await interaction.response.send_message(f"Set **{role_type}** role to **{role.name}** (ID **{role.id}**) for this guild.", ephemeral=not show)
 
     @set_music_role.error
     async def handle_set_role_error(self, interaction: Interaction, error: Exception):
@@ -70,9 +69,9 @@ class RolesCog(commands.Cog):
             return
         
         role_type = result[0]
-        role_name = result[1]
+        role = result[1]
 
-        await interaction.response.send_message(f"Default **{role_type}** role for this guild is **{role_name}**.", ephemeral=not show)
+        await interaction.response.send_message(f"Default **{role_type}** role for this guild is **{role.name}** (ID **{role.id}**).", ephemeral=not show)
 
     @get_music_role.error
     async def handle_get_role_error(self, interaction: Interaction, error: Exception):

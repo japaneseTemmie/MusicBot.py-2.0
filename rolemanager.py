@@ -43,11 +43,11 @@ class RoleManager:
             backup
         )
     
-    async def set_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool) -> tuple[str, str] | Error:
+    async def set_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool) -> tuple[str, discord.Role] | Error:
         """ Set a music or playlist role.
         
-        Returns a tuple with role type and the role name. """
-        
+        Returns a tuple with role type (music or playlist) and the role object or Error. """
+    
         roles = await self.read(interaction)
         if isinstance(roles, Error):
             return roles
@@ -65,12 +65,12 @@ class RoleManager:
         if isinstance(result, Error):
             return result
         
-        return role_to_set, role.name
+        return role_to_set, role
     
-    async def get_role(self, interaction: Interaction, playlist: bool) -> tuple[str, str] | Error:
+    async def get_role(self, interaction: Interaction, playlist: bool) -> tuple[str, discord.Role] | Error:
         """ Return a set music or playlist role.
          
-        Returns a tuple with role type and role name or Error. """
+        Returns a tuple with role type (music or playlist) and role object or Error. """
         
         roles = await self.read(interaction)
         if isinstance(roles, Error):
@@ -86,12 +86,12 @@ class RoleManager:
         if role_obj is None:
             return Error(f"Role (ID **{role_id}**) not found in guild!")
 
-        return role_to_look_for, role_obj.name
+        return role_to_look_for, role_obj
     
     async def wipe_role(self, interaction: Interaction, playlist: bool) -> str | Error:
-        """ Wipe a music or playlist role from the structure.
+        """ Wipe a music or playlist role from the role structure.
          
-        Returns removed role type or Error. """
+        Returns removed role type (music or playlist) or Error. """
         
         roles = await self.read(interaction)
         if isinstance(roles, Error):

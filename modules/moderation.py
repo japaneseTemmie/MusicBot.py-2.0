@@ -117,10 +117,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to kick member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to kick member **{member.name}**.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to kick member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to kick member **{member.name}**.", ephemeral=True)
             return
         
         await interaction.guild.kick(member, reason=reason)
@@ -150,10 +150,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to ban member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to ban member **{member.name}**.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to ban member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to ban member **{member.name}**.", ephemeral=True)
             return
 
         await interaction.guild.ban(member, reason=reason)
@@ -228,10 +228,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member **{member.name}** is already timed out!", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to time out member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to time out member **{member.name}**.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to time out member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to time out member **{member.name}**.", ephemeral=True)
             return
 
         until_time = int(current_time + duration_in_seconds)
@@ -293,10 +293,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member **{member.name}** already has **{role.name}** role!", ephemeral=True)
             return
         elif bot_top_role < role:
-            await interaction.response.send_message(f"My role is not high enough to add role **{role.name}** to member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to add role **{role.name}** to member **{member.name}**.", ephemeral=True)
             return
         elif member_top_role < role:
-            await interaction.response.send_message(f"Your role is not high enough to add role **{role.name}** to member **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to add role **{role.name}** to member **{member.name}**.", ephemeral=True)
             return
 
         await member.add_roles(role, reason=reason)
@@ -326,10 +326,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member **{member.name}** doesn't have **{role.name}** role!", ephemeral=True)
             return
         elif member_top_role < role:
-            await interaction.response.send_message(f"Your role is not high enough to remove role **{role.name}** from member **{member.name}**", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to remove role **{role.name}** from member **{member.name}**", ephemeral=True)
             return
         elif bot_top_role < role:
-            await interaction.response.send_message(f"My role is not high enough to remove role **{role.name}** from member **{member.name}**", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to remove role **{role.name}** from member **{member.name}**", ephemeral=True)
             return
 
         await member.remove_roles(role, reason=reason)
@@ -340,7 +340,7 @@ class ModerationCog(commands.Cog):
     async def handle_remove_role_error(self, interaction: Interaction, error: Exception):
         await self.handle_command_error(interaction, error)
 
-    @app_commands.command(name="remove-channel", description="Deletes a channel from the current guild. See entry in /help for more info.")
+    @app_commands.command(name="remove-channel", description="Removes a channel from the current guild. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to delete.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
@@ -668,10 +668,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
             return
         
         channel = member.voice.channel
@@ -711,10 +711,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
             return
         
         current_channel = member.voice.channel
@@ -754,10 +754,10 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
         elif member_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"Your role is not high enough to mute **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to mute **{member.name}**.", ephemeral=True)
             return
         elif bot_top_role <= target_member_top_role:
-            await interaction.response.send_message(f"My role is not high enough to mute **{member.name}**.", ephemeral=True)
+            await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to mute **{member.name}**.", ephemeral=True)
             return
 
         await member.edit(mute=mute, reason=reason.strip())

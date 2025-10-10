@@ -1,5 +1,5 @@
 from settings import CAN_LOG, LOGGER
-from init.logutils import log_to_discord_log
+from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state
 from helpers.timehelpers import format_to_minutes, format_to_seconds
@@ -110,9 +110,13 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
             await update_guild_state(guild_states, interaction, False, "voice_client_locked")
 
             if recovery_success:
+                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Recovered player crash in guild ID {interaction.guild.id}")
+
                 await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
                 return recovery_success
             else:
+                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to recover player crash in guild ID {interaction.guild.id}")
+                
                 await interaction.channel.send(f"Failed to recover. Skipping..")
 
     if user_forced:

@@ -135,36 +135,22 @@ def generate_current_track_embed(
         timestamp=datetime.now()
     )
 
-    if is_modifying_queue:
-        short_queue_val = "`[ Unable to read queue ]`"
-    elif len(queue) > 25:
-        short_queue_val = ", ".join([f"`{track.get('title', 'Unknown')}`" for track in queue[:25]])
-    elif len(queue) > 0:
-        short_queue_val = ", ".join([f"`{track.get('title', 'Unknown')}`" for track in queue[:len(queue)]])
-    else:
-        short_queue_val = "[ `Empty` ]"
-
     embed.add_field(name="Title", value=f"[ `{info.get('title')}` ]", inline=True)
     embed.add_field(name="Author", value=f"[ `{info.get('uploader')}` ]", inline=True)
     embed.add_field(name="Upload date", value=f"[ `{info.get('upload_date')}` ]", inline=False)
     embed.add_field(name="Duration", value=f"[ `{info.get('duration')}` ]", inline=True)
     embed.add_field(name="Elapsed time", value=f"[ `{elapsed_time}` ]", inline=True)
-    if looping:
-        embed.add_field(name="Next track", value=f"[ `{track_to_loop.get('title')} (looping)` ]", inline=False)
-    elif filters:
-        embed.add_field(name="Next track", value="[ `Filtered` ]", inline=False)
-    elif random:
-        embed.add_field(name="Next track", value="[ `Random` ]", inline=False)
-    else:
-        embed.add_field(
-            name="Next track",
-            value=f"[ `Unable to read next track` ]" if is_modifying_queue else\
-            f"[ `{queue[0].get('title', 'Unknown')}` ]" if len(queue) > 0 else\
-            f"[ `{queue_to_loop[0].get('title', 'Unknown')}` ]" if queue_to_loop else\
-            "[ `None` ]",
-            inline=False
-        )
-    embed.add_field(name="Short queue", value=short_queue_val if len(short_queue_val) <= 1024 else short_queue_val[:1021] + "...", inline=False)
+    embed.add_field(
+        name="Next track",
+        value=f"[ `{track_to_loop.get('title')} (looping)` ]" if looping else\
+        "[ `Filtered` ]" if filters else\
+        "[ `Random` ]" if random else\
+        f"[ `Unable to read next track` ]" if is_modifying_queue else\
+        f"[ `{queue[0].get('title', 'Unknown')}` ]" if len(queue) > 0 else\
+        f"[ `{queue_to_loop[0].get('title', 'Unknown')}` ]" if queue_to_loop else\
+        "[ `None` ]",
+        inline=False
+    )
     embed.add_field(name="Extra options:", value="", inline=False)
     embed.add_field(name="Loop", value="[ `Enabled` ]" if looping else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Randomization", value="[ `Enabled` ]" if random else "[ `Disabled` ]", inline=True)

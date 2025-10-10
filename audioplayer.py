@@ -124,22 +124,20 @@ class AudioPlayer:
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
         if stop_flag:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag. Ignoring.")
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag in guild ID {interaction.guild.id}. Ignoring.")
             
             await update_guild_state(self.guild_states, interaction, False, "stop_flag")
             return
         elif voice_client_locked:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked. Ignoring.")
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked in guild ID {interaction.guild.id}. Ignoring.")
             return
 
         no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
         if no_users_in_channel:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with no users in channel. Ignoring.")
             return
 
         recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
         if recovered_from_crash:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Recovered player crash in guild ID {interaction.guild.id}")
             return
 
         if not queue and not\
