@@ -337,25 +337,31 @@ async def replace_data_with_playlist_data(tracks: list[dict], playlist: list[dic
 
 # Functions to modify a queue
 async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index: bool=False) -> list[dict] | Error:
-    """ Remove given `tracks` from iterable `queue`. Returns removed tracks or Error. """
+    """ Remove given `tracks` from iterable `queue`.
+     
+    Returns removed tracks or Error. """
     
-    found = []
+    removed = []
+    to_remove = []
     
     for track in tracks:
         found_track = await find_track(track, queue, by_index)
 
         if isinstance(found_track, Error):
             return found_track
+        
+        to_remove.append(found_track[1])
 
-        index = found_track[1]
-        removed = queue.pop(index)
+    for index in sorted(set(to_remove), reverse=True):
+        removed_track = queue.pop(index)
+        removed.append(removed_track)
 
-        found.append(removed)
-
-    return found if found else Error("Could not find given tracks.")
+    return removed if removed else Error("Could not find given tracks.")
 
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict], by_index: bool=False) -> tuple[dict, int, int] | Error:
-    """ Repositions a track to a new index in an iterable `queue`. Returns a tuple with found track [0], old index [1], and new index [2] or Error. """
+    """ Repositions a track to a new index in an iterable `queue`.
+    
+    Returns a tuple with found track [0], old index [1], and new index [2] or Error. """
     
     if index < 1 or index > len(queue):
         return Error(f"Given new index (**{index}**) is out of bounds!")
@@ -364,7 +370,7 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict], b
     if isinstance(found_track, Error):
         return found_track
 
-    if found_track[1] == index:
+    if found_track[1] + 1 == index:
         return Error("Cannot reposition a track to the same index.")
     
     track_dict = queue.pop(found_track[1])
@@ -382,7 +388,9 @@ async def replace_track_in_queue(
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict, dict] | Error:
-    """ Replace a track in an iterable `queue` by extracting a new one. Returns a tuple with old track [0] and new one [1] or Error. """
+    """ Replace a track in an iterable `queue` by extracting a new one.
+    
+    Returns a tuple with old track [0] and new one [1] or Error. """
     
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
@@ -420,32 +428,49 @@ async def replace_track_in_queue(
     return extracted_track, removed_track
 
 async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict, str]] | Error:
-    """ Bulk renames tracks in an iterable `queue`. Returns a list with a tuple with track object [0] and new name [1] or Error. """
+    """ Bulk renames tracks in an iterable `queue`.
+     
+    Returns a list with a tuple with track object [0] and new name [1] or Error. """
 
-    found = []
-    
+    renamed, seen = [], set()
+
+    old_names_length = len(names)
+    new_names_length = len(new_names)
+
+    if old_names_length != new_names_length:
+        return Error(f"Old names (**{old_names_length}**) don't correspond to new names! (**{new_names_length}**)")
+
     for track, new_name in zip(names, new_names):
         new_name = new_name.strip()
         
-        if len(new_name) > max_name_length:
-            return Error(f"Name **{new_name[:50]}** is too long! Must be < **{max_name_length}** characters.")
+        if not new_name:
+            return Error("New name cannot be empty.")
+        elif len(new_name) > max_name_length:
+            return Error(f"Name **{new_name[:max_name_length]}** is too long! Must be <= **{max_name_length}** characters.")
 
         found_track = await find_track(track, queue, by_index)
+
         if isinstance(found_track, Error):
             return found_track
         elif new_name.replace(" ", "") == found_track[0]["title"].replace(" ", ""):
-            return Error(f"Cannot rename a track (**{found_track[0]['title']}**) to the same name (**{new_name[:50]}**).")
+            return Error(f"Cannot rename a track (**{found_track[0]['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
+        elif found_track[1] in seen:
+            return Error(f"Cannot rename a track more than once in a single operation!")
         
         old_track = deepcopy(found_track[0])
         old_track_index = found_track[1]
         
         queue[old_track_index]["title"] = new_name
-        found.append((old_track, new_name))
 
-    return found if found else Error(f"Could not find given tracks.")
+        renamed.append((old_track, new_name))
+        seen.add(old_track_index)
+
+    return renamed if renamed else Error(f"Could not find given tracks.")
 
 async def place_track_in_playlist(queue: list, index: int | None, track: dict) -> tuple[dict, int] | Error:
-    """ Place a track at a specified or last index in an iterable `queue`. Returns a tuple with placed track [0] and its index [1]. """
+    """ Place a track at a specified or last index in an iterable `queue`.
+    
+    Returns a tuple with placed track [0] and its index [1]. """
     
     if index is None:
         index = len(queue) + 1

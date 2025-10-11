@@ -109,8 +109,8 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -181,7 +181,7 @@ class PlaylistCog(commands.Cog):
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -243,9 +243,9 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -275,7 +275,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.select(self.guild_states, self.max_track_limit, interaction, content, playlist_name, range_start, range_end)
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
         
         if isinstance(result, list):
@@ -300,7 +300,7 @@ class PlaylistCog(commands.Cog):
             return
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -454,7 +454,7 @@ class PlaylistCog(commands.Cog):
             removed_tracks = result[1]
             old_playlist = result[2]
 
-            removed_tracks_indices = await get_queue_indices(old_playlist, removed_tracks) if not by_index else track_names_split
+            removed_tracks_indices = await get_queue_indices(old_playlist, removed_tracks) if not by_index else sorted(set(track_names_split), reverse=True)
 
             if not isinstance(write_result, Error):
                 embed = generate_removed_tracks_embed(removed_tracks, removed_tracks_indices, True)
@@ -606,7 +606,7 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -625,7 +625,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old_track_name, new_track_query, search_provider, by_index)
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -652,7 +652,7 @@ class PlaylistCog(commands.Cog):
             return
             
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -740,7 +740,7 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -769,7 +769,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types=allowed_query_types, provider=search_provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -796,7 +796,7 @@ class PlaylistCog(commands.Cog):
             return
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -817,9 +817,9 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -845,7 +845,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, queries_split, by_index=by_index)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -870,7 +870,7 @@ class PlaylistCog(commands.Cog):
             return
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -890,9 +890,9 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -927,7 +927,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, random_tracks, True)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -952,7 +952,7 @@ class PlaylistCog(commands.Cog):
             return
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -972,7 +972,7 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status."):
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -997,7 +997,7 @@ class PlaylistCog(commands.Cog):
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -1024,7 +1024,7 @@ class PlaylistCog(commands.Cog):
             return
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)

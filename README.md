@@ -124,6 +124,8 @@ _*Support may depend on command._
   
       Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds
 
+      Note: Very slow connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
+
   - A system with lots of RAM (>= 32GB).
 
       The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
@@ -253,14 +255,14 @@ constructor, this allows custom classes to interact with the Bot subclass of `co
 
 Best practices:
 - Check out the [example module](./modules/example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
-- Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). These locks are `FILE_OPERATIONS_LOCKED` and `VOICE_OPERATIONS_LOCKED` (from `settings`).
-- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions.
-- Do _not_ call `sleep()` or anything that blocks the event loop. Use `asyncio.sleep()` instead.
+- Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). You can use the `check_vc_lock()` or `check_file_lock()`  async functions from `helpers.guildhelpers`.
+- Do _not_ call `sleep()` or anything that blocks the main thread. Use `asyncio.sleep()` instead if working within an async context.
+- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. This is because I/O blocks the main thread.
 - Custom helpers should be kept in a new module in `./helpers`.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
 - To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `init.logutils`). 
 - Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)
-- If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications)
+- If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications) and update role permissions for your bot.
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow enabling/disabling the module, and set its value to `true`, or else the bot won't load your Cog.
 

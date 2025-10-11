@@ -55,7 +55,7 @@ class VoiceCog(commands.Cog):
     @app_commands.guild_only
     async def join_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
-            not await check_vc_lock(interaction):
+            not await check_vc_lock(True, interaction):
             return
         
         await interaction.response.defer(thinking=True)
@@ -110,10 +110,10 @@ class VoiceCog(commands.Cog):
     async def leave_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use /progress to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first.") or\
-            not await check_vc_lock(interaction):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use /progress to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first.") or\
+            not await check_vc_lock(True, interaction):
             return
         
         await interaction.response.defer(thinking=True)

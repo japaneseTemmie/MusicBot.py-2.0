@@ -26,12 +26,19 @@ async def fetch_query(
     if not query:
         return Error("Query cannot be empty.")
 
-    await update_query_extraction_state(guild_states, interaction, extraction_state_amount, extraction_state_max_length, query_name.strip() if query_name is not None else query)
-
     query_type = get_query_type(query, provider)
     
     if allowed_query_types is not None and query_type.source_website not in allowed_query_types:
         return Error(f"Query type **{query_type.source_website}** not supported for this command!")
+
+    await update_query_extraction_state(
+        guild_states, 
+        interaction, 
+        extraction_state_amount, 
+        extraction_state_max_length, 
+        query_name.strip() if query_name is not None else query,
+        query_type.source_website
+    )
 
     async with EXTRACTOR_SEMAPHORE:
         extracted_track = await asyncio.to_thread(fetch, query, query_type)

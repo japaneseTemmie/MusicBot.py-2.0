@@ -182,7 +182,7 @@ def generate_generic_track_embed(info: dict, embed_title: str="Track info") -> d
 
     return embed
 
-def generate_extraction_progress_embed(current_item_name: str, total: int, current: int) -> discord.Embed:
+def generate_extraction_progress_embed(current_item_name: str, total: int, current: int, website: str) -> discord.Embed:
     """ Generate an embed to show current extraction progress. """
     
     embed = discord.Embed(
@@ -191,7 +191,7 @@ def generate_extraction_progress_embed(current_item_name: str, total: int, curre
         timestamp=datetime.now()
     )
 
-    embed.add_field(name="Currently extracting", value=f"`'{current_item_name}'`", inline=False)
+    embed.add_field(name=f"Currently extracting from {website}", value=f"`'{current_item_name}'`", inline=False)
     embed.add_field(name=f"Extracted **{current}** out of **{total}** queries.", value="", inline=False)
 
     return embed

@@ -26,7 +26,6 @@ from embedgenerator import (
 )
 from error import Error
 from extractor import SourceWebsite
-from playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
 from bot import Bot
 
@@ -48,7 +47,6 @@ class MusicCog(commands.Cog):
         self.max_history_track_limit = self.client.max_history_track_limit
         self.max_query_limit = self.client.max_query_limit
         
-        self.playlist = PlaylistManager(self.client)
         self.player = AudioPlayer(self.client)
 
     async def cog_unload(self):
@@ -74,9 +72,9 @@ class MusicCog(commands.Cog):
     async def add_track(self, interaction: Interaction, queries: str, search_provider: app_commands.Choice[str]=None):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Please wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Please wait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -109,7 +107,7 @@ class MusicCog(commands.Cog):
         found = await fetch_queries(self.guild_states, interaction, queries_split, allowed_query_types=allowed_query_types, provider=provider)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         if isinstance(found, Error):
             await interaction.followup.send(found.msg)
@@ -145,7 +143,7 @@ class MusicCog(commands.Cog):
             return
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -170,8 +168,8 @@ class MusicCog(commands.Cog):
     async def play_track_now(self, interaction: Interaction, query: str, search_provider: app_commands.Choice[str]=None, keep_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nPlease wait for the current action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nPlease wait for the current action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -183,9 +181,9 @@ class MusicCog(commands.Cog):
         if current_track is not None and keep_current_track:
             is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"])
             if not is_queue_length_ok or\
-                not await check_guild_state(self.guild_states, interaction):
+                not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait."):
                 return
-            await update_guild_state(self.guild_states, interaction, True)
+            await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
@@ -201,12 +199,12 @@ class MusicCog(commands.Cog):
         extracted_track = await fetch_query(self.guild_states, interaction, query, allowed_query_types=allowed_query_types, provider=provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         if isinstance(extracted_track, dict):
             if current_track is not None and keep_current_track:
                 queue.insert(0, current_track)
-                await update_guild_state(self.guild_states, interaction, False)
+                await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
             await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
             if voice_client.is_playing() or voice_client.is_paused():
@@ -230,7 +228,7 @@ class MusicCog(commands.Cog):
             return
         
         await update_guild_states(self.guild_states, interaction, (False, False, False), ("is_modifying", "is_extracting", "voice_client_locked"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -247,9 +245,9 @@ class MusicCog(commands.Cog):
     async def skip_track(self, interaction: Interaction, amount: int=1):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -273,7 +271,7 @@ class MusicCog(commands.Cog):
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         voice_client.stop()
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         if len(skipped) > 1:
             skipped_tracks_indices = await get_queue_indices(queue_copy, skipped[1:])
@@ -292,7 +290,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -306,10 +304,9 @@ class MusicCog(commands.Cog):
     async def show_next_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="Queue is already being read, please wait.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_reading_queue", True, "Queue is already being read, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -358,8 +355,8 @@ class MusicCog(commands.Cog):
     async def show_previous_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_reading_history", msg="Track history is already being read, please wait.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_reading_history", True, "Track history is already being read, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -404,7 +401,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -455,7 +452,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -506,7 +503,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -550,7 +547,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -595,8 +592,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -604,11 +601,11 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         found = await find_track(track_name, queue, by_index)
         if isinstance(found, Error):
-            await update_guild_state(self.guild_states, interaction, False)
+            await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
             await interaction.followup.send(found.msg)
             return
@@ -648,8 +645,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -705,9 +702,9 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to replace.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_extracting", msg="Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -720,7 +717,7 @@ class MusicCog(commands.Cog):
         result = await replace_track_in_queue(self.guild_states, interaction, queue, old_track_name, new_track_query, by_index=by_index, provider=search_provider)
         if isinstance(result, Error):
             await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-            await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+            await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
             await interaction.followup.send(result.msg)
             return
@@ -729,7 +726,7 @@ class MusicCog(commands.Cog):
             await update_loop_queue_replace(self.guild_states, interaction, result[1], result[0])
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         await interaction.followup.send(
             f"Replaced track **{result[1]['title']}** with **{result[0]['title']}**."
@@ -747,7 +744,7 @@ class MusicCog(commands.Cog):
             return
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None)
+        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -766,7 +763,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             (not track_name and not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!")) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -778,7 +775,7 @@ class MusicCog(commands.Cog):
         if not is_looping or (is_looping and track_name):
             if track_name:
 
-                if not await check_guild_state(self.guild_states, interaction) or\
+                if not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
                     not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to loop."):
                     return
 
@@ -818,7 +815,7 @@ class MusicCog(commands.Cog):
     async def randomize_track_selection(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -855,8 +852,8 @@ class MusicCog(commands.Cog):
     async def loop_queue(self, interaction: Interaction, include_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -908,8 +905,8 @@ class MusicCog(commands.Cog):
     async def clear_queue(self, interaction: Interaction, clear_history: bool=False, clear_loop_queue: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -921,7 +918,7 @@ class MusicCog(commands.Cog):
         track_count = len(queue)
         track_history_count = len(track_history)
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         queue.clear()
         if clear_history:
@@ -929,7 +926,7 @@ class MusicCog(commands.Cog):
         if clear_loop_queue:
             queue_to_loop.clear()
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         await interaction.followup.send(
             f"The queue is now empty.\n"
@@ -946,7 +943,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -964,8 +961,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to remove.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -974,13 +971,13 @@ class MusicCog(commands.Cog):
         queue_copy = deepcopy(queue)
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         track_names_split = split(track_names)
         result = await remove_track_from_queue(track_names_split, queue, by_index)
         
         if isinstance(result, Error):
-            await update_guild_state(self.guild_states, interaction, False)
+            await update_guild_state(self.guild_states, interaction, False, "is_modifying")
             
             await interaction.followup.send(result.msg)
             return
@@ -988,9 +985,9 @@ class MusicCog(commands.Cog):
         if is_looping_queue:
             await update_loop_queue_remove(self.guild_states, interaction, result)
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
-        removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else track_names_split
+        removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else sorted(set(track_names_split), reverse=True)
 
         embed = generate_removed_tracks_embed(result, removed_tracks_indices)
         await interaction.followup.send(embed=embed)
@@ -1004,7 +1001,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -1023,24 +1020,24 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to reposition.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         result = await reposition_track_in_queue(track_name, new_index, queue, by_index)
         if isinstance(result, Error):
-            await update_guild_state(self.guild_states, interaction, False)
+            await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
             await interaction.followup.send(result.msg)
             return
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
         
         await interaction.followup.send(f"Repositioned track **{result[0]['title']}** from index **{result[1]}** to **{result[2]}**.")
 
@@ -1053,7 +1050,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -1067,8 +1064,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to shuffle.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -1078,11 +1075,11 @@ class MusicCog(commands.Cog):
             await interaction.followup.send("There are not enough tracks to shuffle! (Need 2 atleast)")
             return
 
-        await update_guild_state(self.guild_states, interaction, True)
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         shuffle(queue)
 
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         await interaction.followup.send("Queue shuffled successfully!")
 
@@ -1095,7 +1092,7 @@ class MusicCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         
-        await update_guild_state(self.guild_states, interaction, False)
+        await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
@@ -1112,7 +1109,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1164,7 +1161,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -1227,7 +1224,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(thinking=True)
@@ -1289,8 +1286,8 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to view.") or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="is_reading_queue", msg="I'm already reading the queue!"):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_reading_queue", True, "I'm already reading the queue!"):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1339,7 +1336,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue_history", [], "Track history is empty. Nothing to view.") or\
-            not await check_guild_state(self.guild_states, interaction, state="is_reading_history", msg="I'm already reading track history!"):
+            not await check_guild_state(self.guild_states, interaction, "is_reading_history", True, "I'm already reading track history!"):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1392,8 +1389,9 @@ class MusicCog(commands.Cog):
         name = self.guild_states[interaction.guild.id]["progress_item_name"]
         total = self.guild_states[interaction.guild.id]["progress_total"]
         current = self.guild_states[interaction.guild.id]["progress_current"]
+        website = self.guild_states[interaction.guild.id]["progress_source_website"]
 
-        embed = generate_extraction_progress_embed(name, total, current)
+        embed = generate_extraction_progress_embed(name, total, current, website)
 
         await interaction.followup.send(embed=embed)
 
@@ -1455,7 +1453,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -1505,8 +1503,8 @@ class MusicCog(commands.Cog):
     async def apply_track_filters(self, interaction: Interaction, min_duration: str=None, max_duration: str=None, author: str=None, website: app_commands.Choice[str]=None):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Wait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1559,8 +1557,8 @@ class MusicCog(commands.Cog):
     async def clear_track_filters(self, interaction: Interaction, min_duration: bool=False, max_duration: bool=False, author: bool=False, website: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Wait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1602,8 +1600,8 @@ class MusicCog(commands.Cog):
     async def show_filters(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Wait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1644,7 +1642,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1704,8 +1702,8 @@ class MusicCog(commands.Cog):
     async def set_allow_greetings(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="allow_greetings", condition=enable, msg=f"Setting is already {'enabled' if enable else 'disabled'}.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "allow_greetings", enable, f"Setting is already {'enabled' if enable else 'disabled'}.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Wait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1737,8 +1735,8 @@ class MusicCog(commands.Cog):
     async def set_allow_voice_status_edit(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, state="allow_voice_status_edit", condition=enable, msg=f"Setting is already {'enabled' if enable else 'disabled'}.") or\
-            not await check_guild_state(self.guild_states, interaction, state="voice_client_locked", msg="Voice state currently locked! Wait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "allow_voice_status_edit", enable, f"Setting is already {'enabled' if enable else 'disabled'}.") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Wait for the other action first."):
             return
         
         await interaction.response.defer(thinking=True)

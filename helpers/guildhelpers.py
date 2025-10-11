@@ -25,7 +25,7 @@ async def open_guild_json(
     Cache the content of a successful read.
 
     If successful, returns the file JSON structure. Error otherwise. """
-    locked_error = await check_file_lock(on_general_file_lock_error_msg)
+    locked_error = await check_file_lock(msg_on_locked=on_general_file_lock_error_msg)
     if isinstance(locked_error, Error):
         return locked_error
     
@@ -67,7 +67,7 @@ async def write_guild_json(
     
     Returns a boolean [True] or Error. """
     
-    locked_error = await check_file_lock(on_general_file_lock_msg)
+    locked_error = await check_file_lock(msg_on_locked=on_general_file_lock_msg)
     if isinstance(locked_error, Error):
         return locked_error
     
@@ -149,14 +149,20 @@ async def update_query_extraction_state(
         interaction: Interaction, 
         progress_current: int, 
         progress_total: int,
-        progress_item_name: str | None
+        progress_item_name: str | None,
+        progress_source_website: str | None,
     ) -> None:
     """ Update the current extraction state. """
     
     if interaction.guild.id in guild_states:
-        await update_guild_states(guild_states, interaction, (progress_current, progress_total, progress_item_name), ("progress_current", "progress_total", "progress_item_name"))
+        await update_guild_states(
+            guild_states, 
+            interaction, 
+            (progress_current, progress_total, progress_item_name, progress_source_website), 
+            ("progress_current", "progress_total", "progress_item_name", "progress_source_website")
+        )
 
-async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str="is_modifying") -> None:
+async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str) -> None:
     """ Update guild `state` with a new `value`. """
     
     if interaction.guild.id in guild_states:
@@ -197,6 +203,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "progress_current": 0,
         "progress_total": 0,
         "progress_item_name": None,
+        "progress_source_website": None,
         "current_track": None,
         "track_to_loop": None,
         "first_track_start_date": None,
@@ -236,36 +243,48 @@ async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
     
     return True
 
-async def check_vc_lock(interaction: Interaction, msg_on_locked: str | None=None) -> bool:
+async def check_vc_lock(reply_to_interaction: bool=False, interaction: Interaction | None=None, msg_on_locked: str | None=None) -> bool | Error:
     """ Check the `VOICE_OPERATIONS_LOCKED` flag.
     
-    If True, reply to the interaction with `msg_on_locked` or a default message and return False. """
+    If True, return an error object or reply to the interaction with `msg_on_locked` or a default message and return False. """
     
     msg = msg_on_locked or "Voice connections temporarily disabled."
     
     if VOICE_OPERATIONS_LOCKED.is_set():
-        await interaction.response.send_message(msg) if not interaction.response.is_done() else\
-        await interaction.followup.send(msg)
-        return False
+        
+        if reply_to_interaction and interaction is not None:
+            await interaction.response.send_message(msg) if not interaction.response.is_done() else\
+            await interaction.followup.send(msg)
+            return False
+        else:
+            return Error(msg)
     
     return True
 
-async def check_file_lock(msg_on_locked: str | None=None) -> None | Error:
+async def check_file_lock(reply_to_interaction: bool=False, interaction: Interaction | None=None, msg_on_locked: str | None=None) -> bool | Error:
     """ Check the `FILE_OPERATIONS_LOCKED` flag.
     
-    If True, return an error object with `msg_on_locked` or a default entry. """
+    If True, return an error object or reply to an interaction with `msg_on_locked` or a default entry and return False. """
     
     msg = msg_on_locked or "Role/Playlist reading temporarily disabled."
     
     if FILE_OPERATIONS_LOCKED.is_set():
-        return Error(msg)
+        
+        if reply_to_interaction and interaction is not None:
+            await interaction.response.send_message(msg) if not interaction.response.is_done() else\
+            await interaction.followup.send(msg)
+            return False
+        else:
+            return Error(msg)
+        
+    return True
 
 async def check_guild_state(
         guild_states: dict,
         interaction: Interaction,
-        state="is_modifying",
-        condition: Any=True,
-        msg: str="The queue is currently being modified, please wait."
+        state: str,
+        condition: Any,
+        msg: str
     ) -> bool:
 
     """ Check a guild state.
