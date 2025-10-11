@@ -28,6 +28,13 @@ class SourceWebsite(Enum):
     YOUTUBE_SEARCH = "YouTube search"
     SOUNDCLOUD_SEARCH = "SoundCloud search"
 
+class QueryType:
+    def __init__(self, source_website: str, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
+        self.source_website = source_website
+        self.is_url = is_url
+        self.regex = regex
+        self.search_string = search_string
+
 # List of regex pattern to match website URLs
 # Second item is the 'source_website' string
 # Remember to update parse_info() after any changes made here.
@@ -47,16 +54,23 @@ SEARCH_PROVIDERS = {
     "youtube": ("ytsearch:", SourceWebsite.YOUTUBE_SEARCH.value)
 }
 
-def get_query_type(query: str, provider: str | None) -> tuple[re.Pattern | str, str]:
+PLAYLIST_WEBSITES = (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.BANDCAMP_PLAYLIST.value)
+SEARCH_WEBSITES = (SourceWebsite.YOUTUBE_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value)
+
+def get_query_type(query: str, provider: str | None) -> QueryType:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. """
 
     # Match URLs first.
     for regex, source_website in URL_PATTERNS:
         if regex.match(query):
-            return regex, source_website
+            return QueryType(source_website, True, regex)
 
     # If no matches are found, match a search query. If not found, default to youtube.
-    return SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
+    provider_info = SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
+    provider_search_string = provider_info[0]
+    provider_source_website = provider_info[1]
+
+    return QueryType(provider_source_website, False, None, provider_search_string)
 
 def prettify_info(info: dict, source_website: str | None=None) -> dict:
     """ Prettify the extracted info with cleaner values. """
@@ -80,37 +94,34 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
 
     return info
 
-def parse_info(info: dict, query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
+def parse_info(info: dict, query: str, query_type: QueryType) -> dict | list[dict] | Error:
     """ Parse extracted query in a readable/playable format for the VoiceClient. """
-    
-    source_website = query_type[1]
 
     # If it's a playlist, prettify each entry and return
-    if source_website in (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.BANDCAMP_PLAYLIST.value) and "entries" in info:
-        return [prettify_info(entry, source_website) for entry in info["entries"]]
+    if query_type.source_website in PLAYLIST_WEBSITES and "entries" in info:
+        return [prettify_info(entry, query_type.source_website) for entry in info["entries"]]
 
     # If it's a search, prettify the first entry and return
-    if source_website in (SourceWebsite.YOUTUBE_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value) and "entries" in info:
+    if query_type.source_website in SEARCH_WEBSITES and "entries" in info:
         if len(info["entries"]) == 0:
             return Error(f"No results found for query `{query[:50]}`.")
         
         first_entry = info["entries"][0]
         
-        return prettify_info(first_entry, source_website)
+        return prettify_info(first_entry, query_type.source_website)
     
     # URLs are directly prettified.
-    return prettify_info(info, source_website)
+    return prettify_info(info, query_type.source_website)
 
-def fetch(query: str, query_type: tuple[re.Pattern | str, str]) -> dict | list[dict] | Error:
+def fetch(query: str, query_type: QueryType) -> dict | list[dict] | Error:
     """ Search a webpage and find info about the query.
 
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
     
-    search_string = query_type[0]
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
-            if isinstance(search_string, str):
-                info = ydl.extract_info(search_string + query, download=False)
+            if not query_type.is_url:
+                info = ydl.extract_info(query_type.search_string + query, download=False)
             else:
                 info = ydl.extract_info(query, download=False)
     except Exception as e:
