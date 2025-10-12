@@ -454,7 +454,7 @@ class PlaylistCog(commands.Cog):
             removed_tracks = result[1]
             old_playlist = result[2]
 
-            removed_tracks_indices = await get_queue_indices(old_playlist, removed_tracks) if not by_index else sorted(set(track_names_split), reverse=True)
+            removed_tracks_indices = await get_queue_indices(old_playlist, removed_tracks) if not by_index else track_names_split
 
             if not isinstance(write_result, Error):
                 embed = generate_removed_tracks_embed(removed_tracks, removed_tracks_indices, True)

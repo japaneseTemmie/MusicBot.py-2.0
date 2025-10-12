@@ -351,17 +351,17 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict], by_index
             return found_track
         
         to_remove.append(found_track[1])
+        removed.append(found_track[0])
 
     for index in sorted(set(to_remove), reverse=True):
-        removed_track = queue.pop(index)
-        removed.append(removed_track)
+        queue.pop(index)
 
     return removed if removed else Error("Could not find given tracks.")
 
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict], by_index: bool=False) -> tuple[dict, int, int] | Error:
     """ Repositions a track to a new index in an iterable `queue`.
     
-    Returns a tuple with found track [0], old index [1], and new index [2] or Error. """
+    Returns a tuple with found track [0], old 1-based index [1], and new 1-based index [2] or Error. """
     
     if index < 1 or index > len(queue):
         return Error(f"Given new index (**{index}**) is out of bounds!")
@@ -370,8 +370,8 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict], b
     if isinstance(found_track, Error):
         return found_track
 
-    if found_track[1] + 1 == index:
-        return Error("Cannot reposition a track to the same index.")
+    if found_track[1] == index - 1:
+        return Error(f"Track **{found_track[0]['title'][:50]}** is already at index **{index}**!")
     
     track_dict = queue.pop(found_track[1])
     queue.insert(index - 1, track_dict)
@@ -455,7 +455,7 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict], names:
         elif new_name.replace(" ", "") == found_track[0]["title"].replace(" ", ""):
             return Error(f"Cannot rename a track (**{found_track[0]['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
         elif found_track[1] in seen:
-            return Error(f"Cannot rename a track more than once in a single operation!")
+            return Error(f"Track **{found_track[0]['title'][:50]}** was already renamed during this operation!")
         
         old_track = deepcopy(found_track[0])
         old_track_index = found_track[1]

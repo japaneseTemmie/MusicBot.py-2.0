@@ -987,7 +987,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
-        removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else sorted(set(track_names_split), reverse=True)
+        removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else track_names_split
 
         embed = generate_removed_tracks_embed(result, removed_tracks_indices)
         await interaction.followup.send(embed=embed)
