@@ -257,7 +257,7 @@ Best practices:
 - Check out the [example module](./modules/example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
 - Check locks before running I/O file or VoiceClient operations (channel.join()/vc.play()/vc.stop()/vc.pause() etc.). You can use the `check_vc_lock()` or `check_file_lock()`  async functions from `helpers.guildhelpers`.
 - Do _not_ call `sleep()` or anything that blocks the main thread. Use `asyncio.sleep()` instead if working within an async context.
-- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. This is because I/O blocks the main thread.
+- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `helpers.iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. This is because I/O blocks the main thread.
 - Custom helpers should be kept in a new module in `./helpers`.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
 - To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `init.logutils`). 
