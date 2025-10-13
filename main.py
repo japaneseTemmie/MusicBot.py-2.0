@@ -1,12 +1,10 @@
 """ main.py script for discord.py bot """
 
-from settings import COMMAND_PREFIX, ACTIVITY, INTENTS, TOKEN, HANDLER, FORMATTER, LEVEL
-from init.constants import VALID_LOG_LEVELS
+from settings import COMMAND_PREFIX, ACTIVITY, INTENTS, TOKEN, HANDLER, FORMATTER, LOG_LEVEL
 from init.logutils import log, separator
 from bot import Bot
 
 from discord.errors import PrivilegedIntentsRequired, LoginFailure
-from logging import INFO
 
 def main() -> None:
     """ Main entry point. The greatest journey begins here. (assuming it starts :3) 
@@ -15,7 +13,7 @@ def main() -> None:
     bot = Bot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS)
     
     try:
-        bot.run(TOKEN, log_handler=HANDLER, log_formatter=FORMATTER, log_level=VALID_LOG_LEVELS.get(LEVEL, INFO))
+        bot.run(TOKEN, log_handler=HANDLER, log_formatter=FORMATTER, log_level=LOG_LEVEL)
     except PrivilegedIntentsRequired:
         log("Failed to request intents. Ensure all Priviliged Gateway Intents are enabled.")
     except LoginFailure:

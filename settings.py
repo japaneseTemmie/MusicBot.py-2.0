@@ -5,12 +5,13 @@ from init.config import get_config_data, get_default_yt_dlp_config_data
 from init.help import open_help_file
 from init.loghelpers import set_up_logging, remove_log
 from init.logutils import log, separator
-from init.constants import MAX_FETCH_CALLS
+from init.constants import MAX_FETCH_CALLS, VALID_LOG_LEVELS
 
 import asyncio
 import discord
 from discord import Intents
 from cachetools import TTLCache
+from logging import INFO
 from os import getenv
 from sys import exit as sysexit
 from time import sleep
@@ -64,6 +65,7 @@ COOLDOWNS = {
 # Logging
 # Set up file handler and formatter for discord.py's logging lib, if requested.
 HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
+LOG_LEVEL = VALID_LOG_LEVELS.get(LEVEL, INFO)
 
 FFMPEG = which("ffmpeg")
 handle_ffmpeg_path_output(SYSTEM, FFMPEG)
