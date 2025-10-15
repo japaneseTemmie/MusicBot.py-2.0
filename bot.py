@@ -100,7 +100,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         log("done")
         separator()
 
-    async def sync_commands(self) -> list[app_commands.AppCommand] | None:
+    async def sync_commands(self) -> None:
         """ Sync application commands to Discord. """
 
         log(f"Syncing app commands..")
