@@ -69,7 +69,7 @@ async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
     separator()
 
     log(f"{client.user.name} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
-    if guild_count > 2400 and guild_count < 2500:
+    if 2400 < guild_count < 2500:
         log(f"{client.user.name} is close to 2500 guilds. Consider enabling sharding in config.json")
         await asyncio.sleep(5)
 
@@ -81,3 +81,6 @@ async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
         await asyncio.to_thread(delete_guild_dirs, to_delete)
     else:
         log("Success! No issues found.")
+
+    log("done")
+    separator()

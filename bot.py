@@ -9,6 +9,7 @@ from guild import ensure_guild_data
 from time import monotonic
 
 import asyncio
+from discord import app_commands
 from discord.ext import commands
 
 class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
@@ -23,6 +24,7 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         self.is_sharded = isinstance(self, commands.AutoShardedBot)
 
         self.guild_states = {}
+        self.synced_commands = []
 
         self.max_track_limit = 100
         self.max_history_track_limit = 200
@@ -80,6 +82,9 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
             log(f"All cogs failed to load. Check log file if present.")
             await asyncio.sleep(5)
 
+        log("done")
+        separator()
+
     async def set_activity(self) -> None:
         """ Set up an activity, if configured. """
         
@@ -92,17 +97,23 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
 
         await self.change_presence(activity=ACTIVITY, status=STATUS)
 
-    async def sync_commands(self) -> None:
+        log("done")
+        separator()
+
+    async def sync_commands(self) -> list[app_commands.AppCommand] | None:
         """ Sync application commands to Discord. """
 
         log(f"Syncing app commands..")
+        
         try:
             synced_commands = await self.tree.sync()
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
         except Exception as e:
             log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
-            
             log(f"An error occurred while syncing app commands to Discord.\nErr: {e}")
+        
+        log("done")
+        separator()
 
     async def post_login_tasks(self) -> None:
         """ Handle any post-login tasks.\n
@@ -113,22 +124,16 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         await asyncio.sleep(0.3)
 
         await ensure_guild_data(self, self.guilds)
-        separator()
+        await asyncio.sleep(0.3)
 
         await self.load_cogs()
         await asyncio.sleep(0.3)
 
-        log("done")
-        separator()
-
         await self.sync_commands()
         await asyncio.sleep(0.3)
 
-        log("done")
-        separator()
-
         await self.set_activity()
-        separator()
+        await asyncio.sleep(0.3)
 
     async def on_ready(self) -> None:
         async with self.on_ready_lock:

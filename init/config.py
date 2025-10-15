@@ -35,7 +35,7 @@ def get_other_default_config_data() -> dict[str, Any]:
 def get_default_modules_config_data() -> dict[str, bool]:
     return {
         "enable_ModerationCog": True,
-        "enable_RoleManagerCog": True,
+        "enable_RolesCog": True,
         "enable_UtilsCog": True,
         "enable_MusicCog": True,
         "enable_PlaylistCog": True,
