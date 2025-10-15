@@ -5,14 +5,18 @@ from copy import deepcopy
 from os.path import join, exists
 from sys import exit as sysexit
 from time import sleep
-from typing import NoReturn, Any
+from typing import NoReturn, Any, Optional
 
 def get_default_yt_dlp_config_data() -> dict[str, Any]:
     return {
         "quiet": True,
         "no_playlist": True,
         "format": "bestaudio/best",
-        "no_warnings": True
+        "no_warnings": True,
+        "getcomments": False,
+        "writeautomaticsub": False,
+        "writesubtitles": False,
+        "listsubtitles": False
     }
 
 def get_other_default_config_data() -> dict[str, Any]:
@@ -47,6 +51,16 @@ def get_default_config_data() -> dict[str, Any]:
     config.update(get_default_modules_config_data())
 
     return config
+
+def get_expected_modules() -> tuple[list[Optional[str]], list[Optional[str]]]:
+    """ Get a tuple of lists containing default enabled and disabled modules. """
+    
+    enabled, disabled = [], []
+
+    for k, v in get_default_modules_config_data().items():
+        enabled.append(k) if v else disabled.append(k)
+
+    return enabled, disabled
 
 def add_other_missing_settings_to_config(config: dict[str, Any], expected_settings: dict[str, Any]) -> None:
     """ Compares the `expected_settings` keys with `config`'s keys and replaces missing ones with default ones. """
@@ -83,17 +97,8 @@ def check_config(config: dict[str, Any]) -> dict | None:
     orig_config = deepcopy(config)
     expected_yt_dlp_options = get_default_yt_dlp_config_data()
     expected_other_settings = get_other_default_config_data()
-    expected_enabled_modules = [
-        "enable_ModerationCog",
-        "enable_RolesCog",
-        "enable_UtilsCog",
-        "enable_MusicCog",
-        "enable_PlaylistCog",
-        "enable_VoiceCog"
-    ]
-    expected_disabled_modules = [
-        "enable_MyCog"
-    ]
+
+    expected_enabled_modules, expected_disabled_modules = get_expected_modules()
 
     add_missing_yt_dlp_options_to_config(config, expected_yt_dlp_options)
     add_other_missing_settings_to_config(config, expected_other_settings)
