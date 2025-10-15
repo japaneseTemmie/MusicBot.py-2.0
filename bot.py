@@ -24,7 +24,6 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         self.is_sharded = isinstance(self, commands.AutoShardedBot)
 
         self.guild_states = {}
-        self.synced_commands = []
 
         self.max_track_limit = 100
         self.max_history_track_limit = 200
