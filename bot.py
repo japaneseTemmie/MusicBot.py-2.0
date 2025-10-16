@@ -9,7 +9,6 @@ from guild import ensure_guild_data
 from time import monotonic
 
 import asyncio
-from discord import app_commands
 from discord.ext import commands
 
 class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
