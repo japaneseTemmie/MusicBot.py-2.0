@@ -179,14 +179,14 @@ async def handle_channel_move(
     if handling_move_action:
         log(f"[CHANNELSTATE][SHARD ID {member.guild.shard_id}] Already handling a move action for channel ID {after_state.channel.id}")
         return
-    
+
     await update_guild_states(guild_states, member, (True, True), ("handling_move_action", "voice_client_locked"))
 
     if can_update_status and current_status:
         await before_state.channel.edit(status=None)
 
     if after_state.channel.type == discord.ChannelType.stage_voice:
-        await text_channel.send("I've been moved to an unsupported stage channel. Don't jumpscare me like that!\nDisconnecting..")
+        await text_channel.send("I've been moved to an unsupported stage channel. Don't jumpscare me like that!")
 
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(guild_states, member, True, "stop_flag")
