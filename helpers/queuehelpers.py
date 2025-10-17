@@ -172,11 +172,8 @@ async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop
         return Error("Next track will be random.")
     elif filters:
         return Error(
-            f"Next track will be chosen according to these filters.\n"
-            f"- Author: [ `{filters.get('uploader')}` ]\n"
-            f"- Minimum duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
-            f"- Maximum duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
-            f"- Website: [ `{filters.get('source_website')}` ]"
+            f"Next track will be chosen according to these filters.\n"+
+            await get_active_filter_string(filters)
         )
     elif queue:
         next_track = queue[0]
