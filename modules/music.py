@@ -14,7 +14,7 @@ from helpers.queuehelpers import (
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
     find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue,
-    get_queue_indices, get_pages, add_filters, clear_filters
+    get_queue_indices, get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string
 )
 from helpers.voicehelpers import (
     set_voice_status, close_voice_clients, check_users_in_channel
@@ -773,8 +773,7 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         if not is_looping or (is_looping and track_name):
-            if track_name:
-
+            if track_name is not None:
                 if not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
                     not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to loop."):
                     return
@@ -1234,7 +1233,7 @@ class MusicCog(commands.Cog):
 
         if not voice_client.is_playing() and\
             not voice_client.is_paused():
-            await interaction.followup.send("I'm not playing anything!")
+            await interaction.followup.send("No track is currently playing!")
             return
 
         time_in_seconds = format_to_seconds(time.strip())
@@ -1485,7 +1484,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="filter", description="Applies filters for track playback.")
     @app_commands.describe(
-        author="The author to match. Case sensitive.",
+        author="The author to match.",
         min_duration="The minimum duration range to match. Must be HH:MM:SS.",
         max_duration="The maximum duration range to match. Must be HH:MM:SS.",
         website="The website to match."
@@ -1511,24 +1510,29 @@ class MusicCog(commands.Cog):
 
         filters = self.guild_states[interaction.guild.id]["filters"]
         min_duration_in_seconds, max_duration_in_seconds = format_to_seconds(min_duration), format_to_seconds(max_duration)
+
         if (min_duration and min_duration_in_seconds is None) or\
             (max_duration and max_duration_in_seconds is None):
+        
             await interaction.followup.send("Invalid duration. Must be **HH:MM:SS** and **MM** and **SS** must not be > **59**.")
             return
         
-        added = await add_filters(filters, min_duration_in_seconds, max_duration_in_seconds, author, website.value if website else None)
-        added_count = len(added)
+        added = await add_filters(filters, {
+            "uploader": author,
+            "min_duration": min_duration_in_seconds,
+            "max_duration": max_duration_in_seconds,
+            "source_website": website.value if website else None
+        })
 
         if not added:
             await interaction.followup.send("No filters applied.")
             return
 
+        added_count = len(added)
+
         await interaction.followup.send(
-            f"Applied **{added_count}** track filter{'s' if added_count > 1 else ''}.\n"
-            f"- Author: [ `{filters.get('uploader')}` ]\n"
-            f"- Minimum duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
-            f"- Maximum duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
-            f"- Website: [ `{filters.get('source_website')}` ]\n"
+            f"Applied **{added_count}** track filter{'s' if added_count > 1 else ''}.\n"+
+            await get_added_filter_string(filters, added)
         )
 
     @apply_track_filters.error
@@ -1565,19 +1569,22 @@ class MusicCog(commands.Cog):
 
         filters = self.guild_states[interaction.guild.id]["filters"]
 
-        removed = await clear_filters(filters, min_duration, max_duration, author, website)
-        removed_count = len(removed)
+        removed = await clear_filters(filters, {
+            "uploader": author,
+            "min_duration": min_duration,
+            "max_duration": max_duration,
+            "source_website": website
+        })
 
         if not removed:
             await interaction.followup.send("No filters removed.")
             return
         
+        removed_count = len(removed)
+
         await interaction.followup.send(
-            f"Cleared **{removed_count}** filter{'s' if removed_count > 1 else ''}.\n"
-            f"- Author: [ `{filters.get('uploader')}` ]\n"
-            f"- Minimum duration: [ `{filters.get('min_duration')}` ]\n"
-            f"- Maximum duration: [ `{filters.get('max_duration')}` ]\n"
-            f"- Website: [ `{filters.get('source_website')}` ]"
+            f"Cleared **{removed_count}** filter{'s' if removed_count > 1 else ''}.\n"+
+            await get_removed_filter_string(removed)
         )
 
     @clear_track_filters.error
@@ -1607,18 +1614,16 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         filters = self.guild_states[interaction.guild.id]["filters"]
-        filter_count = len(filters)
 
         if not filters:
             await interaction.followup.send("No filters are currently active.")
             return
         
+        filter_count = len(filters)
+
         await interaction.followup.send(
-            f"There {'are' if filter_count > 1 else 'is'} **{filter_count}** currently active filter{'s' if filter_count > 1 else ''}.\n"
-            f"- Author: [ `{filters.get('uploader')}` ]\n"
-            f"- Min duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
-            f"- Max duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
-            f"- Website: [ `{filters.get('source_website')}` ]"
+            f"There {'are' if filter_count > 1 else 'is'} **{filter_count}** currently active filter{'s' if filter_count > 1 else ''}.\n"+
+            await get_active_filter_string(filters)
         )
 
     @show_filters.error

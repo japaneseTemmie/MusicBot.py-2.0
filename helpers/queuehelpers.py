@@ -1,7 +1,8 @@
 from error import Error
 from extractor import SourceWebsite
-from helpers.timehelpers import format_to_seconds
+from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
+from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_FORMATTING_FILTERS
 
 import re
 from discord.interactions import Interaction
@@ -173,8 +174,8 @@ async def get_next_visual_track(is_random: bool, is_looping: bool, track_to_loop
         return Error(
             f"Next track will be chosen according to these filters.\n"
             f"- Author: [ `{filters.get('uploader')}` ]\n"
-            f"- Minimum duration: [ `{filters.get('min_duration')}` ]\n"
-            f"- Maximum duration: [ `{filters.get('max_duration')}` ]\n"
+            f"- Minimum duration: [ `{format_to_minutes(filters.get('min_duration'))}` ]\n"
+            f"- Maximum duration: [ `{format_to_minutes(filters.get('max_duration'))}` ]\n"
             f"- Website: [ `{filters.get('source_website')}` ]"
         )
     elif queue:
@@ -229,31 +230,91 @@ async def get_queue_indices(queue: list[dict], tracks: list[dict]) -> list[int]:
     return indices
 
 # Playback filters
-async def add_filters(filters: dict[str, Any], min_duration: int | None, max_duration: int | None, author: str | None, website: str | None) -> dict[str, bool]:
-    """ Get a filter hashmap based on given input. """
+async def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool]) -> str:
+    """ Return a string with added filters ready to be sent to the text channel. """
+    
+    string = str()
+
+    for filter_name, added_status in added.items():
+        if added_status:
+            string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter_name]}**: [ `{filters.get(filter_name) if filter_name not in NEED_FORMATTING_FILTERS else format_to_minutes(filters.get(filter_name))}` ]\n"
+    
+    return string
+
+async def get_removed_filter_string(removed: dict[str, bool]) -> str:
+    """ Return a string with removed filters ready to be sent to the text channel. """
+    
+    string = str()
+
+    for filter_name, removed_status in removed.items():
+        if removed_status:
+            string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter_name]}**: [ `Removed` ]\n"
+
+    return string
+
+async def get_active_filter_string(filters: dict[str, Any]) -> str:
+    """ Return a string with active filters ready to be sent to the text channel. """
+    
+    string = str()
+
+    for filter, value in filters.items():
+        string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter]}**: [ `{value if filter not in NEED_FORMATTING_FILTERS else format_to_minutes(value)}` ]\n"
+
+    return string
+
+async def add_filters(filters: dict[str, Any], to_add: dict[str, Any]) -> dict[str, bool]:
+    """ Get a filter hashmap based on given input. 
+    
+    Return a hashmap with k-v pairs where key is added filter and value is whether or not it's enabled. """
 
     added = {}
-    filters_to_apply = {"uploader": author, "min_duration": min_duration, "max_duration": max_duration, "source_website": website}
         
-    for key, filter in filters_to_apply.items():
+    for key, filter in to_add.items():
         if filter is not None:
             filters[key] = filter
             added[key] = True
 
     return added
 
-async def clear_filters(filters: dict[str, Any], min_duration: bool, max_duration: bool, author: bool, website: bool) -> dict[str, bool]:
-    """ Remove given filters from `filters`. """
+async def clear_filters(filters: dict[str, Any], to_remove: dict[str, bool]) -> dict[str, bool]:
+    """ Remove given filters from `filters`. 
+    
+    Return a hashmap with k-v pairs where key is added filter and value is whether or not it's disabled. """
     
     removed = {}
-    filters_to_remove = {"uploader": author, "min_duration": min_duration, "max_duration": max_duration, "source_website": website}
 
-    for key, filter in filters_to_remove.items():
+    for key, filter in to_remove.items():
         if filter and key in filters:
             del filters[key]
             removed[key] = True
 
     return removed
+
+async def match_website_filter(filter_website: str, track_website: str) -> bool:
+    """ Return a match result between a website filter and a track website. 
+    
+    Match all query types that are part of a website. (e.g. `filter_website` SoundCloud can match SoundCloud Playlist and Search)"""
+    
+    match filter_website:
+        case SourceWebsite.SOUNDCLOUD.value:
+            return track_website in (
+                SourceWebsite.SOUNDCLOUD.value,
+                SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
+                SourceWebsite.SOUNDCLOUD_SEARCH.value
+            )
+        case SourceWebsite.YOUTUBE.value:
+            return track_website in (
+                SourceWebsite.YOUTUBE.value,
+                SourceWebsite.YOUTUBE_SEARCH.value,
+                SourceWebsite.YOUTUBE_PLAYLIST.value
+            )
+        case SourceWebsite.BANDCAMP.value:
+            return track_website in (
+                SourceWebsite.BANDCAMP.value,
+                SourceWebsite.BANDCAMP_PLAYLIST.value
+            )
+        case _:
+            return filter_website == track_website
 
 async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     """ Match given `filters` to `track`. """
@@ -266,38 +327,20 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     filter_website = filters.get("source_website")
     
     if filter_uploader:
-        matches.append(filter_uploader == track_uploader)
+        matches.append(filter_uploader.lower().replace(" ", "") == track_uploader.lower().replace(" ", ""))
     if filter_min_duration or filter_max_duration:
         matches.append(filter_min_duration <= track_duration <= filter_max_duration)
     if filter_website:
-        
-        if filter_website == SourceWebsite.SOUNDCLOUD.value:
-            matches.append(track_website in (
-                SourceWebsite.SOUNDCLOUD.value,
-                SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
-                SourceWebsite.SOUNDCLOUD_SEARCH.value
-            ))
-        elif filter_website == SourceWebsite.YOUTUBE.value:
-            matches.append(track_website in (
-                SourceWebsite.YOUTUBE.value,
-                SourceWebsite.YOUTUBE_SEARCH.value,
-                SourceWebsite.YOUTUBE_PLAYLIST.value
-            ))
-        elif filter_website == SourceWebsite.BANDCAMP.value:
-            matches.append(track_website in (
-                SourceWebsite.BANDCAMP.value,
-                SourceWebsite.BANDCAMP_PLAYLIST.value
-            ))
-        else:
-            matches.append(filter_website == track_website)
+        matches.append(await match_website_filter(filter_website, track_website))
 
     return all(matches)
 
-async def find_next_filtered_track(queue: list[dict], filters: dict[str, Any]) -> dict:
-    """ Find the next track with the given filters. """
+async def find_next_filtered_track(queue: list[dict], filters: dict[str, Any]) -> dict[str, Any]:
+    """ Find the next track with the given filters. 
+    
+    Returns the matching track or the next one (0). """
     
     for i, track in enumerate(queue.copy()):
-
         if await match_filters(track, filters):
             return queue.pop(i)
         
@@ -305,7 +348,9 @@ async def find_next_filtered_track(queue: list[dict], filters: dict[str, Any]) -
 
 # Functions to get stuff from playlists.
 async def get_tracks_from_playlist(track_names: list[str], playlist: list[dict], by_index: bool=False) -> list[dict] | Error:
-    """ Get track objects from an interable `playlist` based on their names (or indices). """
+    """ Get track objects from an interable `playlist` based on their names (or indices). 
+    
+    Returns a list of tracks or Error. """
     
     found = []
     for name in track_names:

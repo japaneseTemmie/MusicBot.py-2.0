@@ -9,3 +9,10 @@ VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, 
 PLAYBACK_END_GRACE_PERIOD = 1
 MAX_IO_SYNC_WAIT_TIME = 20000
 MAX_FETCH_CALLS = 35
+RAW_FILTER_TO_VISUAL_TEXT = {
+    "uploader": "Author",
+    "min_duration": "Minimum duration",
+    "max_duration": "Maximum duration",
+    "source_website": "Website"
+}
+NEED_FORMATTING_FILTERS = ["min_duration", "max_duration"]
