@@ -1,8 +1,8 @@
 """ main.py script for discord.py bot """
 
-from settings import COMMAND_PREFIX, ACTIVITY, INTENTS, TOKEN, HANDLER, FORMATTER, LOG_LEVEL
+from settings import COMMAND_PREFIX, ACTIVITY, INTENTS, TOKEN, HANDLER, FORMATTER, LOG_LEVEL, USE_SHARDING
 from init.logutils import log, separator
-from bot import Bot
+from bot import Bot, ShardedBot
 
 from discord.errors import PrivilegedIntentsRequired, LoginFailure
 
@@ -10,7 +10,8 @@ def main() -> None:
     """ Main entry point. The greatest journey begins here. (assuming it starts :3) 
     Handles construction of the custom `Bot` object and runs it. """
 
-    bot = Bot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS)
+    bot = Bot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS) if not USE_SHARDING else\
+            ShardedBot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS)
     
     try:
         bot.run(TOKEN, log_handler=HANDLER, log_formatter=FORMATTER, log_level=LOG_LEVEL)

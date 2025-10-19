@@ -1,6 +1,6 @@
 """ Bot subclass setup module for discord.py bot """
 
-from settings import USE_SHARDING, ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG
+from settings import ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
 from random import randint
@@ -11,16 +11,16 @@ from time import monotonic
 import asyncio
 from discord.ext import commands
 
-class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
+class Bot(commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """
     
     def __init__(self, command_prefix: str, **options) -> None:
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
         
         self.on_ready_lock = asyncio.Lock()
+        
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
-
-        self.is_sharded = isinstance(self, commands.AutoShardedBot)
+        self.is_sharded = False
 
         self.guild_states = {}
 
@@ -198,3 +198,10 @@ class Bot(commands.AutoShardedBot if USE_SHARDING else commands.Bot):
         log(f"Bai bai :{'3' * randint(1, 10)}")
 
         log_to_discord_log("Connection closed by host.\nEnd of log.", can_log=CAN_LOG, logger=LOGGER)
+
+class ShardedBot(commands.AutoShardedBot, Bot):
+    """ `Bot` class with sharding. """
+
+    def __init__(self, command_prefix: str, **options):
+        super().__init__(command_prefix, **options)
+        self.is_sharded = True
