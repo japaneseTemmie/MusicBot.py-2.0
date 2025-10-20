@@ -228,6 +228,12 @@ To start listening to your favourite music:
 
 Help for every command can be found using the **/help** command.
 
+# Management commands
+Bot owners can run these management commands via the classic command prefix method. (prefix + name)
+- (prefix)**reload-cogs**: Reloads all cogs.
+
+It is recommended to run these commands in a _private_ channel.
+
 # Extra Configuration (For experienced hosts)
 During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data.
 

@@ -2,7 +2,7 @@
 
 from settings import CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
-from bot import Bot
+from bot import Bot, ShardedBot
 
 import discord
 from discord import app_commands
@@ -16,7 +16,7 @@ from datetime import timedelta
 # other modules (as long as they don't overlap).
 
 class MyCog(commands.Cog): # Subclass commands.Cog
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         # This example cog doesn't have any custom attributes. But custom attributes go here.
 

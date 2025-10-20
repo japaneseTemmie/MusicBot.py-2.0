@@ -15,14 +15,14 @@ from helpers.queuehelpers import (
 from helpers.extractorhelpers import fetch_queries, add_results_to_queue
 from helpers.guildhelpers import open_guild_json, write_guild_json
 from error import Error
-from bot import Bot
+from bot import Bot, ShardedBot
 
 from discord.interactions import Interaction
 from discord import app_commands
 from copy import deepcopy
 
 class PlaylistManager:
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
 
         self.max_limit = self.client.max_playlist_limit

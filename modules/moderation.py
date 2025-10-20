@@ -5,7 +5,7 @@ a Discord guild and its users. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
-from bot import Bot
+from bot import Bot, ShardedBot
 from helpers.moderationhelpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
 from helpers.timehelpers import format_to_seconds_extended
 
@@ -17,7 +17,7 @@ from datetime import datetime
 from time import time as get_unix_timestamp
 
 class ModerationCog(commands.Cog):
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.max_channel_name_length = 100
         self.max_topic_length = 1024

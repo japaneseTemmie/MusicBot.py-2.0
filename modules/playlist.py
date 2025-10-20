@@ -3,7 +3,7 @@
 Handles playlist commands. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
-from bot import Bot
+from bot import Bot, ShardedBot
 from playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
 from error import Error
@@ -26,7 +26,7 @@ from discord.ext import commands
 from copy import deepcopy
 
 class PlaylistCog(commands.Cog):
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
 

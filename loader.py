@@ -6,10 +6,11 @@ from settings import CONFIG, CAN_LOG, LOGGER
 from init.logutils import log, log_to_discord_log
 
 from discord.ext import commands
+from sys import modules
 from os.path import isdir
 from os import listdir
 from inspect import getmembers, isclass
-from importlib import import_module
+from importlib import import_module, reload
 from types import ModuleType
 
 class ModuleLoader:
@@ -58,7 +59,11 @@ class ModuleLoader:
         imported_modules = []
         for name in module_names:
             try:
-                module = import_module(name)
+                if name not in modules:
+                    module = import_module(name)
+                else:
+                    module = reload(modules[name])
+
                 imported_modules.append(module)
             except Exception as e:
                 log(f"An error occured while importing module '{name}'")

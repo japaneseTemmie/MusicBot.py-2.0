@@ -3,14 +3,14 @@ Includes a short class for help commands. """
 
 from settings import COOLDOWNS, HELP, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
-from bot import Bot
+from bot import Bot, ShardedBot
 
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
 
 class UtilsCog(commands.Cog):
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
 
     @app_commands.command(name="ping", description="Shows bot latency in ms.")

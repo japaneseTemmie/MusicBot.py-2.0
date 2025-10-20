@@ -1,7 +1,7 @@
 """ Audio player wrapper module for discord.py bot. """
 
 from settings import CAN_LOG, LOGGER
-from bot import Bot
+from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
 from helpers.ffmpeghelpers import (
@@ -20,7 +20,7 @@ from time import monotonic
 from copy import deepcopy
 
 class AudioPlayer:
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
 

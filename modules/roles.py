@@ -6,7 +6,7 @@ from settings import COOLDOWNS, CAN_LOG, LOGGER
 from rolemanager import RoleManager
 from init.logutils import log_to_discord_log
 from error import Error
-from bot import Bot
+from bot import Bot, ShardedBot
 
 import discord
 from discord import app_commands
@@ -14,7 +14,7 @@ from discord.interactions import Interaction
 from discord.ext import commands
 
 class RolesCog(commands.Cog):
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.roles = RoleManager(self.client)
 

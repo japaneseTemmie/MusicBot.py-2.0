@@ -27,7 +27,7 @@ from embedgenerator import (
 from error import Error
 from extractor import SourceWebsite
 from audioplayer import AudioPlayer
-from bot import Bot
+from bot import Bot, ShardedBot
 
 import discord
 import asyncio
@@ -39,7 +39,7 @@ from discord.interactions import Interaction
 from discord.ext import commands
 
 class MusicCog(commands.Cog):
-    def __init__(self, client: Bot):
+    def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
         

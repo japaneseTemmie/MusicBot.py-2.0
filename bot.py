@@ -151,7 +151,7 @@ class Bot(commands.Bot):
 
             log(f"Ready :{'3' * randint(1, 10)}")
             separator()
-
+            
             self.has_finished_on_ready = True
 
             VOICE_OPERATIONS_LOCKED.clear()

@@ -2,7 +2,7 @@ Here's the documentation for each key and its function in the `config.json` file
 
 # General settings
 - **`yt_dlp_options`**: Options passed to the `YouTubeDL` object in `extractor.py/fetch()`. Expects a hashmap.
-- **`command_prefix`**: Command prefix used for classic commands (there are none at the moment). Expects a string.
+- **`command_prefix`**: Command prefix used for classic commands. Expects a string.
 - **`enable_activity`**: Allow displaying configured custom activity. Expects a boolean.
 - **`activity_name`**: The name of the activity. Appears after the type. Expects a string.
 - **`activity_type`**: The activity type. Can be `playing`, `watching` or `listening`. Expects a string.

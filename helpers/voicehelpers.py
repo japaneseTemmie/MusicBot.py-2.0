@@ -134,8 +134,6 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
         log(f"Closing connection to channel ID {vc.channel.id}..")
         
         can_edit_status = guild_states[vc.guild.id]["allow_voice_status_edit"]
-
-        await update_guild_states(guild_states, vc, (True, True), ("handling_disconnect_action", "pending_cleanup"))
         
         if vc.is_playing() or vc.is_paused():
             await update_guild_state(guild_states, vc, True, "stop_flag")
