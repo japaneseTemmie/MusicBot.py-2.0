@@ -3,7 +3,7 @@
 Handles queue management and track playback. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
-from init.logutils import log, log_to_discord_log
+from init.logutils import log, separator, log_to_discord_log
 from helpers.timehelpers import format_to_minutes, format_to_seconds
 from helpers.guildhelpers import (
     check_guild_state, check_channel, user_has_role, update_guild_state, update_guild_states, update_query_extraction_state,
@@ -25,7 +25,7 @@ from embedgenerator import (
     generate_queue_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
 )
 from error import Error
-from extractor import SourceWebsite
+from webextractor import SourceWebsite
 from audioplayer import AudioPlayer
 from bot import Bot, ShardedBot
 
@@ -56,6 +56,7 @@ class MusicCog(commands.Cog):
         self.guild_states.clear()
 
         log(f"[{self.__class__.__name__.upper()}] Cleaned all guild states.")
+        separator()
 
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(

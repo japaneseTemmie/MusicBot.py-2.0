@@ -54,7 +54,7 @@ class ModuleLoader:
         return module_names
 
     def get_module_contents(self, module_names: list[str]) -> list[ModuleType]:
-        """ Import the modules and return a list. """
+        """ Import the modules and return list. """
         
         imported_modules = []
         for name in module_names:
@@ -66,7 +66,12 @@ class ModuleLoader:
 
                 imported_modules.append(module)
             except Exception as e:
-                log(f"An error occured while importing module '{name}'")
+                if name in modules:
+                    imported_modules.append(modules[name])
+
+                    log(f"An error occured while importing module '{name}', reloaded old version.")
+                else:
+                    log(f"An error occured while importing module '{name}'")
                 log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
                 
                 continue

@@ -4,8 +4,8 @@ Supported websites
 
 - YouTube (Both video and playlists)
 - Newgrounds
-- SoundCloud (Songs and playlists)
-- Bandcamp """
+- SoundCloud (Songs and sets)
+- Bandcamp (Songs and albums) """
 
 from settings import YDL_OPTIONS, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log

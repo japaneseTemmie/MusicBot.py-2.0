@@ -84,6 +84,8 @@ async def handle_player_crash(
         return False
 
 async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:
+    """ Check if the voice player has crashed and handle it. """
+    
     current_track = guild_states[interaction.guild.id]["current_track"]
     user_forced = guild_states[interaction.guild.id]["user_interrupted_playback"]
     start_time = guild_states[interaction.guild.id]["start_time"]

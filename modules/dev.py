@@ -8,7 +8,10 @@ from time import monotonic
 class DevCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
+        
         self.guild_states = self.client.guild_states
+        self.original_cogs = []
+
         self.reloading_cogs = False
 
     @commands.command("reload-cogs")
@@ -25,11 +28,13 @@ class DevCog(commands.Cog):
 
         log("===== RELOADING COGS =====")
         
+        if not self.original_cogs:
+            self.original_cogs = list(self.client.cogs)
+
         VOICE_OPERATIONS_LOCKED.set()
         FILE_OPERATIONS_LOCKED.set()
 
-        cog_names = list(self.client.cogs)
-        for name in cog_names:
+        for name in self.original_cogs:
             await self.client.remove_cog(name)
 
         await self.client.load_cogs()
@@ -41,15 +46,19 @@ class DevCog(commands.Cog):
         self.reloading_cogs = False
 
         current_cog_names = list(self.client.cogs)
-        await ctx.send(f"Reloaded **{len(current_cog_names)}** out of **{len(cog_names)}** cogs in **{round(monotonic() - start_time, 2)}**s\n"+
-                       f"Currently active cogs:\n{"".join([f"- **{name}**\n" for name in current_cog_names])}")
+        await ctx.send(
+            f"Reloaded **{len(current_cog_names)}** out of **{len(self.original_cogs)}** cogs in **{round(monotonic() - start_time, 2)}**s\n"+
+            f"Currently active cogs:\n{"".join([f"- **{name}**\n" for name in current_cog_names])}"+
+            "Check logs for more accurate report."
+        )
 
     @reload_cogs.error
     async def handle_reload_cogs_error(self, ctx: commands.Context, error: Exception):
-        if isinstance(error, commands.MissingRequiredArgument) or\
-            isinstance(error, commands.NoPrivateMessage) or\
+        if isinstance(error, commands.NoPrivateMessage) or\
             isinstance(error, commands.CommandOnCooldown):
             return
 
-        log("An error occured while reloading cogs")
+        log("An error occurred while reloading cogs")
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        await ctx.send("An unknown error occurred, check logs.")

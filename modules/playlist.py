@@ -4,10 +4,10 @@ Handles playlist commands. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
 from bot import Bot, ShardedBot
-from playlistmanager import PlaylistManager
+from managers.playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
 from error import Error
-from extractor import SourceWebsite
+from webextractor import SourceWebsite
 from init.logutils import log_to_discord_log
 from embedgenerator import generate_added_track_embed, generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed
 from helpers.guildhelpers import (

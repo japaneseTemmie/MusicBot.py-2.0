@@ -26,25 +26,16 @@ class AudioPlayer:
 
         self.max_history_track_limit = self.client.max_history_track_limit
 
-    async def play_track(
+    async def submit_track_to_player(
             self, 
-            interaction: Interaction, 
+            interaction: Interaction,
             voice_client: discord.VoiceClient, 
-            track: dict[str, Any], 
-            position: int=0, 
-            state: str | None=None
+            track: dict, 
+            position: int,
+            is_looping: bool
         ) -> None:
-        if not voice_client.is_connected() or\
-            track is None:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions. Ignoring.")
-            return
+        """ Submit a track to the voice client player. """
 
-        history = self.guild_states[interaction.guild.id]["queue_history"]
-        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
-        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
-        first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
-        can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
-        
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
         old_title = str(track["title"])
         old_source_website = str(track["source_website"])
@@ -74,23 +65,25 @@ class AudioPlayer:
             self.handle_playback_end(e, interaction)
             return
 
+    async def update_player_states(self, interaction: Interaction, position: int, track: dict, state: str | None) -> None:
+        """ Update player guild states after playing a track. """
+        
+        history = self.guild_states[interaction.guild.id]["queue_history"]
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
+        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
+        first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
+        can_edit_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+
         if not first_track_start_date:
             await update_guild_state(self.guild_states, interaction, datetime.now(), "first_track_start_date")
 
         await update_guild_states(self.guild_states, interaction, (monotonic() - position, position), ("start_time", "elapsed_time"))
         
-        """ Update track to loop if looping is enabled
-        Cases in which this is useful:
-        We already have a track set to loop, we use /playnow or something that overrides this, now we need to update the track to loop."""
-
+        # Update track to loop if looping is enabled
         if is_looping and track_to_loop != track:
             await update_guild_state(self.guild_states, interaction, track, "track_to_loop")
 
         await update_guild_state(self.guild_states, interaction, track, "current_track")
-        
-        """ Only append if the maximum amount of tracks in the track history is not reached, if
-            the position is less or equal to 0, if it's not looping the current track, and we're not
-            altering the current track with commands like restart, seek, etc. """
 
         if not position > 0 and\
             not is_looping and\
@@ -105,7 +98,58 @@ class AudioPlayer:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
+    async def check_player_flags(self, interaction: Interaction) -> None:
+        """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
+         
+        Returns True if a check fails. """
+        
+        stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
+        voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
+        
+        if stop_flag:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag in guild ID {interaction.guild.id}. Ignoring.")
+            
+            await update_guild_state(self.guild_states, interaction, False, "stop_flag")
+            return True
+        elif voice_client_locked:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked in guild ID {interaction.guild.id}. Ignoring.")
+            return True
+
+        no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
+        if no_users_in_channel:
+            return True
+
+        recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
+        if recovered_from_crash:
+            return True
+        
+        return False
+
+    async def play_track(
+            self, 
+            interaction: Interaction, 
+            voice_client: discord.VoiceClient, 
+            track: dict[str, Any], 
+            position: int=0, 
+            state: str | None=None
+        ) -> None:
+        """ Play a track on an available voice client. 
+        
+        A track must be a dict containing a `url` key that points to a valid stream readable by ffmpeg and track metadata such as `title`, `duration`, etc.. """
+        
+        if not voice_client.is_connected() or\
+            track is None:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions. Ignoring.")
+            return
+
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
+
+        await self.submit_track_to_player(interaction, voice_client, track, position, is_looping)
+        await self.update_player_states(interaction, position, track, state)
+
     async def play_next(self, interaction: Interaction) -> None:
+        """ Play the next track available in the queue. """
+        
         if interaction.guild.id not in self.guild_states:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with non-existent guild state. Ignoring.")
             return
@@ -118,26 +162,11 @@ class AudioPlayer:
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
-        stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
-        voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
 
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
-        if stop_flag:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag in guild ID {interaction.guild.id}. Ignoring.")
-            
-            await update_guild_state(self.guild_states, interaction, False, "stop_flag")
-            return
-        elif voice_client_locked:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked in guild ID {interaction.guild.id}. Ignoring.")
-            return
-
-        no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
-        if no_users_in_channel:
-            return
-
-        recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
-        if recovered_from_crash:
+        ignore_next = await self.check_player_flags(interaction)
+        if ignore_next:
             return
 
         if not queue and not\
@@ -170,6 +199,8 @@ class AudioPlayer:
             await send_func(f"Now playing: **{track['title']}**")
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction) -> None:
+        """ Handles playback end or error based on the provided voice client. """
+        
         if error:
             asyncio.run_coroutine_threadsafe(interaction.channel.send("An error occurred while handling playback end."), self.client.loop)
             

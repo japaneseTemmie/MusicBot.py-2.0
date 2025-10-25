@@ -2,7 +2,7 @@
 
 from settings import EXTRACTOR_SEMAPHORE
 from helpers.guildhelpers import update_query_extraction_state
-from extractor import fetch, get_query_type
+from webextractor import fetch, get_query_type
 from error import Error
 
 import asyncio

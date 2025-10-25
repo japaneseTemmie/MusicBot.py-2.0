@@ -1,5 +1,5 @@
 from error import Error
-from extractor import SourceWebsite
+from webextractor import SourceWebsite
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
 from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_FORMATTING_FILTERS
@@ -533,6 +533,16 @@ async def place_track_in_playlist(queue: list, index: int | None, track: dict) -
     queue.insert(index - 1, playlist_track)
 
     return playlist_track, index
+
+async def skip_track(queue: list[dict], current_track: dict, is_random: bool, amount: int=1) -> None:
+    skipped = []
+    if amount > 1 and not is_random:
+        for _ in range(1, min(amount, 25)):
+            if len(queue) > 0:
+                track_info = queue.pop(0)
+                skipped.append(track_info)
+        else:
+            skipped.insert(0, current_track)
 
 # Custom split
 def split(s: str) -> list[str]:

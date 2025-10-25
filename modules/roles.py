@@ -3,7 +3,7 @@
 Includes a class with methods to manage music and playlist permissions. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
-from rolemanager import RoleManager
+from managers.rolemanager import RoleManager
 from init.logutils import log_to_discord_log
 from error import Error
 from bot import Bot, ShardedBot
