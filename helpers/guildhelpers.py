@@ -1,4 +1,4 @@
-""" Guild helpers for discord.py bot """
+""" Guild helper functions for discord.py bot """
 
 from settings import CAN_LOG, LOGGER, PATH, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED
 from error import Error
@@ -145,7 +145,7 @@ async def ensure_lock(interaction: Interaction, locks: dict) -> asyncio.Lock:
 
 # Functions for updating guild states
 async def update_query_extraction_state(
-        guild_states: dict, 
+        guild_states: dict[str, Any], 
         interaction: Interaction, 
         progress_current: int, 
         progress_total: int,
@@ -162,7 +162,7 @@ async def update_query_extraction_state(
             ("progress_current", "progress_total", "progress_item_name", "progress_source_website")
         )
 
-async def update_guild_state(guild_states: dict, interaction: Interaction, value: Any, state: str) -> None:
+async def update_guild_state(guild_states: dict[str, Any], interaction: Interaction, value: Any, state: str) -> None:
     """ Update guild `state` with a new `value`. """
     
     if interaction.guild.id in guild_states:
@@ -173,7 +173,7 @@ async def update_guild_state(guild_states: dict, interaction: Interaction, value
             
         guild_state[state] = value
 
-async def update_guild_states(guild_states: dict, interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
+async def update_guild_states(guild_states: dict[str, Any], interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
     """ Bulk update guild `states` with `values`. """
     
     if interaction.guild.id in guild_states:        
@@ -222,7 +222,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
     }
 
 # Functions for checking guild states and replying to interactions
-async def check_channel(guild_states: dict, interaction: Interaction) -> bool:
+async def check_channel(guild_states: dict[str, Any], interaction: Interaction) -> bool:
     """ Check different channel state scenarios and handle them by replying to `interaction`. """
     
     if interaction.guild.id not in guild_states or\

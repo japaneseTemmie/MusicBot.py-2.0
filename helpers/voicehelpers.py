@@ -1,3 +1,5 @@
+""" Voice helper functions for discord.py bot """
+
 from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED
 from helpers.cachehelpers import invalidate_cache
 from helpers.playlisthelpers import is_playlist_locked
@@ -6,12 +8,13 @@ from init.logutils import log, separator
 
 import asyncio
 import discord
-from discord.interactions import Interaction
 from discord.ext import commands
+from discord.interactions import Interaction
+from typing import Any
 from time import monotonic
 
 # Connect behavior
-async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None:
+async def greet_new_user_in_vc(guild_states: dict[str, Any], user: discord.Member) -> None:
     """ Say hi to `user` in the text channel the /join command was used in. """
     
     if user.guild.id in guild_states:
@@ -35,7 +38,7 @@ async def greet_new_user_in_vc(guild_states: dict, user: discord.Member) -> None
         guild_states[user.guild.id]["greet_timeouts"][user.id] = False
 
 # Disconnect behavior
-async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient]) -> None:
+async def cleanup_guilds(guild_states: dict[str, Any], clients: list[discord.VoiceClient]) -> None:
     """ Clean up any inactive guild's data. Called at the end of `disconnect_routine()` """
     
     active_guild_ids = [client.guild.id for client in clients]
@@ -50,7 +53,7 @@ async def cleanup_guilds(guild_states: dict, clients: list[discord.VoiceClient])
 
             log(f"[GUILDSTATE] Cleaned up guild ID {guild_id} from guild states, cache and locks.")
 
-async def check_users_in_channel(guild_states: dict, member: discord.Member | Interaction) -> bool:
+async def check_users_in_channel(guild_states: dict[str, Any], member: discord.Member | Interaction) -> bool:
     """ Check if there are any users in a voice channel and disconnects if not.
 
     Returns True if none are left and the bot is disconnected, False otherwise. """
@@ -86,7 +89,7 @@ async def check_users_in_channel(guild_states: dict, member: discord.Member | In
 
     return False
 
-async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict, member: discord.Member | Interaction) -> None:
+async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict[str, Any], member: discord.Member | Interaction) -> None:
     """ Function that runs every voice_client.disconnect() call.
      
     Responsible for cleaning up the disconnected client and its guild data. """
@@ -125,7 +128,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     any leftover guilds that were not properly cleaned up. """
     await cleanup_guilds(guild_states, client.voice_clients)
 
-async def close_voice_clients(guild_states: dict, client: commands.Bot | commands.AutoShardedBot) -> None:
+async def close_voice_clients(guild_states: dict[str, Any], client: commands.Bot | commands.AutoShardedBot) -> None:
     """ Close any leftover VCs and cleanup their open audio sources, if any. """
 
     log("Closing voice clients..")
@@ -157,7 +160,7 @@ async def close_voice_clients(guild_states: dict, client: commands.Bot | command
     separator()
 
 async def handle_channel_move(
-        guild_states: dict, 
+        guild_states: dict[str, Any], 
         member: discord.Member | Interaction, 
         before_state: discord.VoiceState, 
         after_state: discord.VoiceState
@@ -221,7 +224,7 @@ async def handle_channel_move(
     await text_channel.send(f"Resumed session in **{voice_client.channel.name}**.")
 
 # Voice channel status
-async def set_voice_status(guild_states: dict, interaction: Interaction) -> None:
+async def set_voice_status(guild_states: dict[str, Any], interaction: Interaction) -> None:
     """ Updates the `voice_client` channel status with the `voice_status` guild state. """
     
     if interaction.guild.id in guild_states:

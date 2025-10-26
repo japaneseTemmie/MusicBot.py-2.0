@@ -16,6 +16,7 @@ import re
 from enum import Enum
 from datetime import datetime
 from yt_dlp import YoutubeDL
+from typing import Any
 
 class SourceWebsite(Enum):
     YOUTUBE_PLAYLIST = "YouTube Playlist"
@@ -58,7 +59,9 @@ PLAYLIST_WEBSITES = (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCL
 SEARCH_WEBSITES = (SourceWebsite.YOUTUBE_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value)
 
 def get_query_type(query: str, provider: str | None) -> QueryType:
-    """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. """
+    """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. 
+    
+    Returns a QueryType object. """
 
     # Match URLs first.
     for regex, source_website in URL_PATTERNS:
@@ -72,7 +75,7 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
 
     return QueryType(provider_source_website, False, None, provider_search_string)
 
-def prettify_info(info: dict, source_website: str | None=None) -> dict:
+def prettify_info(info: dict, source_website: str | None=None) -> dict[str, Any]:
     """ Prettify the extracted info with cleaner values. """
     
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
@@ -94,7 +97,7 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict:
 
     return info
 
-def parse_info(info: dict, query: str, query_type: QueryType) -> dict | list[dict] | Error:
+def parse_info(info: dict, query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Parse extracted query in a readable/playable format for the VoiceClient. """
 
     # If it's a playlist, prettify each entry and return
@@ -113,7 +116,7 @@ def parse_info(info: dict, query: str, query_type: QueryType) -> dict | list[dic
     # URLs are directly prettified.
     return prettify_info(info, query_type.source_website)
 
-def fetch(query: str, query_type: QueryType) -> dict | list[dict] | Error:
+def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Search a webpage and find info about the query.
 
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """

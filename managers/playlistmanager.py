@@ -1,4 +1,4 @@
-""" Playlist module for discord.py bot.
+""" Playlist manager module for discord.py bot.
 
 Includes a few methods for managing playlists
 and fetching tracks from them. """
@@ -17,8 +17,9 @@ from helpers.guildhelpers import open_guild_json, write_guild_json
 from error import Error
 from bot import Bot, ShardedBot
 
-from discord.interactions import Interaction
 from discord import app_commands
+from discord.interactions import Interaction
+from typing import Any
 from copy import deepcopy
 
 class PlaylistManager:
@@ -126,7 +127,13 @@ class PlaylistManager:
         
         return success
 
-    async def delete(self, interaction: Interaction, content: dict[str, list] | Error, playlist_name: str, contents_only: bool) -> bool | Error | tuple[bool | Error, list[dict]]:
+    async def delete(
+            self, 
+            interaction: Interaction, 
+            content: dict[str, list] | Error, 
+            playlist_name: str, 
+            contents_only: bool
+        ) -> bool | Error | tuple[bool | Error, list[dict]]:
         """ Deletes a playlist.
 
         If successful, returns a boolean or Error if `contents_only` is True, otherwise
@@ -204,7 +211,7 @@ class PlaylistManager:
 
     async def replace(
             self,
-            guild_states: dict,
+            guild_states: dict[str, Any],
             interaction: Interaction,
             content: dict[str, list] | Error,
             playlist_name: str,
@@ -284,7 +291,7 @@ class PlaylistManager:
 
     async def select(
             self, 
-            guild_states: dict, 
+            guild_states: dict[str, Any], 
             max_track_limit: int, 
             interaction: Interaction, 
             content: dict[str, list] | Error, 
@@ -330,7 +337,7 @@ class PlaylistManager:
 
     async def fetch(
             self, 
-            guild_states: dict, 
+            guild_states: dict[str, Any], 
             max_track_limit: int, 
             interaction: Interaction, 
             content: dict[str, list] | Error, 
@@ -418,7 +425,7 @@ class PlaylistManager:
 
     async def add(
             self, 
-            guild_states: dict, 
+            guild_states: dict[str, Any], 
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
@@ -472,7 +479,13 @@ class PlaylistManager:
 
         return success
 
-    async def rename(self, interaction: Interaction, content: dict[str, list] | Error, orig_playlist_name: str, new_playlist_name: str) -> tuple[bool | Error, str, str] | Error:
+    async def rename(
+            self, 
+            interaction: Interaction, 
+            content: dict[str, list] | Error, 
+            orig_playlist_name: str, 
+            new_playlist_name: str
+        ) -> tuple[bool | Error, str, str] | Error:
         """ Renames a playlist to a new given name.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -546,8 +559,15 @@ class PlaylistManager:
         
         return success, found, playlist_copy
     
-    async def place(self, interaction: Interaction, content: dict[str, list] | Error, playlist_name: str, track: dict, index: int | None) -> tuple[bool | Error, dict, int] | Error:
-        """ Place a track at a specific index or append it.
+    async def place(
+            self, 
+            interaction: Interaction, 
+            content: dict[str, list] | Error, 
+            playlist_name: str, 
+            track: dict, 
+            index: int | None
+        ) -> tuple[bool | Error, dict, int] | Error:
+        """ Place a track at a specific index or append it (index=None).
 
         if successful, returns a tuple with a boolean or Error indicating
         write success [0], added track [1], and its new index [2]. Error otherwise. """

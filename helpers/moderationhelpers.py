@@ -1,3 +1,5 @@
+""" Moderation helper functions for discord.py bot """
+
 import discord
 from typing import Callable
 

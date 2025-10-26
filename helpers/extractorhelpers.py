@@ -1,4 +1,4 @@
-""" Helper functions for discord.py bot """
+""" Extractor helper functions for discord.py bot """
 
 from settings import EXTRACTOR_SEMAPHORE
 from helpers.guildhelpers import update_query_extraction_state
@@ -7,10 +7,11 @@ from error import Error
 
 import asyncio
 from discord.interactions import Interaction
+from typing import Any
 
 # Functions for fetching stuff from source websites
 async def fetch_query(
-        guild_states: dict,
+        guild_states: dict[str, Any],
         interaction: Interaction,
         query: str,
         extraction_state_amount: int=1,
@@ -45,14 +46,19 @@ async def fetch_query(
 
     return extracted_track
 
-async def fetch_queries(guild_states: dict,
+async def fetch_queries(
+        guild_states: dict[str, Any],
         interaction: Interaction,
         queries: list[str | dict],
         query_names: list[str]=None,
         allowed_query_types: tuple[str]=None,
         provider: str | None=None
     ) -> list[dict | list[dict]] | Error:
-    """ Extract a list of queries using the fetch_query() function. """
+    """ Extract a list of queries and return the result. 
+    
+    `allowed_query_types` must be a tuple containing SourceWebsite enum values. 
+    
+    `provider` must be a SourceWebsite search website enum value. (if used) """
     
     found = []
     for i, query in enumerate(queries):
@@ -76,6 +82,7 @@ async def fetch_queries(guild_states: dict,
 
 async def resolve_expired_url(webpage_url: str) -> dict | None:
     """ Fetch a new track object based on the current webpage URL.
+    
     Unlike `fetch()`, this function returns None on failure. """
     
     provider = None
@@ -89,7 +96,7 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     
     return new_extracted_track
 
-async def add_results_to_queue(interaction: Interaction, results: list[dict], queue: list, max_limit: int) -> list[dict]:
+async def add_results_to_queue(interaction: Interaction, results: list[dict[str, Any]], queue: list, max_limit: int) -> list[dict]:
     """ Append found results to a queue in place.\n
     Reply to the interaction if it exceeds `max_limit`.
     Return the added items. """

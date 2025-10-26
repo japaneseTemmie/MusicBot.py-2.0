@@ -1,3 +1,5 @@
+""" FFmpeg helper functions for discord.py bot """
+
 from settings import CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
@@ -12,20 +14,20 @@ from typing import Any, Awaitable
 from time import monotonic
 
 # FFmpeg options, stream validation and ffmpeg crash handler.
-async def get_ffmpeg_options(position: int) -> dict:
+async def get_ffmpeg_options(position: int) -> dict[str, str]:
     """ Return a hashmap containing ffmpeg `before_options` and `options` in their respective keys.
+
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
     
-    FFMPEG_OPTIONS = {}
-    
-    FFMPEG_OPTIONS["before_options"] = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10"
-    FFMPEG_OPTIONS["options"] = f"-vn -ss {position}"
-
-    return FFMPEG_OPTIONS
+    return {
+        "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10",
+        "options": f"-vn -ss {position}"
+    }
 
 async def validate_stream(url: str) -> bool:
     """ Validate a stream URL by spawning an `ffprobe` subprocess asynchronously with a 10 second timeout.
-    Returns True if the stream can be used for playback, otherwise False if the subprocess exits with 1 or timeout is exhausted. """
+    
+    Returns True if the stream can be used for playback, otherwise False if the subprocess exits with 1, has invalid input or timeout is exhausted. """
     
     try:
         process = await asyncio.wait_for(asyncio.create_subprocess_exec(
@@ -56,6 +58,7 @@ async def handle_player_crash(
     ) -> bool:
 
     """ Handles unexpected stream crashes by resolving the expired URL and spawning a new ffmpeg process.
+    
     Returns True for a successful recovery, False otherwise. """
 
     try:
@@ -84,7 +87,9 @@ async def handle_player_crash(
         return False
 
 async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:
-    """ Check if the voice player has crashed and handle it. """
+    """ Check if the voice player has crashed. 
+    
+    If so, try to restore playback at a position close to where it crashed. """
     
     current_track = guild_states[interaction.guild.id]["current_track"]
     user_forced = guild_states[interaction.guild.id]["user_interrupted_playback"]

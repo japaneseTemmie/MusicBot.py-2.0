@@ -1,3 +1,5 @@
+""" Queue helper functions for discord.py bot """
+
 from error import Error
 from webextractor import SourceWebsite
 from helpers.timehelpers import format_to_seconds, format_to_minutes
@@ -12,7 +14,7 @@ from copy import deepcopy
 from random import randint, sample
 
 # Function to get a hashmap of queue pages to display
-def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
+def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
     """ Create a hashmap of queue pages. Each page is 25 elements log.
     Must be sent to a thread, as it contains blocking code. """
     
@@ -32,7 +34,7 @@ def get_pages(queue: list[dict]) -> dict[int, list[dict]]:
     return pages
 
 # Functions to update the copied queue when /queueloop is enabled.
-async def update_loop_queue_replace(guild_states: dict, interaction: Interaction, old_track: dict, track: dict) -> None:
+async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict, track: dict) -> None:
     """ Update the `queue_to_loop` state with the `old` and `new` output of a replace track function.
 
     This function must be called after replacing an item from the `queue` state and `is_looping_queue` state is active. """
@@ -49,7 +51,7 @@ async def update_loop_queue_replace(guild_states: dict, interaction: Interaction
             queue_to_loop.remove(old_track)
             queue_to_loop.insert(loop_index, track)
 
-async def update_loop_queue_remove(guild_states: dict, interaction: Interaction, tracks_to_remove: list[dict]) -> None:
+async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interaction, tracks_to_remove: list[dict]) -> None:
     """ Update the `queue_to_loop` state by removing items that are not in the `queue` state.
 
     This function must be called after removing items from the `queue` state and `is_looping_queue` state is active. """
@@ -62,7 +64,7 @@ async def update_loop_queue_remove(guild_states: dict, interaction: Interaction,
             if track_to_remove not in queue and track_to_remove in queue_to_loop:
                 queue_to_loop.remove(track_to_remove)
 
-async def update_loop_queue_add(guild_states: dict, interaction: Interaction) -> None:
+async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
     """ Update the `queue_to_loop` state with the latest extracted items from `queue`.
 
     This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is True. """
@@ -421,7 +423,7 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict], b
     return track_dict, found_track[1] + 1, index
 
 async def replace_track_in_queue(
-        guild_states: dict,
+        guild_states: dict[str, Any],
         interaction: Interaction,
         queue: list[dict],
         track: str, 

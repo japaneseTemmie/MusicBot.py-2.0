@@ -1,3 +1,5 @@
+""" Playlist helper functions for discord.py bot """
+
 from error import Error
 from helpers.queuehelpers import sanitize_name
 
