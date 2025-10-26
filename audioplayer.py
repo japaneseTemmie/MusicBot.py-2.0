@@ -30,7 +30,7 @@ class AudioPlayer:
             self, 
             interaction: Interaction,
             voice_client: discord.VoiceClient, 
-            track: dict, 
+            track: dict[str, Any], 
             position: int,
             is_looping: bool
         ) -> None:
@@ -98,7 +98,7 @@ class AudioPlayer:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-    async def check_player_flags(self, interaction: Interaction) -> None:
+    async def check_player_flags(self, interaction: Interaction) -> bool:
         """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
          
         Returns True if a check fails. """
