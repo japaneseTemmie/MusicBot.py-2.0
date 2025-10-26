@@ -14,10 +14,17 @@ from helpers.queuehelpers import get_next_track
 import asyncio
 import discord
 from discord.interactions import Interaction
+from enum import Enum
 from typing import Any
 from datetime import datetime
 from time import monotonic
 from copy import deepcopy
+
+class PlayerStopReason(Enum):
+    STOP_FLAG = 1
+    VC_LOCKED = 2
+    NO_USERS_IN_CHANNEL = 3
+    CRASH_RECOVERY = 4
 
 class AudioPlayer:
     def __init__(self, client: Bot | ShardedBot):
@@ -98,10 +105,10 @@ class AudioPlayer:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-    async def check_player_flags(self, interaction: Interaction) -> bool:
+    async def check_player_flags(self, interaction: Interaction) -> int | None:
         """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
          
-        Returns True if a check fails. """
+        Returns a `PlayerStopReason` value if a check fails. """
         
         stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
         voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
@@ -110,21 +117,19 @@ class AudioPlayer:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with stop_flag in guild ID {interaction.guild.id}. Ignoring.")
             
             await update_guild_state(self.guild_states, interaction, False, "stop_flag")
-            return True
+            return PlayerStopReason.STOP_FLAG.value
         elif voice_client_locked:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called when voice client is locked in guild ID {interaction.guild.id}. Ignoring.")
-            return True
+            return PlayerStopReason.VC_LOCKED.value
 
         no_users_in_channel = await check_users_in_channel(self.guild_states, interaction)
         if no_users_in_channel:
-            return True
+            return PlayerStopReason.NO_USERS_IN_CHANNEL.value
 
         recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
         if recovered_from_crash:
-            return True
+            return PlayerStopReason.CRASH_RECOVERY.value
         
-        return False
-
     async def play_track(
             self, 
             interaction: Interaction, 
@@ -165,8 +170,8 @@ class AudioPlayer:
 
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
-        ignore_next = await self.check_player_flags(interaction)
-        if ignore_next:
+        stop_reason = await self.check_player_flags(interaction)
+        if stop_reason is not None:
             return
 
         if not queue and not\
@@ -202,8 +207,6 @@ class AudioPlayer:
         """ Handles playback end or error based on the provided voice client. """
         
         if error:
-            asyncio.run_coroutine_threadsafe(interaction.channel.send("An error occurred while handling playback end."), self.client.loop)
-            
             log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         asyncio.run_coroutine_threadsafe(self.play_next(interaction), self.client.loop)
