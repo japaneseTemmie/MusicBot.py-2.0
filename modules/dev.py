@@ -1,7 +1,9 @@
 from settings import CAN_LOG, LOGGER, COOLDOWNS, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED
 from init.logutils import log, log_to_discord_log
+from helpers.devhelpers import reload_cogs
 from bot import Bot, ShardedBot
 
+import asyncio
 from discord.ext import commands
 from time import monotonic
 
@@ -23,39 +25,38 @@ class DevCog(commands.Cog):
             not self.client.has_finished_on_ready:
             return
         
-        self.reloading_cogs = True
-        start_time = monotonic()
-
-        log("===== RELOADING COGS =====")
-        
         if not self.original_cogs:
             self.original_cogs = list(self.client.cogs)
 
-        VOICE_OPERATIONS_LOCKED.set()
-        FILE_OPERATIONS_LOCKED.set()
+        async with ctx.typing():
+            self.reloading_cogs = True
+            VOICE_OPERATIONS_LOCKED.set()
+            FILE_OPERATIONS_LOCKED.set()
 
-        for name in self.original_cogs:
-            await self.client.remove_cog(name)
+            time_taken = await reload_cogs(self.original_cogs, self.client)
 
-        await self.client.load_cogs()
-        await self.client.sync_commands()
+            await asyncio.sleep(10)
 
-        VOICE_OPERATIONS_LOCKED.clear()
-        FILE_OPERATIONS_LOCKED.clear()
+            self.reloading_cogs = False
+            VOICE_OPERATIONS_LOCKED.clear()
+            FILE_OPERATIONS_LOCKED.clear()
 
-        self.reloading_cogs = False
-
-        current_cog_names = list(self.client.cogs)
-        await ctx.send(
-            f"Reloaded **{len(current_cog_names)}** out of **{len(self.original_cogs)}** cogs in **{round(monotonic() - start_time, 2)}**s\n"+
-            f"Currently active cogs:\n{"".join([f"- **{name}**\n" for name in current_cog_names])}"+
-            "Check logs for more accurate report."
-        )
+            current_cog_names = list(self.client.cogs)
+            
+            await ctx.send(
+                f"Reloaded **{len(current_cog_names)}** out of **{len(self.original_cogs)}** cogs in **{time_taken}**s\n"+
+                f"Currently active cogs:\n{"".join([f"- **{name}**\n" for name in current_cog_names])}"+
+                "Check logs for more accurate report."
+            )
 
     @reload_cogs.error
     async def handle_reload_cogs_error(self, ctx: commands.Context, error: Exception):
-        if isinstance(error, commands.NoPrivateMessage) or\
-            isinstance(error, commands.CommandOnCooldown):
+        if isinstance(error, commands.NoPrivateMessage):
+            return
+        elif isinstance(error, commands.CommandOnCooldown):
+            if await self.client.is_owner(ctx.author):
+                await ctx.send(str(error))
+
             return
 
         log("An error occurred while reloading cogs")
