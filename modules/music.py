@@ -13,7 +13,7 @@ from helpers.queuehelpers import (
     check_input_length, check_queue_length,
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
-    find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue,
+    find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue, skip_tracks_in_queue,
     get_queue_indices, get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string
 )
 from helpers.voicehelpers import (
@@ -253,31 +253,24 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
+        voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
-        queue_copy = deepcopy(queue)
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "user_interrupted_playback"))
 
-        skipped = []
-        if amount > 1 and not is_random:
-            for _ in range(1, min(amount, 25)):
-                if len(queue) > 0:
-                    track_info = queue.pop(0)
-                    skipped.append(track_info)
-            else:
-                skipped.insert(0, current_track)
+        skipped = await skip_tracks_in_queue(queue, current_track, is_random, amount)
 
-        voice_client = self.guild_states[interaction.guild.id]["voice_client"]
-        voice_client.stop()
+        if voice_client.is_playing() or voice_client.is_paused():
+            voice_client.stop()
+        else:
+            await self.player.play_next(interaction)
 
         await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
         if len(skipped) > 1:
-            skipped_tracks_indices = await get_queue_indices(queue_copy, skipped[1:])
-
-            embed = generate_skipped_tracks_embed(skipped, skipped_tracks_indices)
+            embed = generate_skipped_tracks_embed(skipped)
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send(f"Skipped track **{current_track['title']}**.")

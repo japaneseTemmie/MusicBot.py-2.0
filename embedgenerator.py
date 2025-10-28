@@ -40,12 +40,10 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     return embed
 
-def generate_skipped_tracks_embed(skipped: list[dict], skipped_indices: list[int] | None) -> discord.Embed:
+def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
     """ Generate an embed to show the amount of skipped tracks.
      
-    `skipped` is the list of tracks that were removed from the queue.
-
-    [Optional] `skipped_indices` are the corresponding indices of the skipped tracks in the queue. """
+    `skipped` is the list of tracks that were removed from the queue. """
     
     embed = discord.Embed(
         title=f"Skipped {'tracks' if len(skipped) > 1 else 'track'}",
@@ -56,7 +54,7 @@ def generate_skipped_tracks_embed(skipped: list[dict], skipped_indices: list[int
     for i, track in enumerate(skipped):
         if i < 24:
             embed.add_field(
-                name=(f"**{skipped_indices[i]}.** " if skipped_indices is not None else "") + f"[ `{track.get('title', 'Unknown')}` ]",
+                name=f"[ `{track.get('title', 'Unknown')}` ]",
                 value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track.get('duration', 'Unknown')}` ]; Source: [ `{track.get('source_website', 'Unknown')}` ]",
                 inline=False
             )

@@ -228,8 +228,6 @@ To start listening to your favourite music:
 
 Help for every command can be found using the **/help** command.
 
-Owner-only management commands can be found [here](./MANAGEMENTCOMMANDS.md)
-
 # Extra Configuration (For experienced hosts)
 During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data.
 

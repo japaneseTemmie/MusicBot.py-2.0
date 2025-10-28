@@ -536,15 +536,20 @@ async def place_track_in_playlist(queue: list, index: int | None, track: dict) -
 
     return playlist_track, index
 
-async def skip_track(queue: list[dict], current_track: dict, is_random: bool, amount: int=1) -> None:
+async def skip_tracks_in_queue(queue: list[dict], current_track: dict, is_random: bool, amount: int=1) -> list[dict]:
+    """ Skip a specified amount of tracks in a queue. """
+    
     skipped = []
     if amount > 1 and not is_random:
         for _ in range(1, min(amount, 25)):
             if len(queue) > 0:
-                track_info = queue.pop(0)
-                skipped.append(track_info)
-        else:
-            skipped.insert(0, current_track)
+                skipped.append(queue.pop(0))
+            else:
+                break
+
+        skipped.insert(0, current_track)
+
+    return skipped
 
 # Custom split
 def split(s: str) -> list[str]:
