@@ -9,7 +9,7 @@ from discord.errors import PrivilegedIntentsRequired, LoginFailure
 def main() -> None:
     """ Main entry point. The greatest journey begins here. (assuming it starts :3) 
     
-    Handles construction of the custom `Bot` object and runs it. """
+    Handles construction of the custom `Bot` object and running it. """
 
     bot = Bot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS) if not USE_SHARDING else\
     ShardedBot(COMMAND_PREFIX, activity=ACTIVITY, intents=INTENTS)
