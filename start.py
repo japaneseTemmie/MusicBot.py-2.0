@@ -5,14 +5,13 @@ from os import name
 from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix, executable
 from time import sleep
-from datetime import datetime
 from init.logutils import log, separator
 
 PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
 VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "python.exe")
 VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
-DEFAULT_DEPENDENCIES = "discord.py\nPyNaCl\nyt_dlp\npython-dotenv\ncachetools"
+DEFAULT_DEPENDENCIES = "aiohappyeyeballs>=2.6.1\naiohttp>=3.11.16\naiosignal>=1.3.2\nattrs>=25.3.0\ncachetools>=6.1.0\ncffi>=1.17.1\ndiscord.py>=2.5.2\nfrozenlist>=1.5.0\nidna>=3.10\nmultidict>=6.4.3\npropcache>=0.3.1\npycparser>=2.22\nPyNaCl>=1.5.0\npython-dotenv>=1.1.0\nyarl>=1.19.0\nyt-dlp>=2025.6.30\n"
 
 cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
@@ -87,7 +86,7 @@ def handle_return_code(code: int, command: str) -> None:
         sysexit(1)
 
 def venv_exists() -> bool:
-    return exists(VENV_PYTHON)
+    return exists(VENV_PATH) and exists(VENV_PYTHON) and exists(VENV_PIP)
 
 def ensure_requirements() -> None:
     if not exists(join(PATH, "requirements.txt")):
