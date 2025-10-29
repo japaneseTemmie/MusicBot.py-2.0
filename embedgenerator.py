@@ -156,7 +156,7 @@ def generate_current_track_embed(
     embed.add_field(name="Filters", value="[ `Enabled` ]" if filters else "[ `Disabled` ]", inline=True)
     embed.add_field(name="Source", value=f"[ `{info.get('source_website', 'Unknown')}` ]", inline=False)
     embed.set_image(url=info.get("thumbnail", None))
-    embed.set_footer(text=f"Total tracks in queue: {len(queue)}")
+    embed.set_footer(text=f"Total tracks in queue: {len(queue) if not is_modifying_queue else 'Unknown'}")
 
     return embed
 

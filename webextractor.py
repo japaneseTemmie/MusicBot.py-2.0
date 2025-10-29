@@ -24,7 +24,7 @@ class SourceWebsite(Enum):
     NEWGROUNDS = "Newgrounds"
     SOUNDCLOUD_PLAYLIST = "SoundCloud Playlist"
     SOUNDCLOUD = "SoundCloud"
-    BANDCAMP_PLAYLIST = "Bandcamp Playlist"
+    BANDCAMP_PLAYLIST = "Bandcamp Album"
     BANDCAMP = "Bandcamp"
     YOUTUBE_SEARCH = "YouTube search"
     SOUNDCLOUD_SEARCH = "SoundCloud search"
@@ -57,6 +57,10 @@ SEARCH_PROVIDERS = {
 
 PLAYLIST_WEBSITES = (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.BANDCAMP_PLAYLIST.value)
 SEARCH_WEBSITES = (SourceWebsite.YOUTUBE_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value)
+
+BANDCAMP_DOMAINS = (SourceWebsite.BANDCAMP.value, SourceWebsite.BANDCAMP_PLAYLIST.value)
+SOUNDCLOUD_DOMAINS = (SourceWebsite.SOUNDCLOUD.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_SEARCH.value)
+YOUTUBE_DOMAINS = (SourceWebsite.YOUTUBE.value, SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.YOUTUBE_SEARCH.value)
 
 def get_query_type(query: str, provider: str | None) -> QueryType:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. 

@@ -1,7 +1,7 @@
 """ Queue helper functions for discord.py bot """
 
 from error import Error
-from webextractor import SourceWebsite
+from webextractor import SourceWebsite, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
 from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_FORMATTING_FILTERS
@@ -296,22 +296,11 @@ async def match_website_filter(filter_website: str, track_website: str) -> bool:
     
     match filter_website:
         case SourceWebsite.SOUNDCLOUD.value:
-            return track_website in (
-                SourceWebsite.SOUNDCLOUD.value,
-                SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
-                SourceWebsite.SOUNDCLOUD_SEARCH.value
-            )
+            return track_website in SOUNDCLOUD_DOMAINS
         case SourceWebsite.YOUTUBE.value:
-            return track_website in (
-                SourceWebsite.YOUTUBE.value,
-                SourceWebsite.YOUTUBE_SEARCH.value,
-                SourceWebsite.YOUTUBE_PLAYLIST.value
-            )
+            return track_website in YOUTUBE_DOMAINS
         case SourceWebsite.BANDCAMP.value:
-            return track_website in (
-                SourceWebsite.BANDCAMP.value,
-                SourceWebsite.BANDCAMP_PLAYLIST.value
-            )
+            return track_website in BANDCAMP_DOMAINS
         case _:
             return filter_website == track_website
 

@@ -20,7 +20,7 @@ async def get_ffmpeg_options(position: int) -> dict[str, str]:
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
     
     return {
-        "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10",
+        "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10 -rw_timeout 7000000",
         "options": f"-vn -ss {position}"
     }
 
