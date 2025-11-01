@@ -6,6 +6,7 @@ from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix, executable
 from time import sleep
 from init.logutils import log, separator
+from helpers.iohelpers import write_file
 
 PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
@@ -19,14 +20,14 @@ cmd_run_main = [VENV_PYTHON, "main.py"]
 
 def check_python_ver() -> None:
     if version_info < (3, 10):
-        log(f"Python 3.10+ is required for this project.")
+        log(f"Python 3.10+ is required for this project.", "runner")
         sleep(2)
 
         sysexit(1)
 
 def is_in_venv() -> None:
     if prefix != base_prefix:
-        log("This script cannot be executed inside a venv.")
+        log("This script cannot be executed inside a venv.", "runner")
         sysexit(1)
 
 def run(command: list[str], sep_process: bool=False) -> int:
@@ -51,7 +52,7 @@ def run(command: list[str], sep_process: bool=False) -> int:
             preexec_fn=preexec_fn
         )
     except SubprocessError as e:
-        log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}")
+        log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}", "runner")
         sysexit(1)
     
     try:
@@ -71,18 +72,9 @@ def run(command: list[str], sep_process: bool=False) -> int:
                 process.terminate() # Fallback
         return process.wait()
 
-def write(file_path: str, content: str) -> bool:
-    try:
-        with open(file_path, "w") as f:
-            f.write(content)
-        return True
-    except OSError as e:
-        log(f"An error occurred while writing to {file_path}.\nErr: {e}")
-        return False
-
 def handle_return_code(code: int, command: str) -> None:
     if code != 0:
-        log(f"Running command '{command}' failed. Exiting...")
+        log(f"Running command '{command}' failed. Exiting...", "runner")
         sysexit(1)
 
 def venv_exists() -> bool:
@@ -90,10 +82,10 @@ def venv_exists() -> bool:
 
 def ensure_requirements() -> None:
     if not exists(join(PATH, "requirements.txt")):
-        log("requirements.txt file not found. Creating file..")
+        log("requirements.txt file not found. Creating file..", "runner")
         sleep(1)
 
-        success = write(join(PATH, "requirements.txt"), DEFAULT_DEPENDENCIES)
+        success = write_file(join(PATH, "requirements.txt"), DEFAULT_DEPENDENCIES, False)
 
         if not success:
             sysexit(1)
@@ -110,30 +102,30 @@ def main() -> None:
     check_python_ver()
     is_in_venv()
     
-    log(f"Verifying venv installation in {VENV_PATH}")
+    log(f"Verifying venv installation in {VENV_PATH}", "runner")
     sleep(0.5)
     if not venv_exists():
-        log(f"venv not found! Creating a new venv in {VENV_PATH}")
+        log(f"venv not found! Creating a new venv in {VENV_PATH}", "runner")
         sleep(2)
 
         install_venv()
 
         if venv_exists():
-            log("Checking requirements.txt")
+            log("Checking requirements.txt", "runner")
             sleep(0.5)
 
             ensure_requirements()
 
-            log("Installing dependencies through requirements.txt")
+            log("Installing dependencies through requirements.txt", "runner")
             sleep(0.5)
 
             install_dependencies()
     else:
-        log(f"venv found at {VENV_PATH}")
+        log(f"venv found at {VENV_PATH}", "runner")
         sleep(0.5)
 
     try:
-        log("Running main.py")
+        log("Running main.py", "runner")
         separator()
         run(cmd_run_main)
     except KeyboardInterrupt:

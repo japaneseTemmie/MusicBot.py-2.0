@@ -239,7 +239,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="skip", description="Skips to next track in the queue.")
     @app_commands.describe(
-        amount="The amount of tracks to skip. Starts from the current track. Must be <= 25 and /random must not be enabled."
+        amount="The amount of tracks to skip. Must be <= 25 and track randomization must not be enabled."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only

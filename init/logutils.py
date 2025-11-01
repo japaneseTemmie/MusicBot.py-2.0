@@ -6,10 +6,10 @@ from datetime import datetime
 from random import choice
 from logging import Logger
 
-def log(msg: str) -> None:
+def log(msg: str, log_type: str="main") -> None:
     """ Log `msg` to stdout. """
     
-    print(f"{choice(all_colors)}[main]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
+    print(f"{choice(all_colors)}[{log_type}]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
 
 def separator(s: str="=", length: int=35) -> None:
     print("".join([choice(all_colors) + s + Colors.RESET for _ in range(length)]))
