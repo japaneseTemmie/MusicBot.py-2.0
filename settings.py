@@ -1,6 +1,6 @@
 """ General settings configuration for discord.py bot """
 
-from init.info import get_current_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_ffmpeg_path_output
+from init.info import get_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
 from init.config import get_config_data, get_default_yt_dlp_config_data
 from init.help import open_help_file
 from init.loghelpers import set_up_logging, remove_log
@@ -25,19 +25,39 @@ separator()
 sleep(0.5)
 
 # System info and config
-PATH = get_current_directory(__file__)
-PYTHON = get_python()
-SYSTEM = get_os()
+PATH = get_directory(__file__)
+log(f"Working directory: {PATH}")
+separator()
+
+PYTHON_IMPLEMENTATION, PYTHON_VERSION = get_python()
+log(f"Running in {PYTHON_IMPLEMENTATION} version {PYTHON_VERSION}")
+separator()
+
+OS_PRETTY_NAME, OS_NAME, KERNEL_VERSION = get_os()
+log(f"OS: {OS_NAME}, Pretty name: {OS_PRETTY_NAME}")
+log(f"Kernel: {OS_PRETTY_NAME + ' ' + KERNEL_VERSION if KERNEL_VERSION is not None else 'Unknown'}")
+separator()
+
 CONFIG = get_config_data(PATH)
 load_dotenv()
 sleep(0.2)
 
-# Define config vars as constants
+# Define config constants
 CAN_LOG = CONFIG.get("enable_logging", True)
+CAN_LOG = CAN_LOG if isinstance(CAN_LOG, bool) else True
+
 YDL_OPTIONS = CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data())
+YDL_OPTIONS = YDL_OPTIONS if isinstance(YDL_OPTIONS, dict) else get_default_yt_dlp_config_data()
+
 COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
+COMMAND_PREFIX = COMMAND_PREFIX if isinstance(COMMAND_PREFIX, str) else "?"
+
 USE_SHARDING = CONFIG.get("use_sharding", False)
+USE_SHARDING = USE_SHARDING if isinstance(USE_SHARDING, bool) else False
+
 ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
+ENABLE_FILE_BACKUPS = ENABLE_FILE_BACKUPS if isinstance(ENABLE_FILE_BACKUPS, bool) else True
+
 HELP = open_help_file(PATH)
 COOLDOWNS = {
     "PING_COMMAND_COOLDOWN": 5.0,
@@ -59,8 +79,7 @@ COOLDOWNS = {
     "ANNOUNCE_MESSAGE_COMMAND_COOLDOWN": 15.0,
     "MOVE_USER_COMMAND_COOLDOWN": 10.0,
     "VC_KICK_COMMAND_COOLDOWN": 10.0,
-    "VC_MUTE_COMMAND_COOLDOWN": 10.0,
-    "DEV_COMMAND_COOLDOWN": 60.0
+    "VC_MUTE_COMMAND_COOLDOWN": 10.0
 }
 
 # Logging
@@ -68,8 +87,11 @@ COOLDOWNS = {
 HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
 LOG_LEVEL = VALID_LOG_LEVELS.get(LEVEL, INFO)
 
+# FFmpeg and FFprobe validation
 FFMPEG = which("ffmpeg")
-handle_ffmpeg_path_output(SYSTEM, FFMPEG)
+handle_which_ff_output(OS_NAME, FFMPEG)
+FFPROBE = which("ffprobe")
+handle_which_ff_output(OS_NAME, FFPROBE, "probe")
 
 # Cache
 # Set up hashmaps for asyncio locks and cache
@@ -91,6 +113,11 @@ EXTRACTOR_SEMAPHORE = asyncio.Semaphore(MAX_FETCH_CALLS)
 
 # API stuff
 ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data(CONFIG)
+if not ACTIVITY_ENABLED:
+    log("Activity disabled")
+else:
+    log("Activity enabled")
+separator()
 
 INTENTS = Intents.all()
 ACTIVITY = get_activity(ACTIVITY_ENABLED, ACTIVITY_NAME, ACTIVITY_TYPE)

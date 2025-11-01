@@ -2,16 +2,17 @@
 
 Helper module to dynamically load all modules found in a specified directory. """
 
-from settings import CONFIG, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
 from init.logutils import log, log_to_discord_log
 
 from discord.ext import commands
+from types import ModuleType
+from typing import Any
 from sys import modules
 from os.path import isdir
 from os import listdir
 from inspect import getmembers, isclass
 from importlib import import_module, reload
-from types import ModuleType
 
 class ModuleLoader:
     """ Loader object.
@@ -29,9 +30,7 @@ class ModuleLoader:
             return None
 
         try:
-            tree = listdir(self.path)
-
-            return tree
+            return listdir(self.path)
         except OSError as e:
             log(f"An error occured while opening directory '{self.path}'\nErr: {e}")
             log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
@@ -78,13 +77,17 @@ class ModuleLoader:
 
         return imported_modules
     
-    def get_enable_values_from_config(self, class_names: list[str]) -> list[tuple[str, bool]]:
-        """ Returns the corresponding enable value for each Cog in config.json """
+    def get_enable_values_from_config(self, config: dict[str, Any], class_names: list[str]) -> list[tuple[str, bool]]:
+        """ Returns the corresponding enable value for each Cog in `config.json` """
         
-        return [
-            (name, CONFIG.get(f"enable_{name}", False))
-            for name in class_names
-        ]
+        values = []
+        for name in class_names:
+            config_value = config.get(f"enable_{name}", False)
+            config_value = config_value if isinstance(config_value, bool) else False
+
+            values.append((name, config_value))
+
+        return values
 
     def get_classes(self) -> list[type[commands.Cog]]:
         """ Returns all classes that inherit from `commands.Cog` in the found modules. """
@@ -93,7 +96,6 @@ class ModuleLoader:
         modules = self.get_module_contents(self.get_module_names())
 
         for module in modules:
-            
             for _, obj in getmembers(module, isclass):
                 if issubclass(obj, commands.Cog) and obj.__module__ == module.__name__:
                     classes.append(obj)

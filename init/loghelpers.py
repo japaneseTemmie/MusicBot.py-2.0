@@ -20,7 +20,9 @@ def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Forma
     log(f"Created log file at {path}")
     
     formatter = Formatter("[{asctime}] | {levelname:<8} {name}: {message}", "%d/%m/%Y @ %H:%M:%S", style="{")
+    
     level = config.get("log_level", "normal").strip()
+    level = level if isinstance(level, str) else "normal"
     
     log(f"Log level found: {level}, actual: {VALID_LOG_LEVELS.get(level, INFO)}")
     separator()

@@ -1,6 +1,6 @@
 """ Bot subclass setup module for discord.py bot """
 
-from settings import ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG
+from settings import ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG, CONFIG
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
 from random import randint
@@ -37,7 +37,7 @@ class Bot(commands.Bot):
         
         loader = ModuleLoader("modules")
         classes = loader.get_classes()
-        values = loader.get_enable_values_from_config([obj.__name__ for obj in classes])
+        values = loader.get_enable_values_from_config(CONFIG, [obj.__name__ for obj in classes])
         cogs = []
 
         for (_, value), cog in zip(values, classes):
@@ -144,6 +144,9 @@ class Bot(commands.Bot):
 
             log(f"Logged in as {self.user.name}")
             separator()
+            log(f"Command prefix is '{self.command_prefix}'")
+            separator()
+
             await self.post_login_tasks()
 
             log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
