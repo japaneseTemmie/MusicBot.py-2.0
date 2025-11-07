@@ -9,7 +9,6 @@ from init.config import correct_type
 from discord.ext import commands
 from types import ModuleType
 from typing import Any
-from sys import modules
 from os.path import isdir
 from os import listdir
 from inspect import getmembers, isclass
@@ -59,19 +58,10 @@ class ModuleLoader:
         imported_modules = []
         for name in module_names:
             try:
-                if name not in modules:
-                    module = import_module(name)
-                else:
-                    module = reload(modules[name])
-
+                module = import_module(name)
                 imported_modules.append(module)
             except Exception as e:
-                if name in modules:
-                    imported_modules.append(modules[name])
-
-                    log(f"An error occured while importing module '{name}', reloaded old version.")
-                else:
-                    log(f"An error occured while importing module '{name}'")
+                log(f"An error occured while importing module '{name}'")
                 log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
                 
                 continue
