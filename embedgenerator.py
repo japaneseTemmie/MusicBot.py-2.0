@@ -14,7 +14,7 @@ def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
         timestamp=datetime.now()
     )
 
-    embed.add_field(name=f"Since [ `{join_time}` ]", value=elapsed_time, inline=False)
+    embed.add_field(name=f"Since {join_time}", value=f"[ `{elapsed_time}` ]", inline=False)
 
     return embed
 

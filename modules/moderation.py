@@ -19,17 +19,19 @@ from time import time as get_unix_timestamp
 class ModerationCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
-        self.max_channel_name_length = 100
-        self.max_topic_length = 1024
-        self.max_slowmode = 21600
-        self.max_bitrate = 96000
-        self.max_stage_bitrate = 64000
-        self.max_user_limit = 99
-        self.max_announcement_length = 2000
-        self.max_purge_limit = 1000
+
+        self.max_channel_name_length = self.client.max_channel_name_length
+        self.max_topic_length = self.client.max_topic_length
+        self.max_slowmode = self.client.max_slowmode
+        self.max_bitrate = self.client.max_bitrate
+        self.max_stage_bitrate = self.client.max_stage_bitrate
+        self.max_user_limit = self.client.max_user_limit
+        self.max_announcement_length = self.client.max_announcement_length
+        self.max_purge_limit = self.client.max_purge_limit
 
     async def handle_command_error(self, interaction: Interaction, error: Exception):
         """ AIO error handler for moderation commands.
+        
         Currently handles:
          
         - BotMissingPermissions
@@ -81,18 +83,18 @@ class ModerationCog(commands.Cog):
         channel = interaction.channel if channel is None else channel
         amount = max(1, min(self.max_purge_limit, amount))
 
-        deleted = await channel.purge(limit=amount, check=await get_purge_check(user, word))
-        message_amount = len(deleted)
+        deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word))
+        deleted_message_amount = len(deleted_messages)
 
-        if message_amount < 1:
+        if deleted_message_amount < 1:
             await interaction.followup.send("No messages deleted.")
             return
         
-        await interaction.followup.send(f"Deleted **{message_amount}** {'messages' if message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.") if not show else\
-        await interaction.followup.send(f"Finished with **{message_amount}** {'messages' if message_amount > 1 else 'message'}.")
-        
         if show:
-            await interaction.channel.send(f"Deleted **{message_amount}** {'messages' if message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.")       
+            await interaction.followup.send(f"Finished with **{deleted_message_amount}** {'messages' if deleted_message_amount > 1 else 'message'}.")
+            await interaction.channel.send(f"Deleted **{deleted_message_amount}** {'messages' if deleted_message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.")       
+        else:
+            await interaction.followup.send(f"Deleted **{deleted_message_amount}** {'messages' if deleted_message_amount > 1 else 'message'} from channel **{channel.name} ({channel.id})**.")
 
     @purge_channel.error
     async def handle_purge_error(self, interaction: Interaction, error: Exception):
@@ -116,10 +118,10 @@ class ModerationCog(commands.Cog):
         if member in (interaction.user, interaction.guild.me):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to kick member **{member.name}**.", ephemeral=True)
             return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to kick member **{member.name}**.", ephemeral=True)
             return
         
@@ -149,17 +151,19 @@ class ModerationCog(commands.Cog):
         if member in (interaction.user, interaction.guild.me):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to ban member **{member.name}**.", ephemeral=True)
             return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to ban member **{member.name}**.", ephemeral=True)
             return
 
         await interaction.guild.ban(member, reason=reason)
 
-        await interaction.response.send_message(f"Member **{member.name}** has been banned from the guild"
-                                                f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Member **{member.name}** has been banned from the guild"
+            f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
+        )
 
     @ban_member.error
     async def handle_ban_error(self, interaction: Interaction, error: Exception):
@@ -190,8 +194,10 @@ class ModerationCog(commands.Cog):
             return
 
         await interaction.guild.unban(member_to_unban, reason=reason.strip())
-        await interaction.response.send_message(f"Member **{member_to_unban.name}** has been unbanned"
-                                                f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Member **{member_to_unban.name}** has been unbanned"
+            f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
+        )
 
     @unban_member.error
     async def handle_unban_error(self, interaction: Interaction, error: Exception):
@@ -217,9 +223,11 @@ class ModerationCog(commands.Cog):
         current_time = get_unix_timestamp()
 
         if duration_in_seconds is None:
-            await interaction.response.send_message("Invalid duration. Be sure to format it to **DD:HH:MM:SS**.\n"+
-                                                    "Example: **00:03:00:00**.\n"+
-                                                    "Additionally, **DD** must not be > 28 and **HH** and **MM** must not be > 59.", ephemeral=True)
+            await interaction.response.send_message(
+                "Invalid duration. Be sure to format it to **DD:HH:MM:SS**.\n"+
+                "Example: **00:03:00:00**.\n"+
+                "Additionally, **DD** must not be > 28 and **HH** and **MM** must not be > 59.", ephemeral=True
+            )
             return
         elif member in (interaction.user, interaction.guild.me):
             await interaction.response.send_message("Member cannot be yourself or me.", ephemeral=True)
@@ -227,10 +235,10 @@ class ModerationCog(commands.Cog):
         elif member.is_timed_out():
             await interaction.response.send_message(f"Member **{member.name}** is already timed out!", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to time out member **{member.name}**.", ephemeral=True)
             return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to time out member **{member.name}**.", ephemeral=True)
             return
 
@@ -267,8 +275,10 @@ class ModerationCog(commands.Cog):
             return
         
         await member.timeout(None, reason=reason)
-        await interaction.response.send_message(f"{f'**{interaction.user.display_name}** has ' if show else ''}"
-                                                f"{'R' if not show else 'r'}emoved timeout from member **{member.name}**.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"{f'**{interaction.user.display_name}** has ' if show else ''}"
+            f"{'R' if not show else 'r'}emoved timeout from member **{member.name}**.", ephemeral=not show
+        )
 
     @remove_timeout_from_member.error
     async def handle_remove_timeout_from_member_error(self, interaction: Interaction, error: Exception):
@@ -300,8 +310,10 @@ class ModerationCog(commands.Cog):
             return
 
         await member.add_roles(role, reason=reason)
-        await interaction.response.send_message(f"{f'**{interaction.user.display_name}** has ' if show else ''}"
-                                                f"{'A' if not show else 'a'}dded role **{role.name}** to member **{member.name}**!", ephemeral=not show)
+        await interaction.response.send_message(
+            f"{f'**{interaction.user.display_name}** has ' if show else ''}"
+            f"{'A' if not show else 'a'}dded role **{role.name}** to member **{member.name}**!", ephemeral=not show
+        )
 
     @add_role.error
     async def handle_add_role_error(self, interaction: Interaction, error: Exception):
@@ -333,8 +345,10 @@ class ModerationCog(commands.Cog):
             return
 
         await member.remove_roles(role, reason=reason)
-        await interaction.response.send_message(f"{f'**{interaction.user.display_name}** has ' if show else ''}"
-                                                f"{'R' if not show else 'r'}emoved role **{role.name}** from member **{member.name}**!", ephemeral=not show)
+        await interaction.response.send_message(
+            f"{f'**{interaction.user.display_name}** has ' if show else ''}"
+            f"{'R' if not show else 'r'}emoved role **{role.name}** from member **{member.name}**!", ephemeral=not show
+        )
 
     @remove_role.error
     async def handle_remove_role_error(self, interaction: Interaction, error: Exception):
@@ -372,7 +386,8 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def create_text_channel(self,
+    async def create_text_channel(
+            self,
             interaction: Interaction,
             name: str,
             topic: str="",
@@ -398,18 +413,20 @@ class ModerationCog(commands.Cog):
         slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
 
         if announcement and "NEWS" not in guild_features:
-            await interaction.response.send_message(f"News channels require a community-enabled guild.", ephemeral=True)
+            await interaction.response.send_message(f"Announcement channels require a community-enabled guild.", ephemeral=True)
             return
 
         created_channel = await interaction.guild.create_text_channel(name, category=category, news=announcement, slowmode_delay=slowmode_delay, nsfw=nsfw, position=position, topic=topic)
 
-        await interaction.response.send_message(f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-                                                f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-                                                f"News: **{created_channel.is_news()}**\n"
-                                                f"Slowmode delay: **{created_channel.slowmode_delay}** seconds\n"
-                                                f"NSFW: **{created_channel.is_nsfw()}**\n"
-                                                f"Position: **{created_channel.position}**\n"
-                                                f"Topic: **{created_channel.topic if created_channel.topic else 'None'}**.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
+            f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
+            f"Announcement channel: **{created_channel.is_news()}**\n"
+            f"Slowmode delay: **{created_channel.slowmode_delay}** seconds\n"
+            f"NSFW: **{created_channel.is_nsfw()}**\n"
+            f"Position: **{created_channel.position}**\n"
+            f"Topic: **{created_channel.topic if created_channel.topic else 'None'}**.", ephemeral=not show
+        )
 
     @create_text_channel.error
     async def handle_create_channel_error(self, interaction: Interaction, error: Exception):
@@ -429,7 +446,8 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def create_voice_channel(self,
+    async def create_voice_channel(
+            self,
             interaction: Interaction,
             name: str,
             category: discord.CategoryChannel=None,
@@ -451,12 +469,14 @@ class ModerationCog(commands.Cog):
         
         created_channel = await interaction.guild.create_voice_channel(name, category=category, position=position, bitrate=bitrate, user_limit=user_limit, video_quality_mode=video_quality_mode)
 
-        await interaction.response.send_message(f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-                                                f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-                                                f"Position: **{created_channel.position}**\n"
-                                                f"Bitrate: **{created_channel.bitrate}**kbps\n"
-                                                f"User limit: **{created_channel.user_limit}**\n"
-                                                f"Video quality: **{created_channel.video_quality_mode.name}**.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
+            f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
+            f"Position: **{created_channel.position}**\n"
+            f"Bitrate: **{created_channel.bitrate}**kbps\n"
+            f"User limit: **{created_channel.user_limit}**\n"
+            f"Video quality: **{created_channel.video_quality_mode.name}**.", ephemeral=not show
+        )
 
     @create_voice_channel.error
     async def handle_create_voice_channel_error(self, interaction: Interaction, error: Exception):
@@ -482,7 +502,7 @@ class ModerationCog(commands.Cog):
 
         created_category = await interaction.guild.create_category(name=name, position=position)
 
-        await interaction.response.send_message(f"Created category named **{created_category.name}** with position **{created_category.position}**", ephemeral=not show)
+        await interaction.response.send_message(f"Created category named **{created_category.name}** at position **{created_category.position}**", ephemeral=not show)
 
     @create_category.error
     async def handle_create_category_error(self, interaction: Interaction, error: Exception):
@@ -502,7 +522,8 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def create_forum_channel(self,
+    async def create_forum_channel(
+            self,
             interaction: Interaction,
             name: str,
             post_guidelines: str="",
@@ -530,12 +551,14 @@ class ModerationCog(commands.Cog):
             return
 
         created_channel = await interaction.guild.create_forum(name=name, topic=post_guidelines, position=position, category=category, slowmode_delay=slowmode_delay, nsfw=nsfw)
-        await interaction.response.send_message(f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-                                                f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
-                                                f"Position: **{created_channel.position}**\n"
-                                                f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-                                                f"Slowmode delay: **{created_channel.slowmode_delay}**\n"
-                                                f"NSFW: **{created_channel.is_nsfw()}**", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
+            f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
+            f"Position: **{created_channel.position}**\n"
+            f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
+            f"Slowmode delay: **{created_channel.slowmode_delay}**\n"
+            f"NSFW: **{created_channel.is_nsfw()}**", ephemeral=not show
+        )
 
     @create_forum_channel.error
     async def handle_create_forum_channel_error(self, interaction: Interaction, error: Exception):
@@ -554,7 +577,8 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def create_stage_channel(self,
+    async def create_stage_channel(
+            self,
             interaction: Interaction,
             name: str,
             category: discord.CategoryChannel=None,
@@ -577,11 +601,13 @@ class ModerationCog(commands.Cog):
             return
 
         created_channel = await interaction.guild.create_stage_channel(name=name, category=category, position=position, bitrate=bitrate, video_quality_mode=video_quality_mode)
-        await interaction.response.send_message(f"Created channel named **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-                                                f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-                                                f"Position: **{created_channel.position}**\n"
-                                                f"Bitrate: **{created_channel.bitrate}**kbps\n"
-                                                f"Video quality mode: **{created_channel.video_quality_mode.name}**", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Created channel named **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
+            f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
+            f"Position: **{created_channel.position}**\n"
+            f"Bitrate: **{created_channel.bitrate}**kbps\n"
+            f"Video quality mode: **{created_channel.video_quality_mode.name}**", ephemeral=not show
+        )
     
     @create_stage_channel.error
     async def handle_create_stage_channel_error(self, interaction: Interaction, error: Exception):
@@ -608,9 +634,10 @@ class ModerationCog(commands.Cog):
 
         await channel.edit(slowmode_delay=slowmode_delay)
 
-        await interaction.response.send_message(f"New slowmode delay applied for channel **{channel.name}**!\n"
-                                                f"Old: **{old_delay}** seconds; New: **{channel.slowmode_delay}** seconds",
-                                                ephemeral=not show)
+        await interaction.response.send_message(
+            f"New slowmode delay applied for channel **{channel.name}**!\n"
+            f"Old: **{old_delay}** seconds; New: **{channel.slowmode_delay}** seconds", ephemeral=not show
+        )
 
     @change_slowmode.error
     async def handle_change_slowmode_error(self, interaction: Interaction, error: Exception):
@@ -664,22 +691,21 @@ class ModerationCog(commands.Cog):
         if not member.voice:
             await interaction.response.send_message(f"Member **{member.name}** is not in a voice channel.", ephemeral=True)
             return
-        elif member in (interaction.user, interaction.guild.me):
-            await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
-            return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to kick **{member.name}** from **{target_member_vc}**.", ephemeral=True)
             return
         
         channel = member.voice.channel
         await member.move_to(None, reason=reason.strip())
 
-        await interaction.response.send_message(f"Member **{member.name}** has been kicked from voice channel "
-                                                f"**{channel.name}**"
-                                                f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Member **{member.name}** has been kicked from voice channel "
+            f"**{channel.name}**"
+            f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
+        )
 
     @kick_user_from_vc.error
     async def handle_kick_user_from_vc_error(self, interaction: Interaction, error: Exception):
@@ -707,22 +733,21 @@ class ModerationCog(commands.Cog):
         elif member.voice.channel == target_voice_channel:
             await interaction.response.send_message(f"Member **{member.name}** is already in **{target_voice_channel.name}**.", ephemeral=True)
             return
-        elif member in (interaction.user, interaction.guild.me):
-            await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
-            return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to move **{member.name}** to **{target_voice_channel.name}**.", ephemeral=True)
             return
         
         current_channel = member.voice.channel
         await member.move_to(target_voice_channel, reason=reason.strip())
 
-        await interaction.response.send_message(f"Member **{member.name}** has been moved from voice channel "
-                                                f"**{current_channel.name}** to **{target_voice_channel.name}**"
-                                                f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Member **{member.name}** has been moved from voice channel "
+            f"**{current_channel.name}** to **{target_voice_channel.name}**"
+            f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
+        )
     
     @move_user_to_vc.error
     async def handle_move_user_to_vc(self, interaction: Interaction, error: Exception):
@@ -753,17 +778,19 @@ class ModerationCog(commands.Cog):
         elif member in (interaction.user, interaction.guild.me):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)
             return
-        elif member_top_role <= target_member_top_role:
+        elif member_top_role < target_member_top_role:
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to mute **{member.name}**.", ephemeral=True)
             return
-        elif bot_top_role <= target_member_top_role:
+        elif bot_top_role < target_member_top_role:
             await interaction.response.send_message(f"My role (**{bot_top_role.name}**) is not high enough to mute **{member.name}**.", ephemeral=True)
             return
 
         await member.edit(mute=mute, reason=reason.strip())
 
-        await interaction.response.send_message(f"Member **{member.name}** has been **{"muted" if mute else "unmuted"}**"
-                                                f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show)
+        await interaction.response.send_message(
+            f"Member **{member.name}** has been **{"muted" if mute else "unmuted"}**"
+            f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
+        )
         
     @vc_mute_member.error
     async def handle_vc_mute_member_error(self, interaction: Interaction, error: Exception):
