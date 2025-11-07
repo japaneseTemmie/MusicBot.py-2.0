@@ -126,15 +126,15 @@ _*Support may depend on command._
 
   - An internet connection with **high download/upload speeds**.
   
-      Minimum `100mbps DL`/`10mbps UL` for personal use, `1Gbps+ DL`/`~500mbps+ UL` for a moderate amount of guilds
+      Minimum `100Mbps DL`/`10Mbps UL` for personal use, `1Gbps+ DL`/`700Mbps+ UL` for a moderate amount of guilds
 
-      Note: Very slow connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
+      Note: Very slow or unstable connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
 
-  - A system with lots of RAM (>= 32GB).
+  - A system with lots of RAM (ideally >= 32GB).
 
       The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
 
-  - A system with a powerful CPU (8+ performance cores).
+  - A system with a powerful CPU (8+ performance cores, 4GHz+).
 
       A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
 
