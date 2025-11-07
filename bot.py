@@ -5,7 +5,7 @@ from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
 from random import randint
 from init.logutils import log, separator, log_to_discord_log
-from guild import ensure_guild_data
+from guildchecks import ensure_guild_data
 from time import monotonic
 
 import asyncio
@@ -31,6 +31,15 @@ class Bot(commands.Bot):
         self.max_playlist_limit = 5
         self.max_playlist_item_limit = 100
         self.max_playlist_name_length = 50
+
+        self.max_channel_name_length = 100
+        self.max_topic_length = 1024
+        self.max_slowmode = 21600
+        self.max_bitrate = 96000
+        self.max_stage_bitrate = 64000
+        self.max_user_limit = 99
+        self.max_announcement_length = 2000
+        self.max_purge_limit = 1000
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
