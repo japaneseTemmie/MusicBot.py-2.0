@@ -1,7 +1,7 @@
 """ General settings configuration for discord.py bot """
 
 from init.info import get_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
-from init.config import get_config_data, get_default_yt_dlp_config_data
+from init.config import get_config_data, get_default_yt_dlp_config_data, correct_type
 from init.help import open_help_file
 from init.loghelpers import set_up_logging, remove_log
 from init.logutils import log, separator
@@ -43,20 +43,11 @@ load_dotenv()
 sleep(0.2)
 
 # Define config constants
-CAN_LOG = CONFIG.get("enable_logging", True)
-CAN_LOG = CAN_LOG if isinstance(CAN_LOG, bool) else True
-
-YDL_OPTIONS = CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data())
-YDL_OPTIONS = YDL_OPTIONS if isinstance(YDL_OPTIONS, dict) else get_default_yt_dlp_config_data()
-
-COMMAND_PREFIX = CONFIG.get("command_prefix", "?")
-COMMAND_PREFIX = COMMAND_PREFIX if isinstance(COMMAND_PREFIX, str) else "?"
-
-USE_SHARDING = CONFIG.get("use_sharding", False)
-USE_SHARDING = USE_SHARDING if isinstance(USE_SHARDING, bool) else False
-
-ENABLE_FILE_BACKUPS = CONFIG.get("enable_file_backups", True)
-ENABLE_FILE_BACKUPS = ENABLE_FILE_BACKUPS if isinstance(ENABLE_FILE_BACKUPS, bool) else True
+CAN_LOG = correct_type(CONFIG.get("enable_logging", True), bool, True)
+YDL_OPTIONS = correct_type(CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data()), dict, get_default_yt_dlp_config_data())
+COMMAND_PREFIX = correct_type(CONFIG.get("command_prefix", "?"), str, "?")
+USE_SHARDING = correct_type(CONFIG.get("use_sharding", False), bool, False)
+ENABLE_FILE_BACKUPS = correct_type(CONFIG.get("enable_file_backups", True), bool, True)
 
 HELP = open_help_file(PATH)
 COOLDOWNS = {

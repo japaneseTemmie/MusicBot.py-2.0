@@ -24,6 +24,6 @@ def open_help_file(dir: str) -> dict[str, str] | None:
         return None
     
     log(f"Found {len(content.keys())} entries in help file.")
-
     separator()
+    
     return content

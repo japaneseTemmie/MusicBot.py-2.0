@@ -11,7 +11,7 @@ def get_default_yt_dlp_config_data() -> dict[str, Any]:
     return {
         "quiet": True,
         "no_playlist": True,
-        "format": "bestaudio[ext=m4a]/best[ext=m4a]",
+        "format": "bestaudio[ext=m4a]/bestaudio",
         "no_warnings": True,
         "getcomments": False,
         "writeautomaticsub": False,
@@ -42,6 +42,24 @@ def get_default_modules_config_data() -> dict[str, bool]:
         "enable_VoiceCog": True,
         "enable_MyCog": False
     }
+
+def correct_type(value: Any, correct_type: type | tuple[type | Any], default: Any, condition: str="isinstance") -> Any:
+    """ Correct a config value type. 
+    
+    `condition` is the condition to check. Can be 'isinstance' or 'in'.
+    
+    'isinstance' uses the isinstance function to check whether value is of the correct type(s).
+
+    'in' checks if the value is in a tuple of objects.
+
+    Returns corrected value. """
+
+    if condition == "isinstance" and isinstance(value, correct_type):
+        return value
+    elif condition == "in" and value in correct_type:
+        return value
+    
+    return default
 
 def get_default_config_data() -> dict[str, Any]:
     config = {

@@ -2,11 +2,12 @@
 
 from init.constants import VALID_LOG_LEVELS
 from init.logutils import log, separator
+from init.config import correct_type
 
 from logging import FileHandler, Formatter, Logger, getLogger, INFO
+from typing import Any
 from os.path import join, exists
 from os import remove
-from typing import Any
 
 def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:
     log("Logging enabled")
@@ -21,8 +22,7 @@ def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Forma
     
     formatter = Formatter("[{asctime}] | {levelname:<8} {name}: {message}", "%d/%m/%Y @ %H:%M:%S", style="{")
     
-    level = config.get("log_level", "normal").strip()
-    level = level if isinstance(level, str) else "normal"
+    level = correct_type(config.get("log_level", "normal").strip(), str, "normal")
     
     log(f"Log level found: {level}, actual: {VALID_LOG_LEVELS.get(level, INFO)}")
     separator()

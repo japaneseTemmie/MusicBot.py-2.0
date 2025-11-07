@@ -2,9 +2,11 @@
 
 from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
 from init.logutils import log, separator
+from init.config import correct_type
 
 import discord
 from typing import Any
+from types import NoneType
 from os.path import dirname
 from os import name
 from platform import python_implementation, python_version, system
@@ -39,18 +41,11 @@ def get_os() -> tuple[str, str, str | None]:
 def get_activity_data(config: dict[str, Any]) -> tuple[str | None, str, str | None, str | None]:
     """ Get bot metadata to send to the Discord API. """
     
-    activity_enabled = config.get("enable_activity", False)
-    activity_enabled = activity_enabled if isinstance(activity_enabled, bool) else False
-
-    status = config.get("default_status", None)
-    status = status if status in VALID_STATUSES else None
-
-    activity_name = config.get("activity_name", "with the API")
-    activity_name = activity_name if isinstance(activity_name, str) else "with the API"
+    activity_enabled = correct_type(config.get("enable_activity", False), bool, False)
+    status = correct_type(config.get("default_status", None), (str, NoneType), None)
+    activity_name = correct_type(config.get("activity_name", "with the API"), str, "with the API")
+    activity_type = correct_type(config.get("activity_type", None), VALID_ACTIVITY_TYPES, None, "in")
     
-    activity_type = config.get("activity_type", None)
-    activity_type = activity_type if activity_type in VALID_ACTIVITY_TYPES else None
-
     return activity_enabled, status, activity_name, activity_type
 
 def get_activity(activity_enabled: bool, activity_name: str, activity_type: str) -> discord.Activity | None:
