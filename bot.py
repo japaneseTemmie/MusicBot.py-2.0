@@ -10,6 +10,7 @@ from time import monotonic
 
 import asyncio
 from discord.ext import commands
+from discord.app_commands import AppCommand
 
 class Bot(commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """
@@ -22,6 +23,8 @@ class Bot(commands.Bot):
         self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
         self.is_sharded = False
 
+        self.loaded_cogs = []
+        self.synced_commands = []
         self.guild_states = {}
 
         self.max_track_limit = 100
@@ -71,11 +74,14 @@ class Bot(commands.Bot):
         log(f"Successfully loaded cog {cog.__class__.__name__}")
         return True
 
-    async def load_cogs(self) -> None:
-        """ Loads all available cogs from the `modules` folder based on their enable_* value from the config file. """
+    async def load_cogs(self) -> list[commands.Cog]:
+        """ Loads all available cogs from the `modules` folder based on their enable_* value from the config file. 
+        
+        Returns loaded cogs. """
         
         log(f"Loading cogs..")
-        loaded = []
+
+        self.loaded_cogs.clear()
         cogs = await self.get_cogs()
 
         for cog in cogs:
@@ -83,14 +89,16 @@ class Bot(commands.Bot):
             is_loaded = await self.load_cog(obj)
 
             if is_loaded:
-                loaded.append(obj)
+                self.loaded_cogs.append(obj)
 
-        if cogs and not loaded:
+        if cogs and not self.loaded_cogs:
             log(f"All cogs failed to load. Check log file if present.")
             await asyncio.sleep(5)
 
         log("done")
         separator()
+
+        return self.loaded_cogs
 
     async def set_activity(self) -> None:
         """ Set up an activity, if configured. """
@@ -107,13 +115,19 @@ class Bot(commands.Bot):
         log("done")
         separator()
 
-    async def sync_commands(self) -> None:
-        """ Sync application commands to Discord. """
+    async def sync_commands(self) -> list[AppCommand]:
+        """ Sync application commands to Discord. 
+        
+        Return synced commands. """
 
         log(f"Syncing app commands..")
         
+        self.synced_commands.clear()
+
         try:
             synced_commands = await self.tree.sync()
+            self.synced_commands.extend(synced_commands)
+            
             log(f"Successfully synced {len(synced_commands)} application commands with the Discord API.")
         except Exception as e:
             log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
@@ -122,9 +136,10 @@ class Bot(commands.Bot):
         log("done")
         separator()
 
+        return self.synced_commands
+
     async def post_login_tasks(self) -> None:
-        """ Handle any post-login tasks.\n
-        Checking guilds, loading cogs, and syncing commands with the Discord API. """
+        """ Handle any post-login tasks like checking guild directories, loading cogs, and syncing commands with the Discord API. """
         
         log("Running post-login tasks..")
         separator()
@@ -161,7 +176,7 @@ class Bot(commands.Bot):
             log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
             separator()
 
-            log(f"Ready :{'3' * randint(1, 10)}")
+            log(f"Ready with {len(self.loaded_cogs)} modules and {len(self.synced_commands)} commands :{'3' * randint(1, 10)}")
             separator()
             
             self.has_finished_on_ready = True
