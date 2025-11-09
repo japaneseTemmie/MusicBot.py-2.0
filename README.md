@@ -231,7 +231,8 @@ Help for every command can be found using the **/help** command.
 # Extra Configuration (For experienced hosts)
 During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data.
 
-To enable or modify the activity the bot displays in its profile, you can modify the `enable_activity`, `activity_name`, `activity_type` and `default_status`
+To enable or modify the activity the bot displays in its profile,
+you can modify the `enable_activity`, `activity_name`, `activity_type`, `activity_state` (for `listening` and `playing` activity types only) and `status_type`
 values to set your own custom activity.
 
 Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
@@ -247,7 +248,8 @@ Example activity config:
   "enable_activity": true,
   "activity_name": "Amazing music",
   "activity_type": "listening",
-  "default_status": "online"
+  "activity_state": null,
+  "status_type": "online"
 }
 ```
 

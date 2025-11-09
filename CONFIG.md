@@ -6,7 +6,8 @@ Here's the documentation for each key and its function in the `config.json` file
 - **`enable_activity`**: Allow displaying configured custom activity. Expects a boolean.
 - **`activity_name`**: The name of the activity. Appears after the type. Expects a string.
 - **`activity_type`**: The activity type. Can be `playing`, `watching` or `listening`. Expects a string.
-- **`default_status`**: The bot status. Can be `online`, `idle`, `do_not_disturb`, `invisible` or `null` for a random status. Expects a string or null.
+- **`activity_state`**: The activity state. For `playing` and `listening` activity types only. Appears under the name.
+- **`status_type`**: The bot status. Can be `online`, `idle`, `do_not_disturb`, `invisible` or `null` for a random status. Expects a string or null.
 - **`enable_file_backups`**: Enables in-RAM backup of guild files `playlists.json` and `roles.json`
   in case of a bad write. Requires double the memory needed to open the file for each call. Expects a boolean.
 - **`enable_logging`**: Enables logging of `discord.py` errors/debug messages/warnings depending on the selected `log_level`. Expects a boolean.
