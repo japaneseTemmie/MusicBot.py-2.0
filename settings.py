@@ -103,16 +103,16 @@ VOICE_OPERATIONS_LOCKED = asyncio.Event()
 EXTRACTOR_SEMAPHORE = asyncio.Semaphore(MAX_FETCH_CALLS)
 
 # API stuff
-ACTIVITY_ENABLED, STATUS_TYPE, ACTIVITY_NAME, ACTIVITY_TYPE = get_activity_data(CONFIG)
-if not ACTIVITY_ENABLED:
+ACTIVITY_DATA = get_activity_data(CONFIG)
+if not ACTIVITY_DATA["activity_enabled"]:
     log("Activity disabled")
 else:
     log("Activity enabled")
 separator()
 
 INTENTS = Intents.all()
-ACTIVITY = get_activity(ACTIVITY_ENABLED, ACTIVITY_NAME, ACTIVITY_TYPE)
-STATUS = get_status(STATUS_TYPE)
+ACTIVITY = get_activity(ACTIVITY_DATA)
+STATUS = get_status(ACTIVITY_DATA["status_type"])
 sleep(0.4)
 
 # Token stuff

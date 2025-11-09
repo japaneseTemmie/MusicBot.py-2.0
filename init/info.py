@@ -5,10 +5,10 @@ from init.logutils import log, separator
 from init.config import correct_type
 
 import discord
+from os import name
 from typing import Any
 from types import NoneType
 from os.path import dirname
-from os import name
 from platform import python_implementation, python_version, system
 from sys import exit as sysexit
 from random import choice
@@ -38,23 +38,31 @@ def get_os() -> tuple[str, str, str | None]:
 
     return os, name, kernel
 
-def get_activity_data(config: dict[str, Any]) -> tuple[str | None, str, str | None, str | None]:
+def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
     """ Get bot metadata to send to the Discord API. """
     
-    activity_enabled = correct_type(config.get("enable_activity", False), bool, False)
-    status = correct_type(config.get("default_status", None), (str, NoneType), None)
-    activity_name = correct_type(config.get("activity_name", "with the API"), str, "with the API")
-    activity_type = correct_type(config.get("activity_type", None), VALID_ACTIVITY_TYPES, None, "in")
-    
-    return activity_enabled, status, activity_name, activity_type
+    data = {
+        "status_type": correct_type(config.get("status_type", None), (str, NoneType), None),
+        "activity_enabled": correct_type(config.get("enable_activity", False), bool, False),
+        "activity_name": correct_type(config.get("activity_name", "with the API"), str, "with the API"),
+        "activity_type": correct_type(config.get("activity_type", "playing"), VALID_ACTIVITY_TYPES, "playing", "in")
+    }
 
-def get_activity(activity_enabled: bool, activity_name: str, activity_type: str) -> discord.Activity | None:
+    if data["activity_type"] in ("playing", "listening"):
+        data["activity_state"] = correct_type(config.get("activity_state", None), (str, NoneType), None)
+    else:
+        data["activity_state"] = None
+    
+    return data
+
+def get_activity(data: dict[str, Any]) -> discord.Activity | None:
     """ Return a bot activity, if enabled. """
     
-    if activity_enabled:
+    if data["activity_enabled"]:
         return discord.Activity(
-            name=activity_name,
-            type=VALID_ACTIVITY_TYPES.get(activity_type, discord.ActivityType.playing)
+            name=data["activity_name"],
+            type=VALID_ACTIVITY_TYPES.get(data["activity_type"], discord.ActivityType.playing),
+            state=data["activity_state"]
         )
 
     return None

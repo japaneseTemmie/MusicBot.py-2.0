@@ -1,6 +1,10 @@
 """ Bot subclass setup module for discord.py bot """
 
-from settings import ACTIVITY, STATUS, STATUS_TYPE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, LOGGER, CAN_LOG, CONFIG
+from settings import (
+    ACTIVITY_DATA, ACTIVITY, STATUS,
+    VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, 
+    LOGGER, CAN_LOG, CONFIG
+)
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
 from random import randint
@@ -104,11 +108,14 @@ class Bot(commands.Bot):
         """ Set up an activity, if configured. """
         
         if ACTIVITY:
-            log(f"Setting activity name to '{ACTIVITY.name}'")
-            log(f"Setting activity type to '{ACTIVITY.type.name}'")
+            log(f"Setting activity name to '{ACTIVITY_DATA["activity_name"]}'")
+            log(f"Setting activity type to '{ACTIVITY_DATA["activity_type"]}'")
+            
+            if ACTIVITY_DATA["activity_type"] in ("listening", "playing"):
+                log(f"Setting activity state to '{ACTIVITY_DATA["activity_state"]}'")
 
         if STATUS:
-            log(f"Setting {'(random)' if STATUS_TYPE is None else ''} status to '{STATUS.name}'")
+            log(f"Setting {'(random)' if ACTIVITY_DATA["status_type"] is None else ''} status to '{STATUS.name}'")
 
         await self.change_presence(activity=ACTIVITY, status=STATUS)
 
