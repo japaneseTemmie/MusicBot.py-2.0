@@ -10,7 +10,7 @@ from helpers.playlisthelpers import (
 )
 from helpers.queuehelpers import (
     remove_track_from_queue, reposition_track_in_queue, replace_track_in_queue, rename_tracks_in_queue, replace_data_with_playlist_data,
-    update_loop_queue_add, get_tracks_from_playlist, place_track_in_playlist, sanitize_name, name_exceeds_length
+    update_loop_queue_add, get_tracks_from_queue, place_track_in_playlist, sanitize_name, name_exceeds_length
 )
 from helpers.extractorhelpers import fetch_queries, add_results_to_queue
 from helpers.guildhelpers import open_guild_json, write_guild_json
@@ -355,7 +355,7 @@ class PlaylistManager:
             return playlist
 
         if not use_dict:
-            queries = await get_tracks_from_playlist(tracks, playlist, by_index)
+            queries = await get_tracks_from_queue(tracks, playlist, by_index)
 
             if isinstance(queries, Error):
                 return queries
