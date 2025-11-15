@@ -65,7 +65,7 @@ _*Support may depend on command._
   
   Make sure to **not share it with _anyone_**. Treat it like a _password_.
 - Go to the `Installation` Section, uncheck `User install` in the `Installation Contexts` box.
-- In the `Default install settings` box, include `bot` in the `Scopes` entry and add the following permissions in the `Permissions` entry:
+- In the `Default install settings` box, include `bot` in the `Scopes` entry and add the following permissions in the `Permissions` entry (note that permissions can be disabled if related modules won't be used):
 
   | Permission Category |                Permissions                  |
   |---------------------|---------------------------------------------|
