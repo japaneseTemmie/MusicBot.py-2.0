@@ -152,7 +152,9 @@ class Bot(commands.Bot):
         separator()
         await asyncio.sleep(0.3)
 
-        await ensure_guild_data(self, self.guilds)
+        success = await ensure_guild_data(self, self.guilds)
+        if not success:
+            await self.close()
         await asyncio.sleep(0.3)
 
         await self.load_cogs()

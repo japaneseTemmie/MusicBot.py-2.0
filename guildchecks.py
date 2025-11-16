@@ -9,7 +9,6 @@ import discord
 from os.path import join, isdir, exists
 from os import listdir
 from shutil import rmtree
-from sys import exit as sysexit
 
 def is_in_guild(id: int, guilds: list[discord.Guild]) -> bool:
     return discord.utils.get(guilds, id=int(id)) is not None
@@ -30,8 +29,8 @@ def get_guilds_to_delete(user: str, guilds: list[discord.Guild]) -> list[str]:
 
     return to_delete
 
-def delete_guild_tree(path: str) -> None:
-    """ Delete a guild directory using rmtree. """
+def delete_guild_tree(path: str) -> bool:
+    """ Delete a guild data directory. """
     
     try:
         if isdir(path):
@@ -40,33 +39,49 @@ def delete_guild_tree(path: str) -> None:
             log(f"Removed tree {path}")
     except OSError as e:
         log(f"An error occurred while deleting {path}\nErr: {e}")
+        return False
+
+    return True
 
 def delete_guild_dirs(to_delete: list[str]) -> bool:
+    """ Delete guild data directories from a list of guild IDs. """
+    
+    success = True
     for path in to_delete:
-        delete_guild_tree(path)
+        deleted_successfully = delete_guild_tree(path)
+        if not deleted_successfully:
+            success = False
 
-def ensure_guild_data_path(path: str) -> None:
-    if not exists(path):
-        log(f"Creating {path} directory.")
+    return success
 
-        result = make_path(path, can_log=CAN_LOG, logger=LOGGER)
+def ensure_guild_data_path(guild_data_path: str) -> bool:
+    """ Ensures the given guild data path exists. """
+    
+    if not exists(guild_data_path):
+        result = make_path(guild_data_path, can_log=CAN_LOG, logger=LOGGER)
         if not result:
-            sysexit(1)
+            return False
         
-        log(f"Created {path} directory.")
+        log(f"Created {guild_data_path} directory.")
     else:
-        log(f"Found guild data at {path}.")
+        log(f"Found guild data at {guild_data_path}.")
 
-async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
+    return True
+
+async def ensure_guild_data(client, guilds: list[discord.Guild]) -> bool:
     """ Compare the guilds the bot's currently in
-    with the guild IDs in the guild_data directory
-    and delete any that aren't in the `guilds` parameter list. """
+    with the guild IDs in the `guild_data` directory
+    and delete any that aren't in the `guilds` list. 
+    
+    Return a success value. """
     
     guild_count = len(guilds)
     guild_data_path = join(PATH, "guild_data")
 
-    await asyncio.to_thread(ensure_guild_data_path, guild_data_path)
+    guild_data_exists = await asyncio.to_thread(ensure_guild_data_path, guild_data_path)
     separator()
+    if not guild_data_exists:
+        return False
 
     log(f"{client.user.name} is in {guild_count} {'guilds' if guild_count > 1 else 'guild'}.")
     if 2400 < guild_count < 2500:
@@ -78,9 +93,13 @@ async def ensure_guild_data(client, guilds: list[discord.Guild]) -> None:
     to_delete = await asyncio.to_thread(get_guilds_to_delete, client.user.name, guilds)
 
     if to_delete:
-        await asyncio.to_thread(delete_guild_dirs, to_delete)
+        deleted_successfully = await asyncio.to_thread(delete_guild_dirs, to_delete)
+        if not deleted_successfully:
+            return False
     else:
         log("Success! No issues found.")
 
     log("done")
     separator()
+
+    return True
