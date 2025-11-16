@@ -816,6 +816,74 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
+    @app_commands.command(name="playlist-copy", description="Copies a playlist to a new/existing one. See entry in /help for more info.")
+    @app_commands.describe(
+        playlist_name="The playlist to duplicate's name.",
+        new_playlist_name="The new playlist's name. Must not be the same as the playlist to duplicate's name."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def copy_playlist(self, interaction: Interaction, playlist_name: str, new_playlist_name: str):
+        if not await user_has_role(interaction) or\
+            not await user_has_role(interaction, True) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
+            return
+
+        await interaction.response.defer(thinking=True)
+
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+
+        if new_playlist_name.lower().replace(" ", "") == playlist_name.lower().replace(" ", ""):
+            await interaction.followup.send("Destination playlist name cannot be the same as the source one!")
+            return
+        elif await is_playlist_locked(locked):
+            await interaction.followup.send("A playlist is currently locked, please wait.")
+            return
+        else:
+            content = await self.playlist.read(interaction)
+            await lock_playlist(interaction, content, locked, playlist_name)
+
+        playlist = await self.playlist.get_playlist(content, playlist_name)
+        if isinstance(playlist, Error):
+            await unlock_playlist(locked, content, playlist_name)
+
+            await interaction.followup.send(playlist.msg)
+            return
+        
+        result = await self.playlist.add_queue(interaction, content, new_playlist_name, playlist)
+
+        await unlock_playlist(locked, content, playlist_name)
+
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+        elif isinstance(result, tuple):
+            write_result = result[0]
+            added = result[1]
+
+            if not isinstance(write_result, Error):
+                embed = generate_added_track_embed(added, True)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_result.msg)
+
+    @copy_playlist.error
+    async def handle_copy_playlist_error(self, interaction: Interaction, error: Exception):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return        
+
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
+
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
+
     @app_commands.command(name="playlist-fetch-track", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to fetch tracks from's name.",

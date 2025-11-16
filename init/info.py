@@ -39,7 +39,9 @@ def get_os() -> tuple[str, str, str | None]:
     return os, name, kernel
 
 def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
-    """ Get bot metadata to send to the Discord API. """
+    """ Get bot metadata to send to the Discord API. 
+    
+    Available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type`, `activity_state` """
     
     data = {
         "status_type": correct_type(config.get("status_type", None), (str, NoneType), None),

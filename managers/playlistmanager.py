@@ -46,7 +46,7 @@ class PlaylistManager:
             "Failed to read playlist contents."
         )
 
-    async def write(self, interaction: Interaction, content: dict[str, list], backup: dict=None) -> bool | Error:
+    async def write(self, interaction: Interaction, content: dict[str, list], backup: dict[str, list]=None) -> bool | Error:
         """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.
 
         Cache new content if written successfully.
@@ -64,7 +64,7 @@ class PlaylistManager:
             backup
         )
 
-    async def get_playlist(self, content: dict[str, list] | Error, playlist_name: str) -> list[dict] | Error:
+    async def get_playlist(self, content: dict[str, list] | Error, playlist_name: str) -> list[dict[str, Any]] | Error:
         """ Reads the given playlist.
 
         If successful, returns a list of tracks, otherwise, Error. """
