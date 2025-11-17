@@ -157,10 +157,14 @@ class Bot(commands.Bot):
             await self.close()
         await asyncio.sleep(0.3)
 
-        await self.load_cogs()
+        loaded_cogs = await self.load_cogs()
+        if not loaded_cogs:
+            await self.close()
         await asyncio.sleep(0.3)
 
-        await self.sync_commands()
+        synced_commands = await self.sync_commands()
+        if not synced_commands:
+            await self.close()
         await asyncio.sleep(0.3)
 
         await self.set_activity()
@@ -172,6 +176,9 @@ class Bot(commands.Bot):
                 log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
                 return
             
+            log("Starting setup in locked mode")
+            separator()
+
             VOICE_OPERATIONS_LOCKED.set()
             FILE_OPERATIONS_LOCKED.set()
 

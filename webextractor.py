@@ -30,7 +30,8 @@ class SourceWebsite(Enum):
     SOUNDCLOUD_SEARCH = "SoundCloud search"
 
 class QueryType:
-    def __init__(self, source_website: str, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
+    def __init__(self, query: str, source_website: str, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
+        self.query = query
         self.source_website = source_website
         self.is_url = is_url
         self.regex = regex
@@ -70,16 +71,16 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
     # Match URLs first.
     for regex, source_website in URL_PATTERNS:
         if regex.match(query):
-            return QueryType(source_website, True, regex)
+            return QueryType(query, source_website, True, regex)
 
     # If no matches are found, match a search query. If not found, default to youtube.
     provider_info = SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
     provider_search_string = provider_info[0]
     provider_source_website = provider_info[1]
 
-    return QueryType(provider_source_website, False, None, provider_search_string)
+    return QueryType(query, provider_source_website, False, None, provider_search_string)
 
-def prettify_info(info: dict, source_website: str | None=None) -> dict[str, Any]:
+def prettify_info(info: dict[str, Any], source_website: str | None=None) -> dict[str, Any]:
     """ Prettify the extracted info with cleaner values. """
     
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
@@ -101,7 +102,7 @@ def prettify_info(info: dict, source_website: str | None=None) -> dict[str, Any]
 
     return info
 
-def parse_info(info: dict, query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
+def parse_info(info: dict[str, Any], query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Parse extracted query in a readable/playable format for the VoiceClient. """
 
     # If it's a playlist, prettify each entry and return
@@ -124,7 +125,7 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
     """ Search a webpage and find info about the query.
 
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
-    
+
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
             if not query_type.is_url:
