@@ -84,11 +84,10 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
-        queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
-
         is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
         if not is_queue_length_ok:
             return
+        queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
