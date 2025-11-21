@@ -214,7 +214,7 @@ class MusicCog(commands.Cog):
 
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-            await interaction.followup.send(f"Now playing: **{extracted_track["title"]}**")
+            await interaction.followup.send(f"Now playing: **{extracted_track['title']}**")
         elif isinstance(extracted_track, Error):
             await interaction.followup.send(extracted_track.msg)
 

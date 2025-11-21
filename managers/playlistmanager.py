@@ -384,7 +384,7 @@ class PlaylistManager:
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
-            queue: list[dict]
+            queue: list[dict[str, Any]]
         ) -> tuple[bool | Error, list[dict]] | Error:
         """ Adds a list of extracted queries to a playlist.
 

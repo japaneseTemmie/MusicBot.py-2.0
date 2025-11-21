@@ -7,14 +7,14 @@ from settings import (
 )
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
-from random import randint
 from init.logutils import log, separator, log_to_discord_log
 from guildchecks import ensure_guild_data
-from time import monotonic
 
 import asyncio
 from discord.ext import commands
 from discord.app_commands import AppCommand
+from time import monotonic
+from random import randint
 
 class Bot(commands.Bot):
     """ Custom bot object with special methods for modularity and safer cleanups. """

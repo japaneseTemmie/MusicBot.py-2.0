@@ -23,7 +23,9 @@ def log_to_discord_log(
 
     """
     Log a message or exception to `discord.log` file if logging is enabled.
+    
     When `content` is an exception, it is logged directly.
+    
     When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `content` is a string. The message will be logged as `log_type`.
 
     Return value indicates log success.
