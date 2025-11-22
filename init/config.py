@@ -110,7 +110,7 @@ def add_missing_yt_dlp_options_to_config(config: dict[str, Any], expected_yt_dlp
         if key not in config["yt_dlp_options"]:
             config["yt_dlp_options"][key] = expected_yt_dlp_options[key]
 
-def check_config(config: dict[str, Any]) -> dict | None:
+def check_config(config: dict[str, Any]) -> dict[str, Any] | None:
     """ Checks if config file has any missing keys. If so, adds them with default values. """
     
     orig_config = deepcopy(config)
@@ -128,7 +128,7 @@ def check_config(config: dict[str, Any]) -> dict | None:
     
     return None
 
-def ensure_config(path: str, default_data: dict[str, Any]) -> dict | NoReturn:
+def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | NoReturn:
     """ Checks if config file exists. If not, creates a new one with default settings.
     
     Also checks the output content for missing keys and applies the default key if missing. """
@@ -166,7 +166,7 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict | NoReturn:
 
     return content
 
-def get_config_data(dir: str) -> dict | NoReturn:
+def get_config_data(dir: str) -> dict[str, Any] | NoReturn:
     """ Return a hashmap of the `config.json` file.
      
     This function also ensures that there are no missing keys and file exists. """

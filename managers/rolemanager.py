@@ -7,13 +7,14 @@ from error import Error
 
 import discord
 from discord.interactions import Interaction
+from typing import Any
 from copy import deepcopy
 
 class RoleManager:
     def __init__(self, client):
         self.client = client
 
-    async def read(self, interaction: Interaction) -> dict | Error:
+    async def read(self, interaction: Interaction) -> dict[str, Any] | Error:
         """ Read the contents of `roles.json`.
          
         Returns the role structure or Error. """
@@ -27,7 +28,7 @@ class RoleManager:
             "Failed to read role contents."
         )
         
-    async def write(self, interaction: Interaction, content: dict, backup: dict | None=None) -> bool | Error:
+    async def write(self, interaction: Interaction, content: dict[str, Any], backup: dict[str, Any] | None=None) -> bool | Error:
         """ Write the modified content to `roles.json`.
          
         Returns True or Error. """

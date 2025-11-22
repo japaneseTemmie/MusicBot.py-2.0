@@ -72,7 +72,7 @@ class AudioPlayer:
             self.handle_playback_end(e, interaction)
             return
 
-    async def update_player_states(self, interaction: Interaction, position: int, track: dict, state: str | None) -> None:
+    async def update_player_states(self, interaction: Interaction, position: int, track: dict[str, Any], state: str | None) -> None:
         """ Update player guild states after playing a track. """
         
         history = self.guild_states[interaction.guild.id]["queue_history"]

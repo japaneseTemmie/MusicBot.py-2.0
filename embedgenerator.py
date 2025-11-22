@@ -18,7 +18,7 @@ def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
 
     return embed
 
-def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> discord.Embed:
+def generate_added_track_embed(results: list[dict[str, Any]], is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed of up to 24 added tracks. """
     
     embed = discord.Embed(
@@ -40,7 +40,7 @@ def generate_added_track_embed(results: list[dict], is_playlist: bool=False) -> 
 
     return embed
 
-def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
+def generate_skipped_tracks_embed(skipped: list[dict[str, Any]]) -> discord.Embed:
     """ Generate an embed to show the amount of skipped tracks.
      
     `skipped` is the list of tracks that were removed from the queue. """
@@ -61,7 +61,7 @@ def generate_skipped_tracks_embed(skipped: list[dict]) -> discord.Embed:
 
     return embed
 
-def generate_removed_tracks_embed(found: list[dict], found_indices: list[int] | None, is_playlist: bool=False) -> discord.Embed:
+def generate_removed_tracks_embed(found: list[dict[str, Any]], found_indices: list[int] | None, is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed showing the removed tracks from a queue.
      
     `found` is the list of removed tracks.
@@ -114,10 +114,10 @@ def generate_renamed_tracks_embed(found: list[tuple[dict, str]], found_indices: 
     return embed
 
 def generate_current_track_embed(
-        info: dict,
-        queue: list | list[dict],
-        queue_to_loop: list | list[dict],
-        track_to_loop: dict | None,
+        info: dict[str, Any],
+        queue: list | list[dict[str, Any]],
+        queue_to_loop: list | list[dict[str, Any]],
+        track_to_loop: dict[str, Any] | None,
         elapsed_time: int,
         looping: bool,
         random: bool,
@@ -160,7 +160,7 @@ def generate_current_track_embed(
 
     return embed
 
-def generate_generic_track_embed(info: dict, embed_title: str="Track info") -> discord.Embed:
+def generate_generic_track_embed(info: dict[str, Any], embed_title: str="Track info") -> discord.Embed:
     """ Generate an embed to show some info about an `info` track object. """
     
     embed = discord.Embed(
@@ -194,7 +194,7 @@ def generate_extraction_progress_embed(current_item_name: str, total: int, curre
 
     return embed
 
-def generate_queue_embed(queue: list[dict], queue_indices: list[int] | None, page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
+def generate_queue_embed(queue: list[dict[str, Any]], queue_indices: list[int] | None, page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed to show tracks in a queue page.
     
     `queue` is a list of tracks.

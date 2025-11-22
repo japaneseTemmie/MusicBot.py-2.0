@@ -19,7 +19,7 @@ async def fetch_query(
         query_name: str=None,
         allowed_query_types: tuple[str] | None=None,
         provider: str | None=None
-    ) -> dict | list[dict] | Error:
+    ) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Extract a query from its website, catch any errors and return the result. """
     
     query = query.strip()
@@ -49,11 +49,11 @@ async def fetch_query(
 async def fetch_queries(
         guild_states: dict[str, Any],
         interaction: Interaction,
-        queries: list[str | dict],
+        queries: list[str | dict[str, Any]],
         query_names: list[str]=None,
         allowed_query_types: tuple[str]=None,
         provider: str | None=None
-    ) -> list[dict | list[dict]] | Error:
+    ) -> list[dict[str, Any] | list[dict[str, Any]]] | Error:
     """ Extract a list of queries and return the result. 
     
     `allowed_query_types` must be a tuple containing SourceWebsite enum values. 
@@ -80,7 +80,7 @@ async def fetch_queries(
     
     return found
 
-async def resolve_expired_url(webpage_url: str) -> dict | None:
+async def resolve_expired_url(webpage_url: str) -> dict[str, Any] | None:
     """ Fetch a new track object based on the current webpage URL.
     
     Unlike `fetch()`, this function returns None on failure. """
@@ -96,7 +96,7 @@ async def resolve_expired_url(webpage_url: str) -> dict | None:
     
     return new_extracted_track
 
-async def add_results_to_queue(interaction: Interaction, results: list[dict[str, Any]], queue: list, max_limit: int) -> list[dict]:
+async def add_results_to_queue(interaction: Interaction, results: list[dict[str, Any]], queue: list, max_limit: int) -> list[dict[str, Any]]:
     """ Append found results to a queue in place.\n
     Reply to the interaction if it exceeds `max_limit`.
     Return the added items. """

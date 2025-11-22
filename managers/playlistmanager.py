@@ -133,7 +133,7 @@ class PlaylistManager:
             content: dict[str, list] | Error, 
             playlist_name: str, 
             contents_only: bool
-        ) -> bool | Error | tuple[bool | Error, list[dict]]:
+        ) -> bool | Error | tuple[bool | Error, list[dict[str, Any]]]:
         """ Deletes a playlist.
 
         If successful, returns a boolean or Error if `contents_only` is True, otherwise
@@ -176,7 +176,7 @@ class PlaylistManager:
             playlist_name: str, 
             tracks_to_remove: list[str], 
             by_index: bool=False
-        ) -> tuple[bool | Error, list[dict], list[dict]] | Error:
+        ) -> tuple[bool | Error, list[dict[str, Any]], list[dict[str, Any]]] | Error:
         """ Removes given tracks from a playlist.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -219,7 +219,7 @@ class PlaylistManager:
             new: str,
             provider: app_commands.Choice | None=None,
             by_index: bool=False
-        ) -> tuple[bool | Error, dict, dict] | Error:
+        ) -> tuple[bool | Error, dict[str, Any], dict[str, Any]] | Error:
         """ Replaces a playlist track with an extracted track from a given query.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -258,7 +258,7 @@ class PlaylistManager:
             track: str, 
             index: int, 
             by_index: bool=False
-        ) -> tuple[bool | Error, dict, int, int] | Error:
+        ) -> tuple[bool | Error, dict[str, Any], int, int] | Error:
         """ Repositions a playlist track from its current index to the given index.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -298,7 +298,7 @@ class PlaylistManager:
             playlist_name: str, 
             range_start: int=0, 
             range_end: int=0
-        ) -> list[dict] | Error:
+        ) -> list[dict[str, Any]] | Error:
         """ Adds all playlist tracks from `range_start` to `range_end` to the queue.
 
         If successful, returns a list of added tracks. Error otherwise. """
@@ -342,10 +342,10 @@ class PlaylistManager:
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
-            tracks: list[str | dict], 
+            tracks: list[str | dict[str, Any]], 
             use_dict: bool=False, 
             by_index: bool=False
-        ) -> list[dict] | Error:
+        ) -> list[dict[str, Any]] | Error:
         """ Adds requested queries from a given playlist to the queue.
 
         If successful, returns a list of added tracks. Error otherwise. """
@@ -385,7 +385,7 @@ class PlaylistManager:
             content: dict[str, list] | Error, 
             playlist_name: str, 
             queue: list[dict[str, Any]]
-        ) -> tuple[bool | Error, list[dict]] | Error:
+        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of extracted queries to a playlist.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -432,7 +432,7 @@ class PlaylistManager:
             queries: list[str], 
             allowed_query_types: tuple[str], 
             provider: app_commands.Choice | None=None
-        ) -> tuple[bool | Error, list[dict]] | Error:
+        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of queries to the given playlist.
 
         If successful, returns same types as `add_queue()`. With the addition of extraction Errors. """
@@ -459,7 +459,7 @@ class PlaylistManager:
         else:
             return found
 
-    async def delete_all(self, interaction: Interaction, content: dict[str, list] | Error, locked: dict, erase: bool) -> bool | Error:
+    async def delete_all(self, interaction: Interaction, content: dict[str, list] | Error, locked: dict[str, bool], erase: bool) -> bool | Error:
         """ Deletes every playlist saved in the current guild.
 
         Returns a boolean or Error. """
@@ -526,7 +526,7 @@ class PlaylistManager:
             tracks_to_rename: list[str], 
             new_track_names: list[str], 
             by_index: bool
-        ) -> tuple[bool | Error, list[tuple[dict, str]], list[dict]] | Error:
+        ) -> tuple[bool | Error, list[tuple[dict, str]], list[dict[str, Any]]] | Error:
         """ Bulk edits track names to new given ones.
 
         if successful, returns a tuple with a boolean or Error indicating write success, a list of tuples with
@@ -564,9 +564,9 @@ class PlaylistManager:
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
-            track: dict, 
+            track: dict[str, Any], 
             index: int | None
-        ) -> tuple[bool | Error, dict, int] | Error:
+        ) -> tuple[bool | Error, dict[str, Any], int] | Error:
         """ Place a track at a specific index or append it (index=None).
 
         if successful, returns a tuple with a boolean or Error indicating

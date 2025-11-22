@@ -15,7 +15,7 @@ from os.path import join
 async def open_guild_json(
         interaction: Interaction,
         file_name: str,
-        file_locks: dict,
+        file_locks: dict[int, asyncio.Lock],
         cache: dict,
         on_general_file_lock_error_msg: str,
         on_read_error_msg: str
@@ -55,7 +55,7 @@ async def write_guild_json(
         interaction: Interaction,
         content: dict,
         file_name: str,
-        file_locks: dict,
+        file_locks: dict[int, asyncio.Lock],
         cache: dict,
         on_general_file_lock_msg: str,
         on_write_error_msg: str,
@@ -280,7 +280,7 @@ async def check_file_lock(reply_to_interaction: bool=False, interaction: Interac
     return True
 
 async def check_guild_state(
-        guild_states: dict,
+        guild_states: dict[str, Any],
         interaction: Interaction,
         state: str,
         condition: Any,
