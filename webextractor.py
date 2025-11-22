@@ -40,6 +40,7 @@ class QueryType:
 # List of regex pattern to match website URLs
 # Second item is the 'source_website' string
 # Remember to update parse_info() after any changes made here.
+INVALID_URL_PATTERN = re.compile(r"^(((http|https):\/\/)?(www\.)?[a-zA-Z0-9-_\.]+\.[a-zA-Z]{2,}(\/?[^\s]+)?)$")
 URL_PATTERNS = [
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/playlist\?list=[a-zA-Z0-9_-]+(\/)?"), SourceWebsite.YOUTUBE_PLAYLIST.value),
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}(&list=[a-zA-Z0-9_-]+)?(&index=[0-9])?(\/)?"), SourceWebsite.YOUTUBE.value),
@@ -125,6 +126,9 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
     """ Search a webpage and find info about the query.
 
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
+
+    if not query_type.is_url and INVALID_URL_PATTERN.match(query):
+        return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
 
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
