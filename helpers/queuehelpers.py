@@ -81,10 +81,10 @@ async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Inter
 async def check_input_length(interaction: Interaction, max_limit: int, input_split: list[Any], msg_on_fail: str | None=None) -> list[Any]:
     """ Check a split input's length and compare it to a given maximum limit.
 
-    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and slice the input up to the `max_limit`.
-    Returns `input_split`. """
+    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and slice the input up to the `max_limit`. 
+    Otherwise, return the given `input_split`. """
     
-    default_msg = msg_on_fail or f"You can only add a maximum of **{max_limit}** tracks per command.\n" + f"Only the first **{max_limit}** of your command will be added."
+    default_msg = msg_on_fail or f"You can only add a maximum of **{max_limit}** tracks per command.\nOnly the first **{max_limit}** of your command will be added."
     input_length = len(input_split)
     
     if input_length > max_limit:
@@ -93,19 +93,23 @@ async def check_input_length(interaction: Interaction, max_limit: int, input_spl
 
     return input_split
 
-async def check_queue_length(interaction: Interaction, max_limit: int, queue: list, msg_on_fail: str | None=None) -> bool:
+async def check_queue_length(interaction: Interaction | None, max_limit: int, queue: list, msg_on_fail: str | None=None, return_error: bool=False) -> bool | Error:
     """ Check a queue's length and compare it to a given maximum limit.
 
-    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and return False. """
+    If it exceeds the limit and `return_error` is False and `interaction` is not None, reply to the interaction with `msg_on_fail` or a default message and return False. 
+    Otherwise, return an Error object with `msg`=`msg_on_fail` or a default message. """
     
     default_msg = msg_on_fail or f"Maximum queue track limit of **{max_limit}** reached.\nCannot add other track(s)."
     queue_length = len(queue)
 
     if queue_length >= max_limit:
-        await interaction.followup.send(default_msg) if interaction.response.is_done() else\
-        await interaction.response.send_message(default_msg)
-        
-        return False
+        if interaction is not None and not return_error:
+            await interaction.followup.send(default_msg) if interaction.response.is_done() else\
+            await interaction.response.send_message(default_msg)
+            
+            return False
+        else:
+            return Error(default_msg)
     
     return True
 
