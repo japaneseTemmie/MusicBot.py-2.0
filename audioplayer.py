@@ -100,8 +100,9 @@ class AudioPlayer:
             not is_looping and\
             state is None:
 
-            if len(history) >= self.max_history_track_limit:
-                history.clear()
+            history_length = len(history)
+            if history_length >= self.max_history_track_limit:
+                history.pop(history_length - 1)
 
             history.append(track)
 
@@ -113,7 +114,7 @@ class AudioPlayer:
         """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
          
         Returns a `PlayerStopReason` value if a check fails. """
-        
+
         stop_flag = self.guild_states[interaction.guild.id]["stop_flag"]
         voice_client_locked = self.guild_states[interaction.guild.id]["voice_client_locked"]
         

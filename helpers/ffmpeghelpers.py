@@ -1,11 +1,11 @@
 """ FFmpeg helper functions for discord.py bot """
 
 from settings import CAN_LOG, LOGGER
+from init.constants import PLAYBACK_END_GRACE_PERIOD, STREAM_VALIDATION_TIMEOUT
 from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state
 from helpers.timehelpers import format_to_minutes, format_to_seconds
-from init.constants import PLAYBACK_END_GRACE_PERIOD
 
 import asyncio
 import discord
@@ -38,7 +38,7 @@ async def validate_stream(url: str) -> bool:
             url,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL
-        ), timeout=10)
+        ), timeout=STREAM_VALIDATION_TIMEOUT)
 
         stdout, _ = await process.communicate()
 
@@ -67,7 +67,7 @@ async def handle_player_crash(
         old_source_website = str(current_track["source_website"])
 
         new_track = await resolve_expired_url(current_track["webpage_url"])
-        if new_track is None:
+        if new_track is None or not await validate_stream(new_track["url"]): # Validate new stream before passing it to play_track()
             return False
         
         new_track["title"] = old_title
@@ -96,6 +96,8 @@ async def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
     return current_time < expected_elapsed_time
 
 async def get_approximate_resume_time(current_time: int, track_duration_in_seconds: int) -> int:
+    """ Given a crash time and the total duration, return the approximate resume time. """
+    
     return max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
 
 async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:
