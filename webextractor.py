@@ -7,9 +7,10 @@ Supported websites
 - SoundCloud (Songs and sets)
 - Bandcamp (Songs and albums) """
 
-from settings import YDL_OPTIONS, CAN_LOG, LOGGER
+from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE
 from init.logutils import log_to_discord_log
 from helpers.timehelpers import format_to_minutes
+from helpers.cachehelpers import get_cache, store_cache
 from error import Error
 
 import re
@@ -40,7 +41,7 @@ class QueryType:
 # List of regex pattern to match website URLs
 # Second item is the 'source_website' string
 # Remember to update parse_info() after any changes made here.
-INVALID_URL_PATTERN = re.compile(r"^(((http|https):\/\/)?(www\.)?[a-zA-Z0-9-_\.]+\.[a-zA-Z]{2,}(\/?[^\s]+)?)$")
+INVALID_URL_PATTERN = re.compile(r"^(((http|https|ftp):\/\/)?(www\.)?[a-zA-Z0-9-_\.]+\.[a-zA-Z]{2,}(\/?[^\s]+)?)$")
 URL_PATTERNS = [
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/playlist\?list=[a-zA-Z0-9_-]+(\/)?"), SourceWebsite.YOUTUBE_PLAYLIST.value),
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}(&list=[a-zA-Z0-9_-]+)?(&index=[0-9])?(\/)?"), SourceWebsite.YOUTUBE.value),
@@ -129,6 +130,10 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
 
     if not query_type.is_url and INVALID_URL_PATTERN.match(query):
         return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
+    
+    cache = get_cache(EXTRACTOR_CACHE, query+f"::{query_type.source_website}")
+    if cache is not None:
+        return cache
 
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
@@ -142,6 +147,11 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
         return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
 
     if info is not None:
-        return parse_info(info, query, query_type)
+        pretty_info = parse_info(info, query, query_type)
+        
+        if not isinstance(pretty_info, Error):
+            store_cache(pretty_info, query+f"::{query_type.source_website}", EXTRACTOR_CACHE)
+        
+        return pretty_info
     
     return Error(f"An error occured while extracting `{query[:50]}`.")

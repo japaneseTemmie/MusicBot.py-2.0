@@ -40,8 +40,10 @@ class AudioPlayer:
             track: dict[str, Any], 
             position: int,
             is_looping: bool
-        ) -> None:
-        """ Submit a track to the voice client player. """
+        ) -> dict[str, Any] | None:
+        """ Submit a track to the voice client player. 
+        
+        Return track or None if something went wrong while spawning an FFmpeg subprocess (not FFmpeg runtime error). """
 
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
         old_title = str(track["title"])
@@ -55,7 +57,7 @@ class AudioPlayer:
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 track = await resolve_expired_url(track["webpage_url"])
 
-                if track is None:
+                if track is None or not await validate_stream(track["url"]):
                     raise ValueError("Unrecoverable stream.")
                 
                 track["title"] = old_title
@@ -70,7 +72,9 @@ class AudioPlayer:
                 await update_guild_state(self.guild_states, interaction, False, "is_looping")
             
             self.handle_playback_end(e, interaction)
-            return
+            return None
+        
+        return track
 
     async def update_player_states(self, interaction: Interaction, position: int, track: dict[str, Any], state: str | None) -> None:
         """ Update player guild states after playing a track. """
@@ -137,10 +141,12 @@ class AudioPlayer:
             track: dict[str, Any], 
             position: int=0, 
             state: str | None=None
-        ) -> None:
+        ) -> bool:
         """ Play a track on an available voice client. 
         
-        A track must be a dict containing a `url` key that points to a valid stream readable by ffmpeg and track metadata such as `title`, `duration`, etc.. """
+        A track must be a dict containing a `url` key that points to a valid stream readable by ffmpeg and track metadata such as `title`, `duration`, etc.. 
+        
+        Return a boolean indicating success. """
         
         if not voice_client.is_connected() or\
             track is None:
@@ -149,8 +155,12 @@ class AudioPlayer:
 
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
 
-        await self.submit_track_to_player(interaction, voice_client, track, position, is_looping)
-        await self.update_player_states(interaction, position, track, state)
+        updated_track = await self.submit_track_to_player(interaction, voice_client, track, position, is_looping)
+        if updated_track is not None:
+            await self.update_player_states(interaction, position, updated_track, state)
+            return True
+        
+        return False
 
     async def play_next(self, interaction: Interaction) -> None:
         """ Play the next track available in the queue. """
@@ -194,13 +204,14 @@ class AudioPlayer:
 
         track = await get_next_track(is_random, is_looping, track_to_loop, filters, queue)
 
+        play_success = False
         try:
             await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-            await self.play_track(interaction, voice_client, track)
+            play_success = await self.play_track(interaction, voice_client, track)
         finally:
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        if not is_looping:
+        if not is_looping and play_success:
             await send_func(f"Now playing: **{track['title']}**")
 
     def handle_playback_end(self, error: Exception | None, interaction: Interaction) -> None:
