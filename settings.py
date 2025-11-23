@@ -90,7 +90,6 @@ PLAYLIST_LOCKS = {}
 ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
-EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=3600)
 
 # Event objects that function as locks for safe shutdown.
 # Use .clear() to release the lock.

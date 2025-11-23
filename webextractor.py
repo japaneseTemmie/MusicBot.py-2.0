@@ -7,10 +7,9 @@ Supported websites
 - SoundCloud (Songs and sets)
 - Bandcamp (Songs and albums) """
 
-from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE
+from settings import YDL_OPTIONS, CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
 from helpers.timehelpers import format_to_minutes
-from helpers.cachehelpers import get_cache, store_cache
 from error import Error
 
 import re
@@ -130,10 +129,6 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
 
     if not query_type.is_url and INVALID_URL_PATTERN.match(query):
         return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
-    
-    cache = get_cache(EXTRACTOR_CACHE, query+f"::{query_type.source_website}")
-    if cache is not None:
-        return cache
 
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
@@ -147,11 +142,6 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
         return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
 
     if info is not None:
-        pretty_info = parse_info(info, query, query_type)
-        
-        if not isinstance(pretty_info, Error):
-            store_cache(pretty_info, query+f"::{query_type.source_website}", EXTRACTOR_CACHE)
-        
-        return pretty_info
+        return parse_info(info, query, query_type)
     
     return Error(f"An error occured while extracting `{query[:50]}`.")
