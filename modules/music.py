@@ -155,7 +155,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         query="URL or search query. Refer to help entry for valid URLs.",
         search_provider="[EXPERIMENTAL] The website to search for the search query on. URLs ignore this.",
-        keep_current_track="Whether or not to keep the current track (if any) in the queue."
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
@@ -179,7 +179,7 @@ class MusicCog(commands.Cog):
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         if current_track is not None and keep_current_track:
-            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, self.guild_states[interaction.guild.id]["queue"])
+            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
             if not is_queue_length_ok or\
                 not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait."):
                 return
@@ -577,11 +577,12 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="select", description="Selects a track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
         track_name="Name (or index, in case <by_index> is True) of the track to select.",
-        by_index="Select track by its index."
+        by_index="Select track by its index.",
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def select_track(self, interaction: Interaction, track_name: str, by_index: bool=False):
+    async def select_track(self, interaction: Interaction, track_name: str, by_index: bool=False, keep_current_track: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
@@ -592,6 +593,7 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
         await update_guild_state(self.guild_states, interaction, True, "is_modifying")
@@ -604,6 +606,8 @@ class MusicCog(commands.Cog):
             return
         
         track_dict = queue.pop(found[1])
+        if keep_current_track and current_track is not None:
+            queue.insert(0, current_track)
 
         await update_guild_states(self.guild_states, interaction, (False, True), ("is_modifying", "voice_client_locked"))
         if voice_client.is_playing() or voice_client.is_paused():
@@ -632,9 +636,12 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="select-random", description="Selects a random track from the queue and plays it. See entry in /help for more info.")
+    @app_commands.describe(
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
+    )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def select_random_track(self, interaction: Interaction):
+    async def select_random_track(self, interaction: Interaction, keep_current_track: bool=False):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to select.") or\
@@ -645,11 +652,14 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
+        current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "voice_client_locked"))
 
         random_track = queue.pop(queue.index(choice(queue)))
+        if keep_current_track and current_track is not None:
+            queue.insert(0, current_track)
 
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(self.guild_states, interaction, True, "stop_flag")
@@ -1464,8 +1474,9 @@ class MusicCog(commands.Cog):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return
-        elif isinstance(error, discord.errors.Forbidden):
-            await send_func("I cannot send a message to you! Check your privacy settings and try again.", ephemeral=True)
+        elif isinstance(error, app_commands.errors.CommandInvokeError):
+            if isinstance(error.original, discord.errors.Forbidden):
+                await send_func("I cannot send a message to you! Check your privacy settings and try again.", ephemeral=True)
             return
         elif isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
