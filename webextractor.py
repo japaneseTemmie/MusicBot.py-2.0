@@ -30,10 +30,28 @@ class SourceWebsite(Enum):
     SOUNDCLOUD_SEARCH = "SoundCloud search"
 
 class QueryType:
-    def __init__(self, query: str, source_website: str, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
+    """ QueryType class.
+    
+    dataclass-like object to simplify query handling.
+    
+    `query`: User-given query. Must always exist. 
+    
+    `source_website`: Source website tied to `query`. Must be a `SourceWebsite` value and must always exist. 
+    
+    `is_url`: Whether `query` is a URL or not. Must always exist. 
+    
+    `regex`: Regex pattern used to match `query`. Must only be filled if `is_url`=`True`. Otherwise, ValueError will be raised. 
+    
+    `search_string`: Search string passed to yt-dlp. Must only be filled if `is_url`=`False`. Otherwise, ValueError will be raised. """
+
+    def __init__(self, query: str, source_website: str | None, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
         self.query = query
         self.source_website = source_website
         self.is_url = is_url
+
+        if (regex is not None and not self.is_url) or (search_string is not None and self.is_url):
+            raise ValueError("Unsupported argument supplied in current condition")
+
         self.regex = regex
         self.search_string = search_string
 
@@ -81,24 +99,37 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
 
     return QueryType(query, provider_source_website, False, None, provider_search_string)
 
+def prettify_date(date: str) -> datetime:
+    """ Parse given `date` into a datetime object. Non-string `date` is assumed as a datetime object. """
+    
+    # Since different websites distribute content differently, we have to adapt to different date/duration formats
+    if isinstance(date, str):
+        try:
+            pretty_date = datetime.strptime(date, "%Y%m%d").date()
+        except ValueError:
+            pretty_date = date
+    else:
+        pretty_date = date # Is already a datetime-like object
+
+    return pretty_date
+
+def prettify_duration(duration: str | float | int) -> str:
+    """ Return an HH:MM:SS version of `duration` if it is a float or int. Otherwise return the same string. """
+
+    if isinstance(duration, (int, float)):
+        return format_to_minutes(int(duration)) or "00:00:00" # prefer 0 rather than None
+    else:
+        return duration
+
 def prettify_info(info: dict[str, Any], source_website: str | None=None) -> dict[str, Any]:
     """ Prettify the extracted info with cleaner values. """
     
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
     duration = info.get("duration", 0)
 
-    # Since different websites distribute content differently, we have to adapt to different date/duration formats
-    if isinstance(upload_date, str):
-        pretty_date = datetime.strptime(upload_date, "%Y%m%d").date()
-    else:
-        pretty_date = upload_date # Is already a datetime object
-    if isinstance(duration, (int, float)):
-        formatted_duration = format_to_minutes(int(duration))
-    else:
-        formatted_duration = duration # Is already a HH:MM:SS string
-
-    info["upload_date"] = pretty_date
-    info["duration"] = formatted_duration
+    info["upload_date"] = prettify_date(upload_date)
+    info["duration"] = prettify_duration(duration)
+    info["uploader"] = info["uploader"] or "Unknown" # Some newgrounds tracks fail to get uploader, better to display as 'unknown' than 'None'
     info["source_website"] = source_website or "Unknown"
 
     return info

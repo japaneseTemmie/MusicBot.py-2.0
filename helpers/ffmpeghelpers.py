@@ -66,8 +66,11 @@ async def handle_player_crash(
         old_title = str(current_track["title"])
         old_source_website = str(current_track["source_website"])
 
+        log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving new stream URL for crash handler in guild ID {interaction.guild.id}")
+
         new_track = await resolve_expired_url(current_track["webpage_url"])
         if new_track is None or not await validate_stream(new_track["url"]): # Validate new stream before passing it to play_track()
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid. Skipping..")
             return False
         
         new_track["title"] = old_title

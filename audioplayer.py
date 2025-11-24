@@ -55,9 +55,11 @@ class AudioPlayer:
         try:
             is_stream_valid = await validate_stream(track["url"])
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
+                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving expired URL in guild ID {interaction.guild.id}")
                 track = await resolve_expired_url(track["webpage_url"])
 
                 if track is None or not await validate_stream(track["url"]):
+                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
                     raise ValueError("Unrecoverable stream.")
                 
                 track["title"] = old_title
@@ -67,6 +69,7 @@ class AudioPlayer:
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] An error occurred while spawning an FFmpeg process in guild ID {interaction.guild.id}. Check log for more info.")
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
             if is_looping:
                 await update_guild_state(self.guild_states, interaction, False, "is_looping")
