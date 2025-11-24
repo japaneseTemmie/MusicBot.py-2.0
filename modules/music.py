@@ -14,7 +14,8 @@ from helpers.queuehelpers import (
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
     find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue, skip_tracks_in_queue,
-    get_queue_indices, get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string
+    get_queue_indices, get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string,
+    validate_page_number
 )
 from helpers.voicehelpers import (
     set_voice_status, close_voice_clients, check_users_in_channel
@@ -1305,9 +1306,15 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
 
         queue_pages = await asyncio.to_thread(get_pages, queue)
-
-        page = max(1, min(page, len(queue_pages)))
+        total_pages = len(queue_pages)
         page -= 1
+
+        result = await validate_page_number(total_pages, page)
+        if isinstance(result, Error):
+            await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
+            await interaction.followup.send(result.msg)
+
+            return
 
         queue_page = queue_pages[page]
         queue_indices = await get_queue_indices(queue, queue_page)
@@ -1354,9 +1361,15 @@ class MusicCog(commands.Cog):
         await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
         
         history_pages = await asyncio.to_thread(get_pages, track_history)
-
-        page = max(1, min(page, len(history_pages)))
+        total_pages = len(history_pages)
         page -= 1
+
+        result = await validate_page_number(total_pages, page)
+        if isinstance(result, Error):
+            await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
+            await interaction.followup.send(result.msg)
+
+            return
 
         history_page = history_pages[page]
         history_indices = await get_queue_indices(track_history, history_page)

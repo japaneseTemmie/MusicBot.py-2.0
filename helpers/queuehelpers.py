@@ -33,6 +33,14 @@ def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
 
     return pages
 
+async def validate_page_number(total: int, page: int) -> None | Error:
+    """ Check if page number `n` is in a valid ranage. """
+
+    if page < 0:
+        return Error("Page cannot be less than 0.")
+    elif page > total - 1:
+        return Error(f"Page is higher than the maximum page number (**{total}**).")
+
 # Functions to update the copied queue when /queueloop is enabled.
 async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict[str, Any], track: dict[str, Any]) -> None:
     """ Update the `queue_to_loop` state with the `old` and `new` output of a replace track function.
