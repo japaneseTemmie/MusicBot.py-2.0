@@ -77,14 +77,14 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
         not is_extracting and\
         not await is_playlist_locked(locked_playlists):
 
-        log(f"[DISCONNECT][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
 
         await update_guild_state(guild_states, member, True, "user_disconnect")
         if voice_client.is_paused():
             await update_guild_state(guild_states, member, True, "stop_flag")
 
         await voice_client.disconnect() # rest is handled by disconnect_routine() (hopefully)
-        log(f"[DISCONNECT][SHARD ID {member.guild.shard_id}] Left channel ID {voice_client.channel.id}")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Left channel ID {voice_client.channel.id}")
         return True
 
     return False
@@ -115,7 +115,7 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     await asyncio.sleep(10) # Sleepy time :3 maybe it's a network issue
 
     if any(client.guild.id == member.guild.id for client in client.voice_clients): # Reconnected, all good
-        log(f"[RECONNECT][SHARD ID {member.guild.shard_id}] Cleanup operation cancelled for guild ID {member.guild.id}")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Cleanup operation cancelled for guild ID {member.guild.id}")
 
         await update_guild_states(guild_states, member, (False, False), ("pending_cleanup", "handling_disconnect_action"))
         return
@@ -131,10 +131,10 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
 async def close_voice_clients(guild_states: dict[str, Any], client: commands.Bot | commands.AutoShardedBot) -> None:
     """ Close any leftover VCs and cleanup their open audio sources, if any. """
 
-    log("Closing voice clients..")
+    log("[GUILDSTATE] Closing voice clients..")
     
     async def _close(vc: discord.VoiceClient):
-        log(f"Closing connection to channel ID {vc.channel.id}..")
+        log(f"[GUILDSTATE][SHARD ID {vc.guild.shard_id}] Closing connection to channel ID {vc.channel.id}..")
         
         can_edit_status = guild_states[vc.guild.id]["allow_voice_status_edit"]
         
@@ -152,7 +152,7 @@ async def close_voice_clients(guild_states: dict[str, Any], client: commands.Bot
             pass
         
         vc.cleanup()
-        log(f"Cleaned up channel ID {vc.channel.id}")
+        log(f"[GUILDSTATE][SHARD ID {vc.guild.shard_id}] Cleaned up channel ID {vc.channel.id}")
         
     await asyncio.gather(*[_close(vc) for vc in client.voice_clients])
 
@@ -178,7 +178,7 @@ async def handle_channel_move(
     elapsed_time = guild_states[member.guild.id]["elapsed_time"]
 
     if handling_move_action:
-        log(f"[CHANNELSTATE][SHARD ID {member.guild.shard_id}] Already handling a move action for channel ID {after_state.channel.id}")
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a move action for channel ID {after_state.channel.id}")
         return
 
     await update_guild_states(guild_states, member, (True, True), ("handling_move_action", "voice_client_locked"))
@@ -187,7 +187,7 @@ async def handle_channel_move(
         await before_state.channel.edit(status=None)
 
     if after_state.channel.type == discord.ChannelType.stage_voice:
-        await text_channel.send("I've been moved to an unsupported stage channel. Don't jumpscare me like that!")
+        await text_channel.send("Disconnecting because I've been moved to an unsupported stage channel.")
 
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(guild_states, member, True, "stop_flag")

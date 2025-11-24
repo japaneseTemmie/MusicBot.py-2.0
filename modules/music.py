@@ -255,11 +255,17 @@ class MusicCog(commands.Cog):
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_random = self.guild_states[interaction.guild.id]["is_random"]
+        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "user_interrupted_playback"))
 
-        skipped = await skip_tracks_in_queue(queue, current_track, is_random, amount)
+        skipped = await skip_tracks_in_queue(queue, current_track, is_random, is_looping, amount)
+        if isinstance(skipped, Error):
+            await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "user_interrupted_playback"))
+
+            await interaction.followup.send(skipped.msg)
+            return
 
         if voice_client.is_playing() or voice_client.is_paused():
             voice_client.stop()
@@ -1126,7 +1132,7 @@ class MusicCog(commands.Cog):
             return
 
         time_in_seconds = format_to_seconds(time.strip())
-        if time_in_seconds is None: # allow seek to 0
+        if time_in_seconds is None:
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
