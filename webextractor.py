@@ -84,6 +84,8 @@ YOUTUBE_DOMAINS = (SourceWebsite.YOUTUBE.value, SourceWebsite.YOUTUBE_PLAYLIST.v
 
 def get_query_type(query: str, provider: str | None) -> QueryType:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. 
+
+    `provider` is the optional search provider to use when queries don't match the supported regex patterns.
     
     Returns a QueryType object. """
 

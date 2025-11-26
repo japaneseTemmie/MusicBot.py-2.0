@@ -113,7 +113,7 @@ class AudioPlayer:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-    async def check_player_flags(self, interaction: Interaction) -> int | None:
+    async def check_player_stop_flags(self, interaction: Interaction) -> int | None:
         """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
          
         Returns a `PlayerStopReason` value if a check fails. """
@@ -184,7 +184,7 @@ class AudioPlayer:
 
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
-        stop_reason = await self.check_player_flags(interaction)
+        stop_reason = await self.check_player_stop_flags(interaction)
         if stop_reason is not None:
             return
 

@@ -37,7 +37,7 @@ async def validate_page_number(total: int, page: int) -> None | Error:
     """ Check if page number `n` is in a valid ranage. """
 
     if page < 0:
-        return Error("Page cannot be less than 0.")
+        return Error("Page cannot be 0 or less.")
     elif page > total - 1:
         return Error(f"Page is higher than the maximum page number (**{total}**).")
 
@@ -237,8 +237,8 @@ async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
     except IndexError:
         return False
 
-async def get_queue_indices(queue: list[dict[str, Any]], tracks: list[dict[str, Any]]) -> list[int]:
-    """ Return the queue 1-based indices matching each item in `tracks`. """
+async def get_queue_indices(queue: list[dict[str, Any]], tracks: list[dict[str, Any]], one_based: bool=True) -> list[int]:
+    """ Return the queue indices matching each item in `tracks`. """
 
     indices = []
     seen = set()
@@ -246,7 +246,7 @@ async def get_queue_indices(queue: list[dict[str, Any]], tracks: list[dict[str, 
     for usr_track in tracks:
         for i, queue_track in enumerate(queue):
             if queue_track == usr_track and i not in seen:
-                indices.append(i + 1)
+                indices.append(i + 1 if one_based else i)
                 seen.add(i)
 
                 break
