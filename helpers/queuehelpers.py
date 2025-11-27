@@ -474,6 +474,9 @@ async def replace_track_in_queue(
     if isinstance(extracted_track, Error):
         return extracted_track
 
+    if extracted_track["webpage_url"] == found_track[0]["webpage_url"]:
+        return Error(f"Cannot replace a track (**{found_track[0]['title']}**) with the same one.")
+
     if is_playlist:
         extracted_track = {
             'title': extracted_track['title'],
@@ -482,9 +485,6 @@ async def replace_track_in_queue(
             'webpage_url': extracted_track['webpage_url'],
             'source_website': extracted_track['source_website']
         }
-
-    if extracted_track["webpage_url"] == found_track[0]["webpage_url"]:
-        return Error(f"Cannot replace a track (**{found_track[0]['title']}**) with the same one.")
     
     removed_track = queue.pop(found_track[1])
     queue.insert(found_track[1], extracted_track)
