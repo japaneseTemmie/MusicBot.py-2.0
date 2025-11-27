@@ -180,10 +180,14 @@ class MusicCog(commands.Cog):
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         if current_track is not None and keep_current_track:
+            # Must check queue length before re-inserting
             is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+            is_queue_not_being_modified = await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.")
+
             if not is_queue_length_ok or\
-                not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait."):
+                not is_queue_not_being_modified:
                 return
+
             await update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
