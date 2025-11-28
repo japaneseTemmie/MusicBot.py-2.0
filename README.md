@@ -300,13 +300,9 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
 
   Open a terminal in the project directory and run:
   
-  `./.venv/bin/pip install --upgrade -r requirements.txt` (UNIX-like)
-  
-  `.\.venv\Scripts\pip.exe install --upgrade -r requirements.txt` (Windows)
+  `python3 updatelibs.py` (UNIX-like)
 
-  if the current terminal is **_not_** in the _venv_. Otherwise:
-
-  `pip install --upgrade -r requirements.txt` (UNIX-like/Windows)
+  `python updatelibs.py` (Windows)
   
   Then, try again.
 
