@@ -8,7 +8,7 @@ from settings import (
 from init.constants import MAX_IO_SYNC_WAIT_TIME
 from loader import ModuleLoader
 from init.logutils import log, separator, log_to_discord_log
-from guildchecks import ensure_guild_data
+from guildchecks import ensure_guild_data, check_guild_data
 
 import asyncio
 from discord.ext import commands
@@ -152,9 +152,14 @@ class Bot(commands.Bot):
         separator()
         await asyncio.sleep(0.3)
 
-        success = await ensure_guild_data(self, self.guilds)
-        if not success:
+        guild_data_exists = await ensure_guild_data()
+        if not guild_data_exists:
             await self.close()
+        
+        guild_data_is_ok = await check_guild_data(self.user.name, self.guilds, self.is_sharded)
+        if not guild_data_is_ok:
+            log("Failed check: Guild data")
+
         await asyncio.sleep(0.3)
 
         loaded_cogs = await self.load_cogs()
