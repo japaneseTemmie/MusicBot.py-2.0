@@ -256,8 +256,8 @@ Example activity config:
 # Extending the bot (For devs)
 To add your own modules, simply create a new **.py** file in the `modules` directory. For access to config and runtime settings data as constants, import the `settings` and `init.constants` modules.
 
-Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter of type `Bot` (from module `bot`) in its
-constructor, this allows custom classes to interact with the Bot subclass of `commands.Bot` or `commands.AutoShardedBot`.
+Write your class as a `commands.Cog` subclass, which takes _only_ a `client` parameter of type `Bot` or (`|`) `ShardedBot` (from module `bot`) in its
+constructor, this allows custom classes to interact with the Bot subclasses of `commands.Bot` or `commands.AutoShardedBot`.
 
 Best practices:
 - Check out the [example module](./modules/example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
