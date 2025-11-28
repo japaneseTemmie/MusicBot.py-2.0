@@ -77,15 +77,17 @@ async def check_guild_count(user_name: str, guild_count: int, is_sharded_flag: b
     if is_sharded_flag:
         return
 
+    message = None
     if guild_count > MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED:
         message = f"{user_name} has exceeded {MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED} guilds. This may cause an issue. Consider enabling sharding in config.json"
     elif guild_count > MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED - 100:
         message = f"{user_name} is close to {MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED} guilds. Consider enabling sharding in config.json"
-    
-    log(message)
-    log_to_discord_log(message, "warning", CAN_LOG, LOGGER)
-    
-    await asyncio.sleep(5)
+        
+    if message is not None:
+        log(message)
+        log_to_discord_log(message, "warning", CAN_LOG, LOGGER)
+        
+        await asyncio.sleep(5)
 
 async def ensure_guild_data() -> bool:
     """ Ensures the guild data directory exists. 
