@@ -406,7 +406,7 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
     Returns removed tracks or Error. """
     
     removed = []
-    to_remove = set()
+    to_remove = []
     
     for track in tracks:
         found_track = await find_track(track, queue, by_index)
@@ -414,10 +414,11 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
         if isinstance(found_track, Error):
             return found_track
         
-        to_remove.add(found_track[1])
+        to_remove.append(found_track[1])
         removed.append(found_track[0])
 
-    for index in sorted(to_remove, reverse=True):
+    sotred_indices = sorted(set(to_remove), reverse=True)
+    for index in sotred_indices:
         queue.pop(index)
 
     return removed if removed else Error("Could not find given tracks.")
