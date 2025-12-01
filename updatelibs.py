@@ -3,6 +3,7 @@
 from init.logutils import log
 
 from os.path import join, dirname, exists
+from os import name
 from sys import exit as sysexit, prefix, base_prefix
 from subprocess import Popen, PIPE
 
@@ -11,12 +12,12 @@ PATH = dirname(__file__)
 REQUIREMENTS_TXT_PATH = join(PATH, "requirements.txt")
 
 VENV_PATH = join(PATH, ".venv")
-VENV_PIP = join(VENV_PATH, "bin", "pip")
+VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
 
 UPDATE_COMMAND_VENV = ["pip", "install", "--upgrade", "-r", REQUIREMENTS_TXT_PATH]
 UPDATE_COMMAND_NO_VENV = [VENV_PIP,] + UPDATE_COMMAND_VENV[1:]
 
-class ProcessCompletion:
+class CompletedProcess:
     def __init__(self, stdout: str, stderr: str, code: int, pid: int):
         self.pid = pid
         self.stdout = stdout
@@ -47,7 +48,7 @@ def check_venv() -> bool:
 def is_in_venv() -> bool:
     return prefix != base_prefix
 
-def run(proc: list[str]) -> ProcessCompletion:
+def run(proc: list[str]) -> CompletedProcess:
     """ Run a process. 
     
     Return True if exit code is 0. """
@@ -55,7 +56,7 @@ def run(proc: list[str]) -> ProcessCompletion:
     process = Popen(proc, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
 
-    return ProcessCompletion(stdout.decode(), stderr.decode(), process.returncode, process.pid)
+    return CompletedProcess(stdout.decode(), stderr.decode(), process.returncode, process.pid)
 
 def main() -> None:
     process_completion = None
