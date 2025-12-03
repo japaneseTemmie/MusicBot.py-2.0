@@ -86,17 +86,18 @@ async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Inter
                 queue_to_loop.append(track)
 
 # Functions for checking input and queue, these functions also 'reply' to interactions
-async def check_input_length(interaction: Interaction, max_limit: int, input_split: list[Any], msg_on_fail: str | None=None) -> list[Any]:
+async def check_input_length(interaction: Interaction | None, max_limit: int, input_split: list[Any], msg_on_fail: str | None=None, reply_to_interaction: bool=True) -> list[Any]:
     """ Check a split input's length and compare it to a given maximum limit.
 
-    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message and slice the input up to the `max_limit`. 
+    If it exceeds the limit, reply to the interaction with `msg_on_fail` or a default message if `reply_to_interaction` is True and slice the input up to the `max_limit`.
     Otherwise, return the given `input_split`. """
     
     default_msg = msg_on_fail or f"You can only add a maximum of **{max_limit}** tracks per command.\nOnly the first **{max_limit}** of your command will be added."
     input_length = len(input_split)
     
     if input_length > max_limit:
-        await interaction.channel.send(default_msg)
+        if reply_to_interaction and interaction is not None:
+            await interaction.channel.send(default_msg)
         return input_split[:max_limit]
 
     return input_split
@@ -361,15 +362,18 @@ async def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[st
         
     return queue.pop(0)
 
-# Functions to get stuff from playlists.
+# Functions to get stuff from a queue.
 async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
     """ Get track objects from an interable `queue` based on their names (or indices). 
     
     Returns a list of tracks or Error. """
     
     found = []
-    for name in track_names:
-        track_info = await find_track(name, queue, by_index)
+    for track_name in track_names:
+        if not track_name:
+            return Error("Track name field cannot be empty.")
+
+        track_info = await find_track(track_name, queue, by_index)
         
         if isinstance(track_info, Error):
             return track_info
@@ -409,15 +413,20 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
     to_remove = []
     
     for track in tracks:
+        if not track:
+            return Error("Track field cannot be empty.")
+    
         found_track = await find_track(track, queue, by_index)
 
         if isinstance(found_track, Error):
             return found_track
+        elif found_track[0] in removed:
+            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation!")
         
         to_remove.append(found_track[1])
         removed.append(found_track[0])
 
-    sotred_indices = sorted(set(to_remove), reverse=True)
+    sotred_indices = sorted(to_remove, reverse=True)
     for index in sotred_indices:
         queue.pop(index)
 
