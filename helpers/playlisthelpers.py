@@ -66,7 +66,7 @@ async def lock_playlist(interaction: Interaction, content: dict[str, list] | Err
     # Ensure the target playlist exists or a command that creates one is used.
     if  await playlist_exists(content, playlist_name) or\
         interaction.command.name in (
-            "playlist-save", "playlist-save-current", "playlist-add-yt-playlist", "playlist-add", "playlist-create", "playlist-copy", "playlist-copy-track"
+            "playlist-save-queue", "playlist-save-current-track", "playlist-import", "playlist-add", "playlist-create", "playlist-copy", "playlist-copy-tracks"
         ):
         locked[playlist_name] = True
 

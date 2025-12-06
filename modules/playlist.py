@@ -98,7 +98,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-save", description="Creates or updates a playlist with the current queue. See entry in /help for more info.")
+    @app_commands.command(name="playlist-save-queue", description="Creates or updates a playlist with the current queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The new playlist's name.",
         add_current_track="Whether or not to add the current track, if any. (default True)"
@@ -169,7 +169,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-save-current", description="Saves the current track to a playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-save-current-track", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify or create's name.",
         index="The index at which the track should be placed. Must be > 0. Ignore this field for last one."
@@ -887,7 +887,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-copy-track", description="Copies track(s) from a playlist to a new/existing one. See entry in /help for more info.")
+    @app_commands.command(name="playlist-copy-tracks", description="Copies track(s) from a playlist to a new/existing one. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to copy tracks from's name",
         target_playlist_name="The playlist to copy tracks to's name.",
@@ -967,7 +967,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-fetch-track", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
+    @app_commands.command(name="playlist-fetch-tracks", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to fetch tracks from's name.",
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
@@ -1041,7 +1041,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-fetch-random-track", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
+    @app_commands.command(name="playlist-fetch-random-tracks", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to get tracks from's name.",
         amount="The amount of random tracks to fetch, must be <= 25 (default)"
@@ -1199,7 +1199,7 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-rename-track", description="Renames tracks to new names. See entry in /help for more info.")
+    @app_commands.command(name="playlist-rename-tracks", description="Renames tracks to new names. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old_track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to rename.",
