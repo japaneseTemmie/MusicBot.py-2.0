@@ -126,31 +126,31 @@ _*Support may depend on command._
 
   - Minimum (personal use / few guilds):
 
-      - A `100Mbps` Download / `10Mbps` Upload internet connection (Ethernet preferred for lower latency).
+      - A **100Mbps Download** / **10Mbps Upload** internet connection (_Ethernet preferred for lower latency_).
 
-      - A 4 core CPU running at ~3GHz.
+      - A **4 core** CPU running at ~3GHz.
 
-      - 4GB or 8GB of RAM should be plenty for caching.
+      - **4 or 8** gigabytes of RAM.
 
-      - 15GB of free storage. 
+      - **15GB** of free storage. 
 
   - Recommended (many guilds):
 
-    - `1Gbps+` Download / `700Mbps+` Upload internet connection through Ethernet.
+    - **1Gbps+ Download** / **700Mbps+ Upload** internet connection through Ethernet.
 
-    - A desktop high-end or entry level server-grade CPU with 8+ performance cores running at 4GHz+.
+    - A **desktop high-end** or **entry level server-grade** CPU with 8+ performance cores running at 4GHz+.
 
-    - 32 or more gigabytes of RAM.
+    - **32** or more gigabytes of RAM.
 
-    - 100GB+ of free solid state storage.
+    - **100GB+** of free solid state storage.
 
-  NOTE: These are only generic requirements. Hardware should scale as per guild count and usage.
+  NOTE: These are only _generic requirements_. Hardware should scale as per **guild count and usage**.
 
   Additional notes:
    
-  - Very slow or unstable connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
+  - Very _slow or unstable_ connections will cause the bot to respond to commands with **huge delays**, causing bugs that will otherwise not happen.
 
-  - The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
+  - The bot caches role and playlist files _extensively_ for **faster lookup** and lower disk activity at the expense of using more RAM.
 
   - CPU is used for `yt-dlp` extraction and parsing, Discord API event and audio processing (`ffmpeg`).
 
