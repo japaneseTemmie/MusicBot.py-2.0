@@ -51,7 +51,7 @@ def is_in_venv() -> bool:
 def run(proc: list[str]) -> CompletedProcess:
     """ Run a process. 
     
-    Return True if exit code is 0. """
+    Return a `CompletedProcess` instance. """
     
     process = Popen(proc, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -59,7 +59,7 @@ def run(proc: list[str]) -> CompletedProcess:
     return CompletedProcess(stdout.decode(), stderr.decode(), process.returncode, process.pid)
 
 def main() -> None:
-    process_completion = None
+    process = None
     checks = [check_requirements(), check_venv()]
     if not all(checks):
         log("Failure exit", "libupdater")
@@ -67,18 +67,18 @@ def main() -> None:
 
     if is_in_venv():
         log(f"Running '{" ".join(UPDATE_COMMAND_VENV)}'", "libupdater")
-        process_completion = run(UPDATE_COMMAND_VENV)
+        process = run(UPDATE_COMMAND_VENV)
     else:
         log(f"Running '{" ".join(UPDATE_COMMAND_NO_VENV)}'", "libupdater")
-        process_completion = run(UPDATE_COMMAND_NO_VENV)
+        process = run(UPDATE_COMMAND_NO_VENV)
 
-    if process_completion is not None:
-        if process_completion.code == 0:
-            print("Process stdout:\n", process_completion.stdout)
-            log(f"Process {process_completion.pid} successfully exited with 0", "libupdater")
+    if process is not None:
+        if process.code == 0:
+            print("Process stdout:\n", process.stdout)
+            log(f"Process {process.pid} successfully exited with 0", "libupdater")
         else:
-            print("Process stderr:\n", process_completion.stderr)
-            log(f"Process {process_completion.pid} failed with code {process_completion.code}", "libupdater")
+            print("Process stderr:\n", process.stderr)
+            log(f"Process {process.pid} failed with code {process.code}", "libupdater")
         
         log("done", "libupdater")
 
