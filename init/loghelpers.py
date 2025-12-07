@@ -10,6 +10,8 @@ from os.path import join, exists
 from os import remove
 
 def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:
+    """ Set up logging to the `discord.log` file in the `dir` root directory. """
+    
     log("Logging enabled")
     separator()
     log("Setting up logging...")
@@ -32,6 +34,8 @@ def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Forma
     return handler, formatter, logger, level
 
 def remove_log(dir: str) -> tuple[None, None, None, None]:
+    """ Remove the `discord.log` file from the `dir` root folder. """
+    
     log(f"Logging disabled")
     
     path = join(dir, "discord.log")

@@ -1,4 +1,4 @@
-""" Help system functions for discord.py bot """
+""" Helper functions for help file opening for discord.py bot """
 
 from helpers.iohelpers import open_file
 from init.logutils import log, separator

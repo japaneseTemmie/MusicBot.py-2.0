@@ -1,3 +1,5 @@
+""" Config helper module for discord.py bot """
+
 from helpers.iohelpers import open_file, write_file
 from init.logutils import log, separator
 
@@ -44,7 +46,7 @@ def get_default_modules_config_data() -> dict[str, bool]:
         "enable_MyCog": False
     }
 
-def correct_type(value: Any, correct_type: type | tuple[type | Any], default: Any, condition: str="isinstance") -> Any:
+def correct_type(value: Any, correct_type: type | tuple[Any], default: Any, condition: str="isinstance") -> Any:
     """ Correct a config value type. 
     
     `condition` is the condition to check. Can be 'isinstance' or 'in'.

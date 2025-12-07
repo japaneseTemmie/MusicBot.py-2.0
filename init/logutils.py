@@ -7,7 +7,9 @@ from random import choice
 from logging import Logger
 
 def log(msg: str, log_type: str="main") -> None:
-    """ Log `msg` to stdout. """
+    """ Log `msg` to stdout. 
+    
+    `log_type` refers to the text between the [] at the start of the message. """
     
     print(f"{choice(all_colors)}[{log_type}]{Colors.RESET} | {choice(all_colors)}{datetime.now().strftime('%d/%m/%Y @ %H:%M:%S')}{Colors.RESET} | {choice(all_colors)}{msg}{Colors.RESET}")
 
@@ -28,7 +30,7 @@ def log_to_discord_log(
     
     When `log_type` is specified (either 'warning', 'error', 'info', or 'debug') and `content` is a string. The message will be logged as `log_type`.
 
-    Return value indicates log success.
+    Return value indicates logging success.
     """
 
     if can_log and logger is not None:
