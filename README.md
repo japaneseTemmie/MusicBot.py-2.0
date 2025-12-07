@@ -122,21 +122,41 @@ _*Support may depend on command._
 
   Up to date versions should work fine.
 
-- Optional, but preferred if hosting on many guilds:
+- Hardware requirements:
 
-  - An internet connection with **high download/upload speeds**.
-  
-      Minimum `100Mbps DL`/`10Mbps UL` for personal use, `1Gbps+ DL`/`700Mbps+ UL` for a moderate amount of guilds
+  - Minimum (personal use / few guilds):
 
-      Note: Very slow or unstable connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
+      - A `100Mbps` Download / `10Mbps` Upload internet connection (Ethernet preferred for lower latency).
 
-  - A system with lots of RAM (ideally >= 32GB).
+      - A 4 core CPU running at ~3GHz.
 
-      The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
+      - 4GB or 8GB of RAM should be plenty for caching.
 
-  - A system with a powerful CPU (8+ performance cores, 4GHz+).
+      - 15GB of free storage. 
 
-      A powerful CPU is required for tasks like `yt-dlp` extraction and parsing, `FFmpeg` and `Discord` audio processing.
+  - Recommended (many guilds):
+
+    - `1Gbps+` Download / `700Mbps+` Upload internet connection through Ethernet.
+
+    - A desktop high-end or entry level server-grade CPU with 8+ performance cores running at 4GHz+.
+
+    - 32 or more gigabytes of RAM.
+
+    - 100GB+ of free solid state storage.
+
+  NOTE: These are only generic requirements. Hardware should scale as per guild count and usage.
+
+  Additional notes:
+   
+  - Very slow or unstable connections will cause the bot to respond to commands with huge delays, causing bugs that will otherwise not happen.
+
+  - The bot caches role and playlist files extensively for faster lookup and lower disk activity at the expense of using more RAM.
+
+  - CPU is used for `yt-dlp` extraction and parsing, Discord API event and audio processing (`ffmpeg`).
+
+  - Network is used for `yt-dlp` extraction and Discord API calls.
+
+  - Storage is used for storing guild and config / logging data.
 
 ## Preparing the project directory
 - Unpack the source code to a directory of your choice. (Or, `git clone` it.)
