@@ -1434,6 +1434,37 @@ class MusicCog(commands.Cog):
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
         await send_func("An unknown error occurred.", ephemeral=True)
 
+    @app_commands.command(name="stop-extraction", description="Submits a request to stop any currently running extraction process.")
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def stop_extraction(self, interaction: Interaction):
+        if not await user_has_role(interaction) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", False, "I'm not extracting anything!") or\
+            not await check_guild_state(self.guild_states, interaction, "can_extract", False, "I'm not extracting anything!") or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        await update_guild_state(self.guild_states, interaction, False, "can_extract")
+
+        await interaction.followup.send("Successfully completed request. Extraction process should stop shortly.")
+
+    @stop_extraction.error
+    async def handle_stop_extraction_error(self, interaction: Interaction, error: Exception):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+        await send_func("An unknown error occurred.", ephemeral=True)
+
     @app_commands.command(name="epoch", description="Shows the elapsed time since the first track.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only

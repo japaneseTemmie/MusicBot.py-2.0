@@ -197,6 +197,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "is_reading_queue": False,
         "is_reading_history": False,
         "is_extracting": False,
+        "can_extract": False,
         "allow_greetings": True,
         "allow_voice_status_edit": True,
         "voice_status": None,

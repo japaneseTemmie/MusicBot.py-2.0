@@ -1,7 +1,7 @@
 """ Extractor helper functions for discord.py bot """
 
 from settings import EXTRACTOR_SEMAPHORE
-from helpers.guildhelpers import update_query_extraction_state
+from helpers.guildhelpers import update_query_extraction_state, update_guild_state
 from webextractor import fetch, get_query_type
 from error import Error
 
@@ -53,19 +53,29 @@ async def fetch_queries(
         query_names: list[str]=None,
         allowed_query_types: tuple[str]=None,
         provider: str | None=None
-    ) -> list[dict[str, Any] | list[dict[str, Any]]] | Error:
+    ) -> list[dict[str, Any]] | Error:
     """ Extract a list of queries and return the result. 
     
     `allowed_query_types` must be a tuple containing SourceWebsite enum values. 
     
     `provider` must be a SourceWebsite search website enum value. (if used) """
+
+    await update_guild_state(guild_states, interaction, True, "can_extract")
     
+    can_extract = guild_states[interaction.guild.id]["can_extract"]
+
     found = []
+    queries_length = len(queries)
+
     for i, query in enumerate(queries):
+        can_extract = guild_states[interaction.guild.id]["can_extract"]
+        if not can_extract:
+            break
+
         extracted_query = await fetch_query(guild_states, interaction,
             query=query if not isinstance(query, dict) else query["webpage_url"],
             extraction_state_amount=i + 1,
-            extraction_state_max_length=len(queries),
+            extraction_state_max_length=queries_length,
             query_name=query_names[i] if isinstance(query_names, list) else query_names,
             allowed_query_types=allowed_query_types,
             provider=provider
@@ -78,6 +88,9 @@ async def fetch_queries(
         else:
             found.append(extracted_query)
     
+    if can_extract:
+        await update_guild_state(guild_states, interaction, False, "can_extract")
+
     return found
 
 async def resolve_expired_url(webpage_url: str) -> dict[str, Any] | None:
