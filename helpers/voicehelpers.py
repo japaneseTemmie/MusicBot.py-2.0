@@ -99,13 +99,18 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     has_pending_cleanup = guild_states[member.guild.id]["pending_cleanup"]
     handling_disconnect = guild_states[member.guild.id]["handling_disconnect_action"]
     user_initiated_disconnect = guild_states[member.guild.id]["user_disconnect"]
-    
+    handling_extraction_process = guild_states[member.guild.id]["can_extract"]
+
     if has_pending_cleanup or\
         handling_disconnect:
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a disconnect action for guild ID {member.guild.id}. Ignoring.")
         return
 
     await update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
+
+    if handling_extraction_process:
+        log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Stopping extraction process for guild ID {member.guild.id} to allow cleaning up voice and guild data.")
+        await update_guild_state(guild_states, member, False, "can_extract")
 
     if can_update_status and user_initiated_disconnect: # Prevents status from getting reset on network disconnects
         await update_guild_state(guild_states, member, None, "voice_status")
