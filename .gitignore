@@ -1,9 +1,7 @@
 # .gitingore
 config.json
-help_backup.json
 *.log
 .env
 guild_data/
 __pycache__/
-guild_data_bak/
 .venv
