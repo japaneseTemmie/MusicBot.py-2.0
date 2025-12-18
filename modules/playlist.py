@@ -233,13 +233,14 @@ class PlaylistCog(commands.Cog):
     @app_commands.command(name="playlist-select", description="Selects tracks in a playlist and adds them to the queue. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The name of the playlist to select.",
-        clear_current_queue="Whether or not to clear the current queue.",
-        range_start="The range to start track selection from.",
-        range_end="The range where track selection will stop."
+        clear_current_queue="Whether or not to clear the current queue. (default False)",
+        range_start="The range to start track selection from. (defaults to start)",
+        range_end="The range where track selection will stop. (defaults to end)",
+        random_order="Whether or not tracks in the range should be randomly selected. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def select_playlist(self, interaction: Interaction, playlist_name: str, range_start: int=0, range_end: int=0, clear_current_queue: bool=False):
+    async def select_playlist(self, interaction: Interaction, playlist_name: str, range_start: int=0, range_end: int=None, random_order: bool=False, clear_current_queue: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
@@ -272,7 +273,7 @@ class PlaylistCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await self.playlist.select(self.guild_states, self.max_track_limit, interaction, content, playlist_name, range_start, range_end)
+        result = await self.playlist.select(self.guild_states, self.max_track_limit, interaction, content, playlist_name, range_start, range_end, random_order)
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)

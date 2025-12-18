@@ -21,6 +21,7 @@ from discord import app_commands
 from discord.interactions import Interaction
 from typing import Any
 from copy import deepcopy
+from random import shuffle
 
 class PlaylistManager:
     def __init__(self, client: Bot | ShardedBot):
@@ -297,7 +298,8 @@ class PlaylistManager:
             content: dict[str, list] | Error, 
             playlist_name: str, 
             range_start: int=0, 
-            range_end: int=0
+            range_end: int | None=None,
+            random_order: bool=False
         ) -> list[dict[str, Any]] | Error:
         """ Adds all playlist tracks from `range_start` to `range_end` to the queue.
 
@@ -307,25 +309,32 @@ class PlaylistManager:
         if isinstance(playlist, Error):
             return playlist
         
-        if range_end == 0:
-            range_end = len(playlist)
-        range_start = max(1, min(range_start, len(playlist)))
-        range_end = max(1, min(range_end, len(playlist)))
+        playlist_length = len(playlist)
+
+        if range_end is None:
+            range_end = playlist_length
+        
+        if (range_start > playlist_length or range_start < 1) or (range_end > playlist_length or range_end < 1):
+            return Error("Range start or end must be > **0** and < **playlist length**.")
+        elif range_start > range_end:
+            return Error("Invalid start or end range.\n`range_start` must be <= `range_end`.")
 
         range_start -= 1
         range_end -= 1
-
-        if range_start > range_end:
-            return Error("Invalid `range_start` or `range_end`.\n`range_start` must be < `range_end`.")
         
-        query_names = [track["title"] for track in playlist[range_start:range_end+1]]
-        found = await fetch_queries(guild_states, interaction, playlist[range_start:range_end+1], query_names)
+        tracks_to_fetch = playlist[range_start:range_end]
+        if random_order:
+            shuffle(tracks_to_fetch)
+        
+        query_names = [track["title"] for track in tracks_to_fetch]
+
+        found = await fetch_queries(guild_states, interaction, tracks_to_fetch, query_names)
 
         if isinstance(found, list):
             queue = guild_states[interaction.guild.id]["queue"]
             is_looping_queue = guild_states[interaction.guild.id]["is_looping_queue"]
 
-            await replace_data_with_playlist_data(found, playlist[range_start:range_end+1])
+            await replace_data_with_playlist_data(found, tracks_to_fetch)
             added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
@@ -342,8 +351,8 @@ class PlaylistManager:
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
-            tracks: list[str | dict[str, Any]], 
-            use_dict: bool=False, 
+            tracks: list[dict[str, Any]] | list[str], 
+            treat_tracks_as_dicts: bool=False, 
             by_index: bool=False
         ) -> list[dict[str, Any]] | Error:
         """ Adds requested queries from a given playlist to the queue.
@@ -354,22 +363,22 @@ class PlaylistManager:
         if isinstance(playlist, Error):
             return playlist
 
-        if not use_dict:
-            queries = await get_tracks_from_queue(tracks, playlist, by_index)
+        if not treat_tracks_as_dicts:
+            tracks_to_fetch = await get_tracks_from_queue(tracks, playlist, by_index)
 
-            if isinstance(queries, Error):
-                return queries
+            if isinstance(tracks_to_fetch, Error):
+                return tracks_to_fetch
         else:
-            queries = tracks
+            tracks_to_fetch = tracks
         
-        query_names = [track["title"] for track in queries]
-        found = await fetch_queries(guild_states, interaction, queries, query_names)
+        query_names = [track["title"] for track in tracks_to_fetch]
+        found = await fetch_queries(guild_states, interaction, tracks_to_fetch, query_names)
 
         if isinstance(found, list):
             queue = guild_states[interaction.guild.id]["queue"]
             is_looping_queue = guild_states[interaction.guild.id]["is_looping_queue"]
 
-            await replace_data_with_playlist_data(found, queries)
+            await replace_data_with_playlist_data(found, tracks_to_fetch)
             added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
