@@ -297,7 +297,7 @@ class PlaylistManager:
             interaction: Interaction, 
             content: dict[str, list] | Error, 
             playlist_name: str, 
-            range_start: int=0, 
+            range_start: int=1, 
             range_end: int | None=None,
             random_order: bool=False
         ) -> list[dict[str, Any]] | Error:
@@ -320,8 +320,7 @@ class PlaylistManager:
             return Error("Invalid start or end range.\n`range_start` must be <= `range_end`.")
 
         range_start -= 1
-        range_end -= 1
-        
+
         tracks_to_fetch = playlist[range_start:range_end]
         if random_order:
             shuffle(tracks_to_fetch)

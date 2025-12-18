@@ -240,7 +240,7 @@ class PlaylistCog(commands.Cog):
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def select_playlist(self, interaction: Interaction, playlist_name: str, range_start: int=0, range_end: int=None, random_order: bool=False, clear_current_queue: bool=False):
+    async def select_playlist(self, interaction: Interaction, playlist_name: str, range_start: int=1, range_end: int=None, random_order: bool=False, clear_current_queue: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
