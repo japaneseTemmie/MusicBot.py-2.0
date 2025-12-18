@@ -111,7 +111,7 @@ class VoiceCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
-            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status or `/stop-extraction` to stop it.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first.") or\
             not await check_vc_lock(True, interaction):
             return

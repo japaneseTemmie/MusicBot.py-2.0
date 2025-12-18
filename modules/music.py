@@ -75,7 +75,7 @@ class MusicCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
-            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status or `/stop-extraction` to stop it.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked! Please wait for the other action first."):
             return
 
@@ -169,7 +169,7 @@ class MusicCog(commands.Cog):
     async def play_track_now(self, interaction: Interaction, query: str, search_provider: app_commands.Choice[str]=None, keep_current_track: bool=True):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status or `/stop-extraction` to stop it.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nPlease wait for the current action first."):
             return
         
@@ -717,7 +717,7 @@ class MusicCog(commands.Cog):
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "queue", [], "Queue is empty. Nothing to replace.") or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
-            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/progress` to see the status or `/stop-extraction` to stop it.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
@@ -1400,7 +1400,7 @@ class MusicCog(commands.Cog):
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
         await send_func("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="progress", description="Show info about the current extraction process. (if any)")
+    @app_commands.command(name="extraction-progress", description="Show info about the current extraction process. (if any)")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_extraction(self, interaction: Interaction):
