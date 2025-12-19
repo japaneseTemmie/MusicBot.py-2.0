@@ -570,15 +570,15 @@ async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[
     """ Skip a specified amount of tracks in a queue. """
     
     if amount < 0:
-        return Error("Amount cannot be less than 0.")
+        return Error("Amount cannot be less than **0**.")
     elif amount > len(queue):
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
     elif amount > 25:
-        return Error("Amount can only be less than 25.")
+        return Error("Amount can only be less than **25**.")
 
     skipped = []
     if amount > 1 and not is_random and not is_looping:
-        for _ in range(amount):
+        for _ in range(1, amount):
             if len(queue) > 0:
                 skipped.append(queue.pop(0))
             else:

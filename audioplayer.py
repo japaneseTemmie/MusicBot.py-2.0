@@ -5,7 +5,7 @@ from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
 from helpers.ffmpeghelpers import (
-    get_ffmpeg_options, validate_stream, resolve_expired_url, check_player_crash
+    get_ffmpeg_options, is_stream_url_alive, resolve_expired_url, check_player_crash
 )
 from helpers.guildhelpers import update_guild_state, update_guild_states
 from helpers.voicehelpers import set_voice_status, check_users_in_channel
@@ -53,12 +53,12 @@ class AudioPlayer:
         ffmpeg_options = await get_ffmpeg_options(position)
 
         try:
-            is_stream_valid = await validate_stream(track["url"])
+            is_stream_valid = await is_stream_url_alive(track["url"])
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving expired URL in guild ID {interaction.guild.id}")
                 track = await resolve_expired_url(track["webpage_url"])
 
-                if track is None or not await validate_stream(track["url"]):
+                if track is None or not await is_stream_url_alive(track["url"]):
                     log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
                     raise ValueError("Unrecoverable stream.")
                 

@@ -7,7 +7,7 @@ from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state
 from helpers.timehelpers import format_to_minutes, format_to_seconds
 
-import asyncio
+import aiohttp
 import discord
 from discord.interactions import Interaction
 from typing import Any, Awaitable
@@ -24,29 +24,20 @@ async def get_ffmpeg_options(position: int) -> dict[str, str]:
         "options": f"-vn -ss {position}"
     }
 
-async def validate_stream(url: str) -> bool:
-    """ Validate a stream URL by spawning an `ffprobe` subprocess asynchronously with a 10 second timeout.
+async def is_stream_url_alive(url: str) -> bool:
+    """ Check if a stream URL is accessible asynchronously with a 3 second timeout.
     
-    Returns True if the stream can be used for playback, otherwise False if the subprocess exits with 1, has invalid input or timeout is exhausted. """
+    Returns True if the stream can be accessed, otherwise False. """
     
     try:
-        process = await asyncio.wait_for(asyncio.create_subprocess_exec(
-            'ffprobe',
-            '-v', 'quiet',
-            '-show_entries', 'stream=codec_type,codec_name,bit_rate',
-            '-of', 'default=noprint_wrappers=1:nokey=1',
-            url,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL
-        ), timeout=STREAM_VALIDATION_TIMEOUT)
-
-        stdout, _ = await process.communicate()
-
-        output = stdout.decode().strip().splitlines()
-        audio_stream_found = any(line and line == "audio" for line in output)
-
-        return process.returncode == 0 and audio_stream_found
-    except asyncio.TimeoutError:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        }
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(STREAM_VALIDATION_TIMEOUT)) as session:
+            async with session.get(url, headers=headers) as response:
+                return response.status == 200
+    except Exception as e:
+        log_to_discord_log(f"An error occured while validating stream URL {url}\nErr: {e}", "error", CAN_LOG, LOGGER)
         return False
 
 async def handle_player_crash(
@@ -69,7 +60,7 @@ async def handle_player_crash(
         log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving new stream URL for crash handler in guild ID {interaction.guild.id}")
 
         new_track = await resolve_expired_url(current_track["webpage_url"])
-        if new_track is None or not await validate_stream(new_track["url"]): # Validate new stream before passing it to play_track()
+        if new_track is None or not await is_stream_url_alive(new_track["url"]): # Validate new stream before passing it to play_track()
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid. Skipping..")
             return False
         
