@@ -68,13 +68,11 @@ class AudioPlayer:
             source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
-        except Exception as e:
+        except Exception:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] An error occurred while spawning an FFmpeg process in guild ID {interaction.guild.id}. Check log for more info.")
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
             if is_looping:
                 await update_guild_state(self.guild_states, interaction, False, "is_looping")
-            
-            self.handle_playback_end(e, interaction)
             return None
         
         return track
@@ -212,6 +210,8 @@ class AudioPlayer:
         try:
             await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
             play_success = await self.play_track(interaction, voice_client, track)
+
+            await update_guild_states(self.guild_states, interaction, (0, 0), ("crash_recovery_count", "last_recovery_time"))
         finally:
             await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 

@@ -215,6 +215,8 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "queue_to_loop": [],
         "locked_playlists": {},
         "filters": {},
+        "crash_recovery_count": 0,
+        "last_recovery_time": 0,
         "pending_cleanup": False,
         "handling_disconnect_action": False,
         "handling_move_action": False,

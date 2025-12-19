@@ -1,10 +1,10 @@
 """ FFmpeg helper functions for discord.py bot """
 
 from settings import CAN_LOG, LOGGER
-from init.constants import PLAYBACK_END_GRACE_PERIOD, STREAM_VALIDATION_TIMEOUT
+from init.constants import PLAYBACK_END_GRACE_PERIOD, STREAM_VALIDATION_TIMEOUT, MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW
 from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
-from helpers.guildhelpers import update_guild_state
+from helpers.guildhelpers import update_guild_state, update_guild_states
 from helpers.timehelpers import format_to_minutes, format_to_seconds
 
 import aiohttp
@@ -89,6 +89,18 @@ async def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
     
     return current_time < expected_elapsed_time
 
+async def recovery_count_over_limit(recovery_count: int, last_recovery_time: float) -> bool:
+    """ Check if recovery count is over the limit in a time window and return True if so. Otherwise False. """
+    
+    current_time = monotonic()
+
+    if recovery_count >= MAX_RETRY_COUNT and\
+        current_time - last_recovery_time <= CRASH_RECOVERY_TIME_WINDOW:
+
+        return True
+
+    return False
+
 async def get_approximate_resume_time(current_time: int, track_duration_in_seconds: int) -> int:
     """ Given a crash time and the total duration, return the approximate resume time. """
     
@@ -101,12 +113,16 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
     
     current_track = guild_states[interaction.guild.id]["current_track"]
     user_forced = guild_states[interaction.guild.id]["user_interrupted_playback"]
+    crash_recovery_count = guild_states[interaction.guild.id]["crash_recovery_count"]
+    last_recovery_time = guild_states[interaction.guild.id]["last_recovery_time"]
     start_time = guild_states[interaction.guild.id]["start_time"]
     voice_client = guild_states[interaction.guild.id]["voice_client"]
     recovery_success = False
 
     if current_track is not None and not user_forced:
-        if await track_ended_early(current_track, start_time):
+        if await track_ended_early(current_track, start_time) and not\
+            await recovery_count_over_limit(crash_recovery_count, last_recovery_time):
+            
             await update_guild_state(guild_states, interaction, True, "voice_client_locked")
 
             approximate_resume_time = await get_approximate_resume_time(int(monotonic() - start_time), format_to_seconds(current_track["duration"]))
@@ -121,12 +137,14 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
             if recovery_success:
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Recovered player crash in guild ID {interaction.guild.id}")
 
-                await interaction.channel.send(f"Successfully recovered playback. Now playing at **{format_to_minutes(approximate_resume_time)}**.")
+                await update_guild_states(guild_states, interaction, (crash_recovery_count + 1, monotonic()), ("crash_recovery_count", "last_recovery_time"))
+
+                await interaction.channel.send(f"Successfully recovered playback.\nNow playing at **{format_to_minutes(approximate_resume_time)}**.")
                 return recovery_success
             else:
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to recover player crash in guild ID {interaction.guild.id}")
                 
-                await interaction.channel.send(f"Failed to recover. Skipping..")
+                await interaction.channel.send(f"Failed to recover.\nSkipping..")
 
     if user_forced:
         await update_guild_state(guild_states, interaction, False, "user_interrupted_playback")
