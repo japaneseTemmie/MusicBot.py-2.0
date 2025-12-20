@@ -37,7 +37,7 @@ async def fetch_query(
         interaction, 
         extraction_state_amount, 
         extraction_state_max_length, 
-        query_name.strip() if query_name is not None else query,
+        query_name.strip() if isinstance(query_name, str) else query,
         query_type.source_website
     )
 
@@ -50,7 +50,7 @@ async def fetch_queries(
         guild_states: dict[str, Any],
         interaction: Interaction,
         queries: list[str] | list[dict[str, Any]],
-        query_names: list[str]=None,
+        query_names: list[str] | None=None,
         allowed_query_types: tuple[str]=None,
         provider: str | None=None
     ) -> list[dict[str, Any]] | Error:
@@ -60,12 +60,16 @@ async def fetch_queries(
     
     `provider` must be a SourceWebsite search website enum value. (if used) """
 
-    await update_guild_state(guild_states, interaction, True, "can_extract")
-    
-    can_extract = guild_states[interaction.guild.id]["can_extract"]
-
     found = []
     queries_length = len(queries)
+    is_query_names_list = isinstance(query_names, list)
+
+    if is_query_names_list and\
+        queries_length != len(query_names):
+        query_names = None
+
+    await update_guild_state(guild_states, interaction, True, "can_extract")
+    can_extract = guild_states[interaction.guild.id]["can_extract"]
 
     for i, query in enumerate(queries):
         can_extract = guild_states[interaction.guild.id]["can_extract"]
@@ -76,7 +80,7 @@ async def fetch_queries(
             query=query if not isinstance(query, dict) else query["webpage_url"],
             extraction_state_amount=i + 1,
             extraction_state_max_length=queries_length,
-            query_name=query_names[i] if isinstance(query_names, list) else query_names,
+            query_name=query_names[i] if is_query_names_list else None,
             allowed_query_types=allowed_query_types,
             provider=provider
         )
@@ -110,9 +114,12 @@ async def resolve_expired_url(webpage_url: str) -> dict[str, Any] | None:
     return new_extracted_track
 
 async def add_results_to_queue(interaction: Interaction, results: list[dict[str, Any]], queue: list, max_limit: int) -> list[dict[str, Any]]:
-    """ Append found results to a queue in place.\n
-    Reply to the interaction if it exceeds `max_limit`.
+    """ Append found results to a queue in place.
+
+    Reply to the interaction if it exceeds `max_limit` and stop operation.
+    
     Return the added items. """
+    
     added = []
 
     for track_info in results:
