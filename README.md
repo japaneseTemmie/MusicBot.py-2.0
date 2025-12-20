@@ -15,8 +15,8 @@ an **extended** moderation module alongside other new features!
 - [Code setup](#code-setup)
 - [Requirements](#requirements)
 - [Preparing the project directory](#preparing-the-project-directory)
-- [Automatic setup](#automatic-setup)
-- [Manual setup](#manual-setup)
+- [Automatic environment setup](#automatic-environment-setup)
+- [Manual environment setup](#manual-environment-setup)
 - [Usage](#usage)
 - [Extra configuration](#extra-configuration-for-hosts)
 - [Extending the Bot](#extending-the-bot-for-devs)
@@ -30,7 +30,7 @@ an **extended** moderation module alongside other new features!
 - Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
 - Enhanced command functionality, with 40+ music commands and 15+ moderation commands.
-- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or sets*) and **Bandcamp** (song or album*).
+- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or sets*) and **Bandcamp** (song or albums*).
 - Guild and voice channel auto-cleanup functionality.
 - Sharding support.
 - Extendable with custom modules.
@@ -164,7 +164,7 @@ _*Support may depend on command._
 
   - On Windows:
 
-    `CMD` is necessary. `PowerShell` will break almost every command in this guide.
+    `CMD` is recommended. `PowerShell` has a very different syntax and won't work with these commands.
 
   - On UNIX-like OS:
 
@@ -184,7 +184,7 @@ _*Support may depend on command._
   TOKEN=1a2b3c4d5e6f7g
   ```
 
-# Automatic setup
+# Automatic environment setup
 - Prepare and run automatically using the helper script:
 
   `python3 start.py` (UNIX-like)
@@ -197,7 +197,7 @@ _*Support may depend on command._
 
   - Once it outputs '`Ready`', it will start listening for events and commands.
 
-# Manual setup
+# Manual environment setup
 If the automatic setup doesn't work, it may be worth manually setting it up:
 
 - Create a Python virtual environment (_venv_):
@@ -226,7 +226,7 @@ If the automatic setup doesn't work, it may be worth manually setting it up:
 
   What it does:
 
-  Runs the pip package manager, passing the contents of 'requirements.txt' as the packages to install.
+  Runs the pip package manager, passing the contents of [this file](./requirements.txt) as the packages to install.
 
 - Finally, if successful, run the main entry point:
 
@@ -283,11 +283,11 @@ Best practices:
 - Check out the [example module](./modules/example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
 - Check locks before running I/O file or VoiceClient operations (`channel.connect()`/`vc.play()`/`vc.stop()`/`vc.pause()` etc.). You can use the `check_vc_lock()` or `check_file_lock()`  async functions from `helpers.guildhelpers`.
 - Do _not_ call `sleep()` or anything that blocks the main thread. Use `asyncio.sleep()` instead if working within an async context.
-- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `helpers.iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. This is because I/O blocks the main thread.
+- Do _not_ do file I/O directly, instead, send the `write_file()` or `open_file()` function (from `helpers.iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. File I/O blocks the main thread.
 - Custom helpers should be kept in a new module in `./helpers`.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
-- To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled), use `log_to_discord_log()` (from `init.logutils`). 
-- Do _not_ use the `TOKEN` constant anywhere unless there's a good reason to. (like running the bot itself)
+- To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled through the `CAN_LOG` constant found in `settings.py`), use `log_to_discord_log()` (from `init.logutils`). 
+- Do _not_ use the `TOKEN` constant anywhere unless there's a _very_ good reason to. (like running the bot itself)
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications) and update role permissions for your bot.
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow enabling/disabling the module, and set its value to `true`, or else the bot won't load your Cog.
