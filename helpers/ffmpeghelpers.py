@@ -1,7 +1,12 @@
 """ FFmpeg helper functions for discord.py bot """
 
 from settings import CAN_LOG, LOGGER
-from init.constants import PLAYBACK_END_GRACE_PERIOD, STREAM_VALIDATION_TIMEOUT, MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW
+from init.constants import (
+    PLAYBACK_END_GRACE_PERIOD, 
+    STREAM_VALIDATION_TIMEOUT, MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW, 
+    FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MILLIS,
+    IS_STREAM_URL_ALIVE_REQUEST_HEADERS
+)
 from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state, update_guild_states
@@ -20,21 +25,18 @@ async def get_ffmpeg_options(position: int) -> dict[str, str]:
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
     
     return {
-        "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10 -rw_timeout 7000000",
+        "before_options": f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max {FFMPEG_RECONNECT_TIMEOUT_SECONDS} -rw_timeout {FFMPEG_READ_WRITE_TIMEOUT_MILLIS}",
         "options": f"-vn -ss {position}"
     }
 
 async def is_stream_url_alive(url: str) -> bool:
-    """ Check if a stream URL is accessible asynchronously with a 3 second timeout.
+    """ Check if a stream URL is accessible asynchronously with timeout in seconds.
     
     Returns True if the stream can be accessed, otherwise False. """
-    
+
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-        }
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(STREAM_VALIDATION_TIMEOUT)) as session:
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=IS_STREAM_URL_ALIVE_REQUEST_HEADERS) as response:
                 return response.status == 200
     except Exception as e:
         log_to_discord_log(f"An error occured while validating stream URL {url}\nErr: {e}", "error", CAN_LOG, LOGGER)
@@ -81,7 +83,7 @@ async def handle_player_crash(
         return False
 
 async def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
-    """ Check if a track has ended early. """
+    """ Check if a track has ended early with a grace period to avoid false positives. """
     
     current_time = int(monotonic() - start_time)
     track_duration_in_seconds = format_to_seconds(track["duration"])
