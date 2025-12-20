@@ -158,7 +158,9 @@ def parse_info(info: dict[str, Any], query: str, query_type: QueryType) -> dict[
 def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Search a webpage and find info about the query.
 
-    Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. """
+    Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. 
+    
+    Return a single hashmap containing a media URL readable by FFmpeg and optional metadata or a list of the same type if `query` is a playlist URL. """
 
     if not query_type.is_url and INVALID_URL_PATTERN.match(query):
         return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
