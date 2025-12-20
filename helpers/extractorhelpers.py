@@ -49,7 +49,7 @@ async def fetch_query(
 async def fetch_queries(
         guild_states: dict[str, Any],
         interaction: Interaction,
-        queries: list[str | dict[str, Any]],
+        queries: list[str] | list[dict[str, Any]],
         query_names: list[str]=None,
         allowed_query_types: tuple[str]=None,
         provider: str | None=None
