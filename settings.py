@@ -18,8 +18,6 @@ from time import sleep
 from shutil import which
 from dotenv import load_dotenv
 
-log("Finished importing libraries")
-separator()
 log(f"Running discord.py version {discord.__version__}")
 separator()
 sleep(0.5)
