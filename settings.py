@@ -79,11 +79,9 @@ COOLDOWNS = {
 HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
 LOG_LEVEL = VALID_LOG_LEVELS.get(LEVEL, INFO)
 
-# FFmpeg and FFprobe validation
+# FFmpeg validation
 FFMPEG = which("ffmpeg")
 handle_which_ff_output(OS_NAME, FFMPEG)
-FFPROBE = which("ffprobe")
-handle_which_ff_output(OS_NAME, FFPROBE, "probe")
 
 # Cache
 # Set up hashmaps for asyncio locks and cache
