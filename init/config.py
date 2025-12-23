@@ -32,7 +32,8 @@ def get_other_default_config_data() -> dict[str, Any]:
         "enable_file_backups": True,
         "enable_logging": True,
         "log_level": "normal",
-        "use_sharding": False
+        "use_sharding": False,
+        "auto_delete_unused_guild_data": True
     }
 
 def get_default_modules_config_data() -> dict[str, bool]:

@@ -1,6 +1,6 @@
 """ Guild helper functions for discord.py bot """
 
-from settings import PATH, CAN_LOG, LOGGER
+from settings import PATH, CAN_LOG, LOGGER, CAN_AUTO_DELETE_GUILD_DATA
 from init.constants import MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED
 from init.logutils import log, log_to_discord_log, separator
 from helpers.iohelpers import make_path
@@ -117,22 +117,21 @@ async def check_guild_data(user_name: str, guilds: list[discord.Guild], is_shard
     await check_guild_count(user_name, guild_count, is_sharded_flag)
 
     separator()
-    log(f"Checking for leftover guilds in {guild_data_path}.")
 
-    if not exists(guild_data_path):
-        log(f"{guild_data_path} does not exist. Skipping guild check.")
-        separator()
-        
-        return False
+    if CAN_AUTO_DELETE_GUILD_DATA:
+        log(f"Checking for leftover guilds in {guild_data_path}.")
 
-    to_delete = await asyncio.to_thread(get_guilds_to_delete, user_name, guilds)
+        to_delete = await asyncio.to_thread(get_guilds_to_delete, user_name, guilds)
 
-    if to_delete:
-        deleted_successfully = await asyncio.to_thread(delete_guild_dirs, to_delete)
-        if not deleted_successfully:
-            return False
+        if to_delete:
+            deleted_successfully = await asyncio.to_thread(delete_guild_dirs, to_delete)
+            if not deleted_successfully:
+                separator()
+                return False
+        else:
+            log("Success! No issues found.")
     else:
-        log("Success! No issues found.")
+        log("Skipping guild check as per config value.")
 
     log("done")
     separator()

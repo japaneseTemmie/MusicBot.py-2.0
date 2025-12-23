@@ -20,6 +20,7 @@ These settings allow for configuration of general bot behaviour.
   - `errors`: Log errors.
   - `critical`: Log critical errors.
 - `use_sharding`: Enables sharding. _Required_ by Discord for bots that are in >= 2500 guilds. Expects a boolean.
+- `auto_delete_unused_guild_data`: Allows the bot to auto-delete guild data from the `guild_data` folder in the root directory of the project that is no longer associated with a guild. Expects a boolean.
 
 # Module settings
 These settings allow to control which module gets enabled, useful to limit features

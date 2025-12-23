@@ -48,6 +48,7 @@ YDL_OPTIONS = correct_type(CONFIG.get("yt_dlp_options", get_default_yt_dlp_confi
 COMMAND_PREFIX = correct_type(CONFIG.get("command_prefix", "?"), str, "?")
 USE_SHARDING = correct_type(CONFIG.get("use_sharding", False), bool, False)
 ENABLE_FILE_BACKUPS = correct_type(CONFIG.get("enable_file_backups", True), bool, True)
+CAN_AUTO_DELETE_GUILD_DATA = correct_type(CONFIG.get("auto_delete_unused_guild_data", True), bool, True)
 
 HELP = open_help_file(PATH)
 COOLDOWNS = {
