@@ -1,6 +1,4 @@
-""" Playlist module for discord.py bot.
-
-Handles playlist commands. """
+""" Playlist module for discord.py bot. """
 
 from settings import COOLDOWNS, CAN_LOG, LOGGER
 from bot import Bot, ShardedBot
@@ -16,7 +14,9 @@ from helpers.guildhelpers import (
 from helpers.playlisthelpers import (
     is_playlist_locked, lock_playlist, unlock_playlist, unlock_all_playlists
 )
-from helpers.queuehelpers import get_pages, get_queue_indices, check_input_length, check_queue_length, split, get_random_tracks_from_queue, get_tracks_from_queue
+from helpers.queuehelpers import (
+    get_pages, get_queue_indices, check_input_length, check_queue_length, split, get_random_tracks_from_queue, sanitize_name, validate_page_number
+)
 from helpers.voicehelpers import check_users_in_channel
 
 import asyncio
@@ -56,9 +56,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+
+        playlist_name = await sanitize_name(playlist_name)
+        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         playlist = await self.playlist.get_playlist(content, playlist_name)
         await unlock_playlist(locked, content, playlist_name)
@@ -68,14 +74,18 @@ class PlaylistCog(commands.Cog):
             return
 
         playlist_pages = await asyncio.to_thread(get_pages, playlist)
-
-        page = max(1, min(page, len(playlist_pages)))
+        total_pages = len(playlist_pages)
         page -= 1
+
+        result = await validate_page_number(total_pages, page)
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+            return
 
         playlist_page = playlist_pages[page]
         playlist_indices = await get_queue_indices(playlist, playlist_page)
 
-        embed = generate_queue_embed(playlist_page, playlist_indices, page, len(playlist_pages), False, True)
+        embed = generate_queue_embed(playlist_page, playlist_indices, page, total_pages, False, True)
 
         await interaction.followup.send(embed=embed)
 
@@ -120,9 +130,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         queue = deepcopy(self.guild_states[interaction.guild.id]["queue"])
         current_track = self.guild_states[interaction.guild.id]["current_track"]
@@ -192,9 +208,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.place(interaction, content, playlist_name, current_track, index)
         await unlock_playlist(locked, content, playlist_name)
@@ -267,9 +289,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
@@ -328,9 +356,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.create(interaction, content, playlist_name)
         await unlock_playlist(locked, content, playlist_name)
@@ -379,9 +413,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.delete(interaction, content, playlist_name, erase_contents_only)
         await unlock_playlist(locked, content, playlist_name)
@@ -391,10 +431,10 @@ class PlaylistCog(commands.Cog):
         elif isinstance(result, tuple):
             write_result = result[0]
             removed_tracks = result[1]
-            removed_tracks_len = len(removed_tracks)
+            removed_tracks_length = len(removed_tracks)
 
             if not isinstance(write_result, Error):
-                await interaction.followup.send(f"**{removed_tracks_len}** {'tracks have' if removed_tracks_len > 1 else 'track has'} been removed from playlist **{playlist_name}**.")
+                await interaction.followup.send(f"**{removed_tracks_length}** {'tracks have' if removed_tracks_length > 1 else 'track has'} been removed from playlist **{playlist_name}**.")
             else:
                 await interaction.followup.send(write_result.msg)
         else:
@@ -440,9 +480,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         track_names_split = split(track_names)
         result = await self.playlist.remove(interaction, content, playlist_name, track_names_split, by_index)
@@ -483,13 +529,10 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
-    @app_commands.command(name="playlist-delete-all", description="Deletes all playlists saved in the current guild. See entry in /help for more info.")
-    @app_commands.describe(
-        rewrite="Rewrite the entire structure. Useful if it cannot be read anymore."
-    )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.command(name="playlist-reset", description="Deletes all playlists saved in the current guild. See entry in /help for more info.")
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_RESET_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def delete_all_playlists(self, interaction: Interaction, rewrite: bool=False):
+    async def delete_all_playlists(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction):
@@ -502,14 +545,13 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        
-        content = await self.playlist.read(interaction)
-        result = await self.playlist.delete_all(interaction, content, locked, rewrite)
+                
+        result = await self.playlist.delete_all(interaction, locked)
 
         if isinstance(result, Error):
             await interaction.followup.send(result.msg)
         else:
-            await interaction.followup.send(f'Deleted **{len(content)}** playlist(s).' if not rewrite else 'Structure rewritten successfully.')
+            await interaction.followup.send('Structure rewritten successfully.')
 
         await check_users_in_channel(self.guild_states, interaction)
 
@@ -550,12 +592,18 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+        new_playlist_name = await sanitize_name(new_playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.rename(interaction, content, playlist_name, new_playlist_name)
-        
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -627,9 +675,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
@@ -694,9 +748,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.reposition(interaction, content, playlist_name, track_name, new_index, by_index)
         
@@ -762,9 +822,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
 
@@ -835,26 +901,22 @@ class PlaylistCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
-        if target_playlist_name.lower().replace(" ", "") == playlist_name.lower().replace(" ", ""):
-            await interaction.followup.send("Destination playlist name cannot be the same as the source one!")
-            return
-        elif await is_playlist_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
-            await lock_playlist(interaction, content, locked, target_playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+        target_playlist_name = await sanitize_name(target_playlist_name)
 
-        playlist = await self.playlist.get_playlist(content, playlist_name)
-        if isinstance(playlist, Error):
-            await unlock_playlist(locked, content, playlist_name)
-            await unlock_playlist(locked, content, target_playlist_name)
-
-            await interaction.followup.send(playlist.msg)
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
             return
         
-        result = await self.playlist.add_queue(interaction, content, target_playlist_name, playlist)
+        await lock_playlist(interaction, content, locked, playlist_name)
+        await lock_playlist(interaction, content, locked, target_playlist_name)
+        
+        result = await self.playlist.copy(interaction, content, playlist_name, target_playlist_name)
 
         await unlock_playlist(locked, content, playlist_name)
         await unlock_playlist(locked, content, target_playlist_name)
@@ -907,34 +969,22 @@ class PlaylistCog(commands.Cog):
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         
-        if playlist_name.lower().replace(" ", "") == target_playlist_name.lower().replace(" ", ""):
-            await interaction.followup.send("Source and target playlist names must not match.")
-            return
-        elif await is_playlist_locked(locked):
+        if await is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
-            await lock_playlist(interaction, content, locked, target_playlist_name)
-
-        playlist = await self.playlist.get_playlist(content, playlist_name)
-        if isinstance(playlist, Error):
-            await unlock_playlist(locked, content, playlist_name)
-            await unlock_playlist(locked, content, target_playlist_name)
-
-            await interaction.followup.send(playlist.msg)
+        
+        playlist_name = await sanitize_name(playlist_name)
+        target_playlist_name = await sanitize_name(target_playlist_name)
+        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
             return
         
-        to_add = await get_tracks_from_queue(split(track_names), playlist, by_index)
-        if isinstance(to_add, Error):
-            await unlock_playlist(locked, content, playlist_name)
-            await unlock_playlist(locked, content, target_playlist_name)
-
-            await interaction.followup.send(to_add.msg)
-            return
+        await lock_playlist(interaction, content, locked, playlist_name)
+        await lock_playlist(interaction, content, locked, target_playlist_name)
         
-        result = await self.playlist.add_queue(interaction, content, target_playlist_name, to_add)
+        result = await self.playlist.copy_items(interaction, content, split(track_names), playlist_name, target_playlist_name, by_index)
         
         await unlock_playlist(locked, content, playlist_name)
         await unlock_playlist(locked, content, target_playlist_name)
@@ -999,9 +1049,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))        
 
@@ -1071,9 +1127,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         playlist = await self.playlist.get_playlist(content, playlist_name)
         if isinstance(playlist, Error):
@@ -1149,9 +1211,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
         
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
@@ -1160,7 +1228,6 @@ class PlaylistCog(commands.Cog):
             SourceWebsite.SOUNDCLOUD_PLAYLIST.value,
             SourceWebsite.BANDCAMP_PLAYLIST.value
         )
-
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, [query], allowed_query_types=allowed_query_types)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
@@ -1222,9 +1289,15 @@ class PlaylistCog(commands.Cog):
         if await is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        else:
-            content = await self.playlist.read(interaction)
-            await lock_playlist(interaction, content, locked, playlist_name)
+        
+        playlist_name = await sanitize_name(playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
 
         old_track_names_split = split(old_track_names)
         new_track_names_split = split(new_track_names)
@@ -1276,6 +1349,7 @@ class PlaylistCog(commands.Cog):
             return
         
         await interaction.response.defer(thinking=True)
+
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
 
         if await is_playlist_locked(locked):
@@ -1283,6 +1357,10 @@ class PlaylistCog(commands.Cog):
             return
 
         content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
         result = await self.playlist.get_available(content)
         if isinstance(result, Error):
             await interaction.followup.send(result.msg)
