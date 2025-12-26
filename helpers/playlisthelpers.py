@@ -45,9 +45,7 @@ async def has_playlists(content: dict[str, list]) -> bool:
     return len(content) > 0
 
 async def lock_playlist(interaction: Interaction, content: dict[str, list], locked: dict[str, bool], playlist_name: str) -> None:
-    """ Locks a playlist.
-     
-    Does nothing if `content` is invalid. """
+    """ Locks a playlist. """
 
     # Ensure the target playlist exists or a command that creates one is used.
     if await playlist_exists(content, playlist_name) or\
@@ -77,9 +75,7 @@ async def is_playlist_locked(locked: dict[str, bool]) -> bool:
     return any(locked.values())
 
 async def cleanup_locked_playlists(content: dict[str, list], locked: dict[str, bool]) -> None:
-    """ Cleans up leftover playlists in `locked`.
-     
-    Does nothing if `content` is invalid. """
+    """ Cleans up leftover playlists in `locked`. """
 
     to_remove = [key for key in locked if key not in content]
         
