@@ -1,6 +1,7 @@
 """ Voice helper functions for discord.py bot """
 
 from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED
+from bot import Bot, ShardedBot
 from helpers.cachehelpers import invalidate_cache
 from helpers.playlisthelpers import is_playlist_locked
 from helpers.guildhelpers import update_guild_state, update_guild_states
@@ -8,7 +9,6 @@ from init.logutils import log, separator
 
 import asyncio
 import discord
-from discord.ext import commands
 from discord.interactions import Interaction
 from typing import Any
 from time import monotonic
@@ -89,7 +89,7 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
 
     return False
 
-async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, guild_states: dict[str, Any], member: discord.Member | Interaction) -> None:
+async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, Any], member: discord.Member | Interaction) -> None:
     """ Function that runs every voice_client.disconnect() call.
      
     Responsible for cleaning up the disconnected client and its guild data. """
@@ -133,33 +133,34 @@ async def disconnect_routine(client: commands.Bot | commands.AutoShardedBot, gui
     any leftover guilds that were not properly cleaned up. """
     await cleanup_guilds(guild_states, client.voice_clients)
 
-async def close_voice_clients(guild_states: dict[str, Any], client: commands.Bot | commands.AutoShardedBot) -> None:
-    """ Close any leftover VCs and cleanup their open audio sources, if any. """
+async def close_voice_clients(guild_states: dict[str, Any], client: Bot | ShardedBot) -> None:
+    """ Close any leftover voice clients connections and clean up their channel status. """
 
     log("[GUILDSTATE] Closing voice clients..")
     
-    async def _close(vc: discord.VoiceClient):
-        log(f"[GUILDSTATE][SHARD ID {vc.guild.shard_id}] Closing connection to channel ID {vc.channel.id}..")
+    async def _close(voice_client: discord.VoiceClient):
+        log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Closing connection to channel ID {voice_client.channel.id}..")
         
-        can_edit_status = guild_states[vc.guild.id]["allow_voice_status_edit"]
+        can_edit_status = guild_states[voice_client.guild.id]["allow_voice_status_edit"]
         
-        if vc.is_playing() or vc.is_paused():
-            await update_guild_state(guild_states, vc, True, "stop_flag")
-            vc.stop()
+        if voice_client.is_playing() or voice_client.is_paused():
+            await update_guild_state(guild_states, voice_client, True, "stop_flag")
+            voice_client.stop()
+
+            log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Stopped playback in channel ID {voice_client.channel.id}")
 
         if can_edit_status:
-            await update_guild_state(guild_states, vc, None, "voice_status")
-            await set_voice_status(guild_states, vc)
+            await update_guild_state(guild_states, voice_client, None, "voice_status")
+            await set_voice_status(guild_states, voice_client)
 
-        try:
-            await asyncio.wait_for(vc.disconnect(force=True), timeout=3) # API responds near immediately but the loop hangs for good 10 seconds if we don't pass a minimum timeout
-        except asyncio.TimeoutError:
-            pass
+            log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Cleared voice channel status for channel ID {voice_client.channel.id}")
+
+        await voice_client.disconnect()
         
-        vc.cleanup()
-        log(f"[GUILDSTATE][SHARD ID {vc.guild.shard_id}] Cleaned up channel ID {vc.channel.id}")
+        voice_client.cleanup()
+        log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Cleaned up channel ID {voice_client.channel.id}")
         
-    await asyncio.gather(*[_close(vc) for vc in client.voice_clients])
+    await asyncio.gather(*[_close(voice_client) for voice_client in client.voice_clients])
 
     log("done")
     separator()

@@ -226,7 +226,7 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(
                 "Invalid duration. Be sure to format it to **DD:HH:MM:SS**.\n"+
                 "Example: **00:03:00:00**.\n"+
-                "Additionally, **DD** must not be > 28 and **HH** and **MM** must not be > 59.", ephemeral=True
+                "Additionally, **DD** must not be > **28** and **HH** and **MM** must not be > **59**.", ephemeral=True
             )
             return
         elif member in (interaction.user, interaction.guild.me):
@@ -409,7 +409,7 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"`topic` field is too long! Must be < **{self.max_topic_length}** characters.", ephemeral=True)
             return
 
-        position = max(0, min(position, len(interaction.guild.channels)))
+        position = max(0, min(position, len(interaction.guild.channels) - 1))
         slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
 
         if announcement and "NEWS" not in guild_features:
@@ -458,7 +458,7 @@ class ModerationCog(commands.Cog):
             show: bool=False
         ):
         
-        position = max(0, min(position, len(interaction.guild.channels)))
+        position = max(0, min(position, len(interaction.guild.channels) - 1))
         bitrate = max(8000, min(bitrate, self.max_bitrate))
         user_limit = max(0, min(self.max_user_limit, user_limit))
         name = name.strip()
@@ -493,7 +493,7 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
     async def create_category(self, interaction: Interaction, name: str, position: int=0, show: bool=False):
-        position = max(0, min(position, len(interaction.guild.channels)))
+        position = max(0, min(position, len(interaction.guild.channels) - 1))
         name = name.strip()
 
         if len(name) > self.max_channel_name_length:
@@ -535,7 +535,7 @@ class ModerationCog(commands.Cog):
         ):
 
         guild_features = interaction.guild.features
-        position = max(0, min(len(interaction.guild.channels), position))
+        position = max(0, min(len(interaction.guild.channels) - 1, position))
         slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
         name = name.strip()
         post_guidelines = post_guidelines.strip()
@@ -589,7 +589,7 @@ class ModerationCog(commands.Cog):
         ):
         
         guild_features = interaction.guild.features
-        position = max(0, min(len(interaction.guild.channels), position))
+        position = max(0, min(len(interaction.guild.channels) - 1, position))
         bitrate = max(8000, min(self.max_stage_bitrate, bitrate))
         name = name.strip()
 
