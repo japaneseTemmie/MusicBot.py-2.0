@@ -34,7 +34,7 @@ import discord
 import asyncio
 from time import monotonic, time as get_unix_timestamp
 from copy import deepcopy
-from random import choice, shuffle
+from random import randint, shuffle
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
@@ -107,7 +107,7 @@ class MusicCog(commands.Cog):
 
         found = await fetch_queries(self.guild_states, interaction, queries_split, allowed_query_types=allowed_query_types, provider=provider)
 
-        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
+        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         if isinstance(found, Error):
@@ -117,6 +117,8 @@ class MusicCog(commands.Cog):
             
             if is_looping_queue:
                 await update_loop_queue_add(self.guild_states, interaction)
+
+            await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
             if not voice_client.is_playing() and\
                 not voice_client.is_paused():
@@ -668,7 +670,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "voice_client_locked"))
 
-        random_track = queue.pop(queue.index(choice(queue)))
+        random_track = queue.pop(randint(0, len(queue) - 1))
         if keep_current_track and current_track is not None:
             queue.insert(0, current_track)
 
@@ -1572,7 +1574,7 @@ class MusicCog(commands.Cog):
         if (min_duration and min_duration_in_seconds is None) or\
             (max_duration and max_duration_in_seconds is None):
         
-            await interaction.followup.send("Invalid duration. Must be **HH:MM:SS** and **MM** and **SS** must not be > **59**.")
+            await interaction.followup.send("Invalid duration.\nFormat must be **HH:MM:SS**.\nAdditionally, **MM** and **SS** must not be > **59**.")
             return
         
         added = await add_filters(filters, {
