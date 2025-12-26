@@ -7,9 +7,10 @@ Supported websites
 - SoundCloud (Songs and sets)
 - Bandcamp (Songs and albums) """
 
-from settings import YDL_OPTIONS, CAN_LOG, LOGGER
+from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE
 from init.logutils import log_to_discord_log
 from helpers.timehelpers import format_to_minutes
+from helpers.cachehelpers import get_cache, store_cache
 from error import Error
 
 import re
@@ -155,7 +156,7 @@ def parse_info(info: dict[str, Any], query: str, query_type: QueryType) -> dict[
     # URLs are directly prettified.
     return prettify_info(info, query_type.source_website)
 
-def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, Any]] | Error:
+def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Search a webpage and find info about the query.
 
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. 
@@ -164,6 +165,11 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
 
     if not query_type.is_url and INVALID_URL_PATTERN.match(query):
         return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
+    
+    if allow_cache:
+        cache = get_cache(EXTRACTOR_CACHE, query + f"::{query_type.source_website}")
+        if cache is not None:
+            return cache
 
     try:
         with YoutubeDL(YDL_OPTIONS) as ydl:
@@ -177,6 +183,10 @@ def fetch(query: str, query_type: QueryType) -> dict[str, Any] | list[dict[str, 
         return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
 
     if info is not None:
-        return parse_info(info, query, query_type)
+        prettified_info = parse_info(info, query, query_type)
+        if not isinstance(prettified_info, Error):
+            store_cache(prettified_info, query + f"::{query_type.source_website}", EXTRACTOR_CACHE)
+        
+        return prettified_info
     
     return Error(f"An error occured while extracting `{query[:50]}`.")

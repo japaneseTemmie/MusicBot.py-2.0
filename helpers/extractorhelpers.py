@@ -106,7 +106,7 @@ async def resolve_expired_url(webpage_url: str) -> dict[str, Any] | None:
     query_type = get_query_type(webpage_url, provider)
     
     async with EXTRACTOR_SEMAPHORE:
-        new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type) # Can't use the wrapper fetch_query() here because we can't update the extraction state visible to users.
+        new_extracted_track = await asyncio.to_thread(fetch, webpage_url, query_type, False) # Do not use caching as it will pull invalid data
     
     if isinstance(new_extracted_track, Error):
         return None
