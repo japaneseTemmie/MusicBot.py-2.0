@@ -4,7 +4,14 @@ an **extended** moderation module alongside other new features!
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/github/license/japaneseTemmie/MusicBot.py-2.0)
-![Last Commit](https://img.shields.io/github/last-commit/japaneseTemmie/MusicBot.py-2.0)
+
+**main** branch:
+
+![Last Commit in main](https://img.shields.io/github/last-commit/japaneseTemmie/MusicBot.py-2.0/main) 
+
+**stable** branch:
+
+![Last Commit in stable](https://img.shields.io/github/last-commit/japaneseTemmie/MusicBot.py-2.0/stable)
 
 ## Table of contents
 - [Key features](#key-features)
