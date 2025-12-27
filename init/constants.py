@@ -24,4 +24,4 @@ RAW_FILTER_TO_VISUAL_TEXT = {
     "max_duration": "Maximum duration",
     "source_website": "Website"
 }
-NEED_FORMATTING_FILTERS = ["min_duration", "max_duration"]
+NEED_TIME_FORMATTING_TO_MINUTES_FILTERS = ["min_duration", "max_duration"]

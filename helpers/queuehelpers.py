@@ -4,7 +4,7 @@ from error import Error
 from webextractor import SourceWebsite, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
-from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_FORMATTING_FILTERS
+from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS
 
 import re
 from discord.interactions import Interaction
@@ -239,7 +239,9 @@ async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
         return False
 
 async def get_queue_indices(queue: list[dict[str, Any]], tracks: list[dict[str, Any]], one_based: bool=True) -> list[int]:
-    """ Return the queue indices matching each item in `tracks`. """
+    """ Return the queue indices matching each item in `tracks`. 
+    
+    Additionally, one base indices may be returned if `one_based` is True. """
 
     indices = []
     seen = set()
@@ -262,7 +264,7 @@ async def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool
 
     for filter_name, added_status in added.items():
         if added_status:
-            string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter_name]}**: [ `{filters.get(filter_name) if filter_name not in NEED_FORMATTING_FILTERS else format_to_minutes(filters.get(filter_name))}` ]\n"
+            string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter_name]}**: [ `{filters.get(filter_name) if filter_name not in NEED_TIME_FORMATTING_TO_MINUTES_FILTERS else format_to_minutes(filters.get(filter_name))}` ]\n"
     
     return string
 
@@ -283,7 +285,7 @@ async def get_active_filter_string(filters: dict[str, Any]) -> str:
     string = str()
 
     for filter, value in filters.items():
-        string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter]}**: [ `{value if filter not in NEED_FORMATTING_FILTERS else format_to_minutes(value)}` ]\n"
+        string += f"**{RAW_FILTER_TO_VISUAL_TEXT[filter]}**: [ `{value if filter not in NEED_TIME_FORMATTING_TO_MINUTES_FILTERS else format_to_minutes(value)}` ]\n"
 
     return string
 
