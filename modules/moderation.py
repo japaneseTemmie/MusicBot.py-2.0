@@ -68,12 +68,12 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel.")
     @app_commands.describe(
         channel="The channel to purge. (defaults to the current channel)",
-        amount="The amount of messages to delete. Must be > 0 and <= 1000. (defaults to 100)",
+        amount="The amount of messages to delete. Must be > 0 and <= 500. (defaults to 100)",
         user="Delete only messages sent by this user. (defaults to none)",
         word="Delete only messages that have this word. (defaults to none)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.checks.has_permissions(manage_messages=True)
     @app_commands.checks.bot_has_permissions(manage_messages=True)
     @app_commands.guild_only

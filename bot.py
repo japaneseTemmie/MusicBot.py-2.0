@@ -46,7 +46,7 @@ class Bot(commands.Bot):
         self.max_stage_bitrate = 64000
         self.max_user_limit = 99
         self.max_announcement_length = 2000
-        self.max_purge_limit = 1000
+        self.max_purge_limit = 500
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
