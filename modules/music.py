@@ -261,13 +261,12 @@ class MusicCog(commands.Cog):
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
-        is_random = self.guild_states[interaction.guild.id]["is_random"]
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "user_interrupted_playback"))
 
-        skipped = await skip_tracks_in_queue(queue, current_track, is_random, is_looping, amount)
+        skipped = await skip_tracks_in_queue(queue, current_track, is_looping, amount)
         if isinstance(skipped, Error):
             await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "user_interrupted_playback"))
 
@@ -1116,11 +1115,11 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="seek", description="Seeks to specified position in current track. See entry in /help for more info.")
     @app_commands.describe(
-        time="The time to seek to. Must be HH:MM:SS or shorter version (ex. 1:30)"
+        position="The position to seek to. Must be HH:MM:SS or shorter version (ex. 1:30)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def seek_to(self, interaction: Interaction, time: str):
+    async def seek_to(self, interaction: Interaction, position: str):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
@@ -1138,16 +1137,16 @@ class MusicCog(commands.Cog):
             await interaction.followup.send("No track is currently playing!")
             return
 
-        time_in_seconds = format_to_seconds(time.strip())
-        if time_in_seconds is None:
-            await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
+        position_in_seconds = format_to_seconds(position.strip())
+        if position_in_seconds is None:
+            await interaction.followup.send("Invalid time format.\nBe sure to format it to **HH:MM:SS**.\nAdditionally, **MM** and **SS** must not be > **59**.")
             return
         
         await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
-        await self.player.play_track(interaction, voice_client, current_track, time_in_seconds, "seek")
+        await self.player.play_track(interaction, voice_client, current_track, position_in_seconds, "seek")
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_to_minutes(time_in_seconds)}**.")
+        await interaction.followup.send(f"Set track (**{current_track['title']}**) position to **{format_to_minutes(position_in_seconds)}**.")
 
     @seek_to.error
     async def handle_seek_to_error(self, interaction: Interaction, error: Exception):

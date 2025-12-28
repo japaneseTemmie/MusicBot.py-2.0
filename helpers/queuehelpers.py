@@ -568,7 +568,7 @@ async def place_track_in_playlist(queue: list, index: int | None, track: dict[st
 
     return playlist_track, index
 
-async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_random: bool, is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
+async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
     """ Skip a specified amount of tracks in a queue. """
     
     if amount < 0:
@@ -579,7 +579,7 @@ async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[
         return Error("Amount can only be less than **25**.")
 
     skipped = []
-    if amount > 1 and not is_random and not is_looping:
+    if amount > 1 and not is_looping:
         for _ in range(1, amount):
             if len(queue) > 0:
                 skipped.append(queue.pop(0))
