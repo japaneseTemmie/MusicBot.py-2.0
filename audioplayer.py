@@ -53,12 +53,12 @@ class AudioPlayer:
         ffmpeg_options = await get_ffmpeg_options(position)
 
         try:
-            is_stream_valid = await is_stream_url_alive(track["url"])
+            is_stream_valid = await is_stream_url_alive(track["url"], self.client.stream_url_check_session)
             if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving expired URL in guild ID {interaction.guild.id}")
                 track = await resolve_expired_url(track["webpage_url"])
 
-                if track is None or not await is_stream_url_alive(track["url"]):
+                if track is None or not await is_stream_url_alive(track["url"], self.client.stream_url_check_session):
                     log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
                     raise ValueError("Unrecoverable stream.")
                 
@@ -134,7 +134,7 @@ class AudioPlayer:
         if no_users_in_channel:
             return PlayerStopReason.NO_USERS_IN_CHANNEL.value
 
-        recovered_from_crash = await check_player_crash(interaction, self.guild_states, self.play_track)
+        recovered_from_crash = await check_player_crash(interaction, self.client.stream_url_check_session, self.guild_states, self.play_track)
         if recovered_from_crash:
             return PlayerStopReason.CRASH_RECOVERY.value
         

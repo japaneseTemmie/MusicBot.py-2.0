@@ -1,6 +1,6 @@
 """ Helper functions for help file opening for discord.py bot """
 
-from helpers.iohelpers import open_file
+from helpers.iohelpers import read_file_json
 from init.logutils import log, separator
 
 from os.path import join, exists
@@ -17,7 +17,7 @@ def open_help_file(dir: str) -> dict[str, str] | None:
 
     log(f"Help file found at {path}")
     
-    content = open_file(path, True)
+    content = read_file_json(path)
     if content is None:
         log("No /help will be available.")
 

@@ -2,7 +2,7 @@
 
 from settings import CAN_LOG, LOGGER, PATH, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED
 from error import Error
-from helpers.iohelpers import open_file, write_file, ensure_paths
+from helpers.iohelpers import read_file_json, write_file_json, ensure_paths
 from helpers.cachehelpers import get_cache, store_cache
 from init.logutils import log
 
@@ -12,7 +12,7 @@ from discord.interactions import Interaction
 from typing import Any
 from os.path import join
 
-async def open_guild_json(
+async def read_guild_json(
         interaction: Interaction,
         file_name: str,
         file_locks: dict[int, asyncio.Lock],
@@ -43,7 +43,7 @@ async def open_guild_json(
         if success == False:
             return Error("Failed to create guild data.")
 
-        content = await asyncio.to_thread(open_file, file, True, CAN_LOG, LOGGER)
+        content = await asyncio.to_thread(read_file_json, file, can_log=CAN_LOG, logger=LOGGER)
         if content is None:
             return Error(on_read_error_msg)
         
@@ -81,11 +81,11 @@ async def write_guild_json(
         if success == False:
             return Error("Failed to create guild data.")
 
-        result = await asyncio.to_thread(write_file, file, content, True, CAN_LOG, LOGGER)
+        result = await asyncio.to_thread(write_file_json, file, content, can_log=CAN_LOG, logger=LOGGER)
 
         if result == False:
             if backup is not None:
-                await asyncio.to_thread(write_file, file, backup, True, CAN_LOG, LOGGER)
+                await asyncio.to_thread(write_file_json, file, backup, can_log=CAN_LOG, logger=LOGGER)
 
             return Error(on_write_error_msg)
         
@@ -100,7 +100,7 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     
     if none of the above conditions are met, return False. """
 
-    roles = await open_guild_json(
+    roles = await read_guild_json(
         interaction, 
         "roles.json", 
         ROLE_LOCKS, 

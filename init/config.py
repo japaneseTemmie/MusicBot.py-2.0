@@ -1,6 +1,6 @@
 """ Config helper module for discord.py bot """
 
-from helpers.iohelpers import open_file, write_file
+from helpers.iohelpers import read_file_json, write_file_json
 from init.logutils import log, separator
 
 from copy import deepcopy
@@ -138,16 +138,16 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
     
     if not exists(path):
         log(f"Creating config file because config.json does not exist at {path}")
-        success = write_file(path, default_data, True)
+        result = write_file_json(path, default_data)
 
-        if success == False:
+        if result == False:
             sysexit(1)
 
         log(f"Created config file at {path}")
 
     log(f"Config file found at {path}")
     
-    content = open_file(path, True)
+    content = read_file_json(path)
 
     if content is None:
         sysexit(1)
@@ -162,7 +162,10 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
     if new_content is not None:
         log("Updating config file..")
         sleep(0.5)
-        write_file(path, new_content, True)
+
+        result = write_file_json(path, new_content)
+        if result == False:
+            log("Failed to update config file contents.")
     else:
         log("Config file is up to date.")
     separator()

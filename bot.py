@@ -5,12 +5,13 @@ from settings import (
     VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, 
     LOGGER, CAN_LOG, CONFIG
 )
-from init.constants import MAX_IO_SYNC_WAIT_TIME
+from init.constants import MAX_IO_SYNC_WAIT_TIME, STREAM_VALIDATION_TIMEOUT
 from loader import ModuleLoader
 from init.logutils import log, separator, log_to_discord_log
 from guildchecks import ensure_guild_data, check_guild_data
 
 import asyncio
+from aiohttp import ClientSession, ClientTimeout
 from discord.ext import commands
 from discord.app_commands import AppCommand
 from time import monotonic
@@ -47,6 +48,11 @@ class Bot(commands.Bot):
         self.max_user_limit = 99
         self.max_announcement_length = 2000
         self.max_purge_limit = 500
+
+    async def setup_hook(self) -> None:
+        self.stream_url_check_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
+        log("Set up a ClientSession for stream URL checks")
+        separator()
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
@@ -241,6 +247,11 @@ class Bot(commands.Bot):
         await self.wait_for_read_write_sync()
 
         await super().close()
+
+        if hasattr(self, "stream_url_check_session"):
+            separator()
+            await self.stream_url_check_session.close()
+            log("Closed ClientSession for stream URL checks")
 
         separator()
         log(f"Bai bai :{'3' * randint(1, 10)}")

@@ -1,7 +1,7 @@
 """ Role manager module for discord.py bot """
 
 from settings import ENABLE_FILE_BACKUPS, ROLE_LOCKS, ROLE_FILE_CACHE
-from helpers.guildhelpers import open_guild_json, write_guild_json
+from helpers.guildhelpers import read_guild_json, write_guild_json
 from helpers.moderationhelpers import get_role
 from error import Error
 
@@ -19,7 +19,7 @@ class RoleManager:
          
         Returns the role structure or Error. """
         
-        return await open_guild_json(
+        return await read_guild_json(
             interaction,
             "roles.json",
             ROLE_LOCKS,

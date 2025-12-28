@@ -3,7 +3,7 @@
 from settings import CAN_LOG, LOGGER
 from init.constants import (
     PLAYBACK_END_GRACE_PERIOD, 
-    STREAM_VALIDATION_TIMEOUT, MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW, 
+    MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW, 
     FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MILLIS,
     IS_STREAM_URL_ALIVE_REQUEST_HEADERS
 )
@@ -12,8 +12,8 @@ from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state, update_guild_states
 from helpers.timehelpers import format_to_minutes, format_to_seconds
 
-import aiohttp
 import discord
+from aiohttp import ClientSession
 from discord.interactions import Interaction
 from typing import Any, Awaitable
 from time import monotonic
@@ -29,21 +29,28 @@ async def get_ffmpeg_options(position: int) -> dict[str, str]:
         "options": f"-vn -ss {position}"
     }
 
-async def is_stream_url_alive(url: str) -> bool:
+async def is_stream_url_alive(url: str, session: ClientSession) -> bool:
     """ Check if a stream URL is accessible asynchronously with timeout in seconds.
     
     Returns True if the stream can be accessed, otherwise False. """
 
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(STREAM_VALIDATION_TIMEOUT)) as session:
-            async with session.get(url, headers=IS_STREAM_URL_ALIVE_REQUEST_HEADERS) as response:
-                return response.status == 200
+        async with session.head(url, headers=IS_STREAM_URL_ALIVE_REQUEST_HEADERS) as response:
+            if response.ok:
+                return True
+            
+            if response.status != 405: # HTTP method not allowed
+                return False
+            
+        async with session.get(url, headers=IS_STREAM_URL_ALIVE_REQUEST_HEADERS) as response:
+            return response.ok
     except Exception as e:
         log_to_discord_log(f"An error occured while validating stream URL {url}\nErr: {e}", "error", CAN_LOG, LOGGER)
         return False
 
 async def handle_player_crash(
-        interaction: Interaction, 
+        interaction: Interaction,
+        stream_url_checks_session: ClientSession,
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
         resume_time: int,
@@ -62,7 +69,7 @@ async def handle_player_crash(
         log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving new stream URL for crash handler in guild ID {interaction.guild.id}")
 
         new_track = await resolve_expired_url(current_track["webpage_url"])
-        if new_track is None or not await is_stream_url_alive(new_track["url"]): # Validate new stream before passing it to play_track()
+        if new_track is None or not await is_stream_url_alive(new_track["url"], stream_url_checks_session): # Validate new stream before passing it to play_track()
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid. Skipping..")
             return False
         
@@ -108,7 +115,12 @@ async def get_approximate_resume_time(current_time: int, track_duration_in_secon
     
     return max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
 
-async def check_player_crash(interaction: Interaction, guild_states: dict[str, Any], play_track_func: Awaitable) -> bool:
+async def check_player_crash(
+        interaction: Interaction, 
+        stream_url_checks_session: ClientSession, 
+        guild_states: dict[str, Any], 
+        play_track_func: Awaitable
+    ) -> bool:
     """ Check if the voice player has crashed. 
     
     If so, try to restore playback at a position close to where it crashed. """
@@ -132,7 +144,14 @@ async def check_player_crash(interaction: Interaction, guild_states: dict[str, A
                 f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream.\nAttempting to recover.."
             )
 
-            recovery_success = await handle_player_crash(interaction, current_track, voice_client, approximate_resume_time, play_track_func)
+            recovery_success = await handle_player_crash(
+                interaction, 
+                stream_url_checks_session, 
+                current_track, 
+                voice_client, 
+                approximate_resume_time, 
+                play_track_func
+            )
 
             await update_guild_state(guild_states, interaction, False, "voice_client_locked")
 
