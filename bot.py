@@ -249,7 +249,6 @@ class Bot(commands.Bot):
         await super().close()
 
         if hasattr(self, "stream_url_check_session"):
-            separator()
             await self.stream_url_check_session.close()
             log("Closed ClientSession for stream URL checks")
 
