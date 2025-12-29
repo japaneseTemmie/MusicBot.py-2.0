@@ -10,7 +10,6 @@ from typing import Any
 from types import NoneType
 from os.path import dirname
 from platform import python_implementation, python_version, system
-from sys import exit as sysexit
 from random import choice
 
 def get_directory(file: str | None=None) -> str:
@@ -75,7 +74,7 @@ def get_status(status_type: str | None) -> discord.Status:
     return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if status_type is None else\
     VALID_STATUSES.get(status_type, discord.Status.online)
 
-def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> None:
+def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> bool:
     """ Print information on how to install ffmpeg if not found. """
     
     if output is None:
@@ -86,7 +85,9 @@ def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> 
         else:
             log(f"If you're running Windows, make sure the FF{ff_type} executable is in the PATH environment variable.")
     
-        sysexit(1)
+        return False
     
     log(f"Found FF{ff_type} at {output}")
     separator()
+
+    return True

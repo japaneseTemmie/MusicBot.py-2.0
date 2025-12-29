@@ -37,6 +37,8 @@ log(f"Kernel: {OS_PRETTY_NAME + ' ' + KERNEL_VERSION if KERNEL_VERSION is not No
 separator()
 
 CONFIG = get_config_data(PATH)
+if CONFIG is None:
+    sysexit(1)
 load_dotenv()
 sleep(0.2)
 
@@ -80,7 +82,8 @@ LOG_LEVEL = VALID_LOG_LEVELS.get(LEVEL, INFO)
 
 # FFmpeg validation
 FFMPEG = which("ffmpeg")
-handle_which_ff_output(OS_NAME, FFMPEG)
+if not handle_which_ff_output(OS_NAME, FFMPEG):
+    sysexit(1)
 
 # Cache
 # Set up hashmaps for asyncio locks and cache

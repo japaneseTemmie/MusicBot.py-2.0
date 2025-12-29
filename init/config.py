@@ -5,9 +5,8 @@ from init.logutils import log, separator
 
 from copy import deepcopy
 from os.path import join, exists
-from sys import exit as sysexit
 from time import sleep
-from typing import NoReturn, Any, Optional
+from typing import Any, Optional
 
 def get_default_yt_dlp_config_data() -> dict[str, Any]:
     return {
@@ -131,7 +130,7 @@ def check_config(config: dict[str, Any]) -> dict[str, Any] | None:
     
     return None
 
-def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | NoReturn:
+def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | None:
     """ Checks if config file exists. If not, creates a new one with default settings.
     
     Also checks the output content for missing keys and applies the default key if missing. """
@@ -141,7 +140,7 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
         result = write_file_json(path, default_data)
 
         if result == False:
-            sysexit(1)
+            return None
 
         log(f"Created config file at {path}")
 
@@ -150,7 +149,7 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
     content = read_file_json(path)
 
     if content is None:
-        sysexit(1)
+        return None
 
     log(f"Found {len(content.keys())} entries in {path}")
     separator()
@@ -172,7 +171,7 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
 
     return content
 
-def get_config_data(dir: str) -> dict[str, Any] | NoReturn:
+def get_config_data(dir: str) -> dict[str, Any] | None:
     """ Return a hashmap of the `config.json` file.
      
     This function also ensures that there are no missing keys and file exists. """
