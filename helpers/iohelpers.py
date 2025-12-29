@@ -137,7 +137,7 @@ def make_path(directory: str, can_log: bool=False, logger: Logger | None=None) -
 
         return False
 
-def ensure_paths(path: str, file_name: str=None, file_content_on_creation: str | bytes | dict=None, can_log: bool=False, logger: Logger | None=None) -> bool:
+def ensure_paths(path: str, file_name: str | None=None, file_content_on_creation: str | bytes | dict | None=None, can_log: bool=False, logger: Logger | None=None) -> bool:
     """ Ensure that a path and, optionally, a file exist.
 
     If a file name is passed as `file_name` and doesn't exist at `path`, it will be created with
