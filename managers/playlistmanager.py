@@ -94,9 +94,9 @@ class PlaylistManager:
         return [key for key in content.keys()]
 
     async def create(self, interaction: Interaction, content: dict[str, list], playlist_name: str, write_to_file: bool=True) -> bool | Error:
-        """ Creates a playlist.
+        """ Create a playlist with the given name.
 
-        If successful, returns a boolean, otherwise, Error. """
+        If successful, returns a boolean, otherwise, Error (always `True` if `write_to_file` is False). """
         
         if await name_exceeds_length(self.max_name_length, playlist_name):
             return Error(f"Playlist name is too long! Must be <= **{self.max_name_length}** characters.")
@@ -128,8 +128,8 @@ class PlaylistManager:
         ) -> bool | Error | tuple[bool | Error, list[dict[str, Any]]]:
         """ Deletes a playlist.
 
-        If successful, returns a boolean or Error if `contents_only` is True, otherwise
-        a tuple with a boolean or Error indicating write success and removed tracks. """
+        If successful, returns a boolean or Error if `contents_only` is `False` (always `True` if `write_to_file` is False), otherwise
+        a tuple with a boolean or Error indicating write success [0] and removed tracks [1]. """
 
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -175,8 +175,10 @@ class PlaylistManager:
         ) -> tuple[bool | Error, list[dict[str, Any]], list[dict[str, Any]]] | Error:
         """ Removes given tracks from a playlist.
 
-        If successful, returns a tuple with a boolean or Error indicating
-        write success [0], the list of removed tracks [1], and the playlist queue itself before track removal. Error otherwise. """
+        If successful, returns a tuple with a boolean or Error 
+        indicating write success [0] (always `True` if `write_to_file` is False),
+        the list of removed tracks [1], 
+        and the playlist queue itself before track removal. Error otherwise. """
         
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -218,7 +220,7 @@ class PlaylistManager:
         """ Replaces a playlist track with an extracted track from a given query.
 
         If successful, returns a tuple with a boolean or Error indicating
-        write success [0], the old track [1] and the new track [2]. Error otherwise."""
+        write success [0] (always `True` if `write_to_file` is False), the old track [1] and the new track [2]. Error otherwise."""
 
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -257,7 +259,7 @@ class PlaylistManager:
         """ Repositions a playlist track from its current index to the given index.
 
         If successful, returns a tuple with a boolean or Error indicating
-        write success [0], the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
+        write success [0] (always `True` if `write_to_file` is False), the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
         
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -391,7 +393,7 @@ class PlaylistManager:
         """ Adds a list of extracted queries to a playlist.
 
         If successful, returns a tuple with a boolean or Error indicating
-        write success [0], and a list containing the added tracks [1]. Error otherwise. """
+        write success [0] (always `True` if `write_to_file` is False), and a list containing the added tracks [1]. Error otherwise. """
 
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -477,7 +479,7 @@ class PlaylistManager:
         """ Renames a playlist to a new given name.
 
         If successful, returns a tuple with a boolean or Error indicating
-        write success [0], old name [1], and new name [2]. Error otherwise. """
+        write success [0] (always `True` if `write_to_file` is False), old name [1], and new name [2]. Error otherwise. """
         
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -515,7 +517,7 @@ class PlaylistManager:
         ) -> tuple[bool | Error, list[tuple[dict, str]], list[dict[str, Any]]] | Error:
         """ Bulk edits track names to new given ones.
 
-        if successful, returns a tuple with a boolean or Error indicating write success, a list of tuples with
+        if successful, returns a tuple with a boolean or Error indicating write success [0] (always `True` if `write_to_file` is False), a list of tuples with
         old track [0] and the new name [1], and a copy of the old playlist queue [2]. Error otherwise. """
         
         if not await has_playlists(content):
@@ -555,7 +557,7 @@ class PlaylistManager:
         """ Place a track at a specific index or append it (index=None).
 
         if successful, returns a tuple with a boolean or Error indicating
-        write success [0], added track [1], and its new index [2]. Error otherwise. """
+        write success [0] (always `True` if `write_to_file` is False), added track [1], and its new index [2]. Error otherwise. """
         
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         
@@ -591,7 +593,7 @@ class PlaylistManager:
         ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Copy a playlist into another one. 
         
-        If successful, return a tuple with write status [0] and added tracks [1]. Error object otherwise. """
+        If successful, return a tuple with write status [0] (always `True` if `write_to_file` is False) and added tracks [1]. Error object otherwise. """
         
         if target_playlist_name.lower().replace(" ", "") == source_playlist_name.lower().replace(" ", ""):
             return Error("Destination playlist name cannot be the same as the source one!")
@@ -614,7 +616,7 @@ class PlaylistManager:
         ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Copy a playlist's tracks into another one. 
         
-        If successful, return a tuple with write status [0] and added tracks [1]. Error object otherwise. """
+        If successful, return a tuple with write status [0] (always `True` if `write_to_file` is False) and added tracks [1]. Error object otherwise. """
 
         if target_playlist_name.lower().replace(" ", "") == source_playlist_name.lower().replace(" ", ""):
             return Error("Destination playlist name cannot be the same as the source one!")
