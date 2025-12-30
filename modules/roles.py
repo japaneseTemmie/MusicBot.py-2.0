@@ -1,4 +1,4 @@
-""" RoleManager module for discord.py bot.
+""" Role module for discord.py bot.
 
 Includes a class with methods to manage music and playlist permissions. """
 
@@ -28,7 +28,7 @@ class RolesCog(commands.Cog):
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
+        await interaction.followup.send("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="role-set", description="Sets the default role users must have to allow music/playlist commands.")
     @app_commands.describe(

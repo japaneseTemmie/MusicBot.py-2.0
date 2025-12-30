@@ -1,4 +1,4 @@
-""" Role manager module for discord.py bot """
+""" Role manager helper module for discord.py bot """
 
 from settings import ENABLE_FILE_BACKUPS, ROLE_LOCKS, ROLE_FILE_CACHE
 from helpers.guildhelpers import read_guild_json, write_guild_json
@@ -55,7 +55,7 @@ class RoleManager:
         """ Set a music or playlist role.
         
         If successful, return a tuple with a boolean or Error object write success value [0] (always `True` if `write_to_file` is False), 
-        added role type (music or playlist) [1], and the role object [0]. Otherwise Error. """
+        added role type (music or playlist) [1], and the role object [2]. Otherwise Error. """
         
         role_to_set = "playlist" if playlist else "music"
 
