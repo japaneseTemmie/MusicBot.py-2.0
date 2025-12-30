@@ -142,7 +142,12 @@ async def close_voice_clients(guild_states: dict[str, Any], client: Bot | Sharde
         log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Closing connection to channel ID {voice_client.channel.id}..")
         
         can_edit_status = guild_states[voice_client.guild.id]["allow_voice_status_edit"]
+        handling_extraction_process = guild_states[voice_client.guild.id]["can_extract"]
         
+        if handling_extraction_process:
+            log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Stopping extraction process for guild ID {voice_client.guild.id} to allow cleaning up voice and guild data.")
+            await update_guild_state(guild_states, voice_client, False, "can_extract")
+
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(guild_states, voice_client, True, "stop_flag")
             voice_client.stop()
