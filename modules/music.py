@@ -21,6 +21,7 @@ from helpers.voicehelpers import (
     set_voice_status, close_voice_clients, check_users_in_channel
 )
 from helpers.extractorhelpers import fetch_query, fetch_queries, add_results_to_queue
+from helpers.playlisthelpers import is_playlist_locked
 from embedgenerator import (
     generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
     generate_queue_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
@@ -507,15 +508,23 @@ class MusicCog(commands.Cog):
     async def stop_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "handling_move_action", True, "I'm currently handling being moved to another channel, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first."):
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state is currently locked!\nWait for the other action first.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
+            not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait."):
             return
 
         await interaction.response.defer(thinking=True)
 
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+
+        if await is_playlist_locked(locked):
+            await interaction.followup.send("A playlist is currently locked, please wait.")
+            return
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
         voice_client.stop()
