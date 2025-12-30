@@ -577,7 +577,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.command(name="playlist-rename", description="Renames a playlist to a new specified name. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to rename's name.",
-        new_playlist_name="New name to assign to the playlist. Must be < 50 (default) characters."
+        new_playlist_name="New name to assign to the playlist. Must be <= 50 (default) characters."
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -800,7 +800,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
-        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this."
+        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this. (default YouTube)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(

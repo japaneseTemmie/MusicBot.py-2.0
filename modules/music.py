@@ -62,7 +62,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="add", description="Adds a track to the queue. See entry in /help for more info.")
     @app_commands.describe(
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
-        search_provider="[EXPERIMENTAL] The website to search for each search query on. URLs ignore this."
+        search_provider="[EXPERIMENTAL] The website to search for each search query on. URLs ignore this. (default YouTube)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(search_provider=[
@@ -157,8 +157,8 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="playnow", description="Plays the given query without saving it to the queue first. See entry in /help for more info.")
     @app_commands.describe(
         query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="[EXPERIMENTAL] The website to search for the search query on. URLs ignore this.",
-        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
+        search_provider="[EXPERIMENTAL] The website to search for the search query on. URLs ignore this. (default YouTube)",
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (default True)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
@@ -245,7 +245,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="skip", description="Skips to next track in the queue.")
     @app_commands.describe(
-        amount="The amount of tracks to skip. Must be <= 25 and track randomization must not be enabled."
+        amount="The amount of tracks to skip. Must be <= 25. (default 1)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -589,8 +589,8 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="select", description="Selects a track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
         track_name="Name (or index, in case <by_index> is True) of the track to select.",
-        by_index="Select track by its index.",
-        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
+        by_index="Select track by its index. (default False)",
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (defaut False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -649,7 +649,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="select-random", description="Selects a random track from the queue and plays it. See entry in /help for more info.")
     @app_commands.describe(
-        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue."
+        keep_current_track="Keeps the current track (if any) by re-inserting it at the start of the queue. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -702,8 +702,8 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         old_track_name="Name (or index, in case <by_index> is True) of the track to replace.",
         new_track_query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this.",
-        by_index="Replace a track by its index."
+        search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this. (default YouTube)",
+        by_index="Replace a track by its index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
@@ -770,7 +770,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="loop", description="Loops the current or specified track. Functions as a toggle.")
     @app_commands.describe(
         track_name="The track to loop's name or index (if <by_index> is True). (defaults to current track)",
-        by_index="Whether or not to search for track by its index."
+        by_index="Whether or not to search for track by its index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -859,7 +859,7 @@ class MusicCog(commands.Cog):
 
     @app_commands.command(name="queueloop", description="Loops the queue. Functions as a toggle.")
     @app_commands.describe(
-        include_current_track="Whether or not to keep the current track. Has no effect when disabling."
+        include_current_track="Whether or not to keep the current track. Has no effect when disabling. (default True)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -967,7 +967,7 @@ class MusicCog(commands.Cog):
     @app_commands.command(name="remove", description="Removes given tracks from the queue. See entry in /help for more info.")
     @app_commands.describe(
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
-        by_index="Remove tracks by their index."
+        by_index="Remove tracks by their index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1026,7 +1026,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         track_name="The name (or index, if <by_index> is True) of the track to reposition.",
         new_index="The new index of the track. Must be > 0 and <= maximum queue index.",
-        by_index="Reposition a track by its index."
+        by_index="Reposition a track by its index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
