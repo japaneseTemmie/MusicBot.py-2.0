@@ -152,6 +152,7 @@ class PlaylistCog(commands.Cog):
             queue.insert(0, current_track)
 
         result = await self.playlist.add_queue(interaction, content, playlist_name, queue)
+        
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -188,7 +189,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.command(name="playlist-save-current-track", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to modify or create's name.",
-        index="The index at which the track should be placed. Must be > 0. Ignore this field for last one."
+        index="The index at which the track should be placed. Must be > 0. (default last one)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -219,6 +220,7 @@ class PlaylistCog(commands.Cog):
         await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.place(interaction, content, playlist_name, current_track, index)
+        
         await unlock_playlist(locked, content, playlist_name)
 
         if isinstance(result, Error):
@@ -463,7 +465,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to remove tracks from's name.",
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
-        by_index="Remove tracks by their index."
+        by_index="Remove tracks by their index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -642,8 +644,8 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to modify's name.",
         old_track_name="The name (or index, if <by_index> is True) of the track to replace.",
         new_track_query="URL or search query. Refer to help entry for valid URLs.",
-        search_provider="[EXPERIMENTAL] The provider used for search query. URLs ignore this.",
-        by_index="Replace a track by its index."
+        search_provider="[EXPERIMENTAL] The provider used for search query. URLs ignore this. (default YouTube)",
+        by_index="Replace a track by its index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
@@ -731,7 +733,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to modify's name.",
         track_name="The name (or index, in case <by_index> is True) of the track to reposition.",
         new_index="The new index of the track. Must be > 0 and < maximum playlist index.",
-        by_index="Reposition a track by its index."
+        by_index="Reposition a track by its index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -893,8 +895,7 @@ class PlaylistCog(commands.Cog):
     async def copy_playlist(self, interaction: Interaction, playlist_name: str, target_playlist_name: str):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
+            not await check_channel(self.guild_states, interaction):
             return
 
         await interaction.response.defer(thinking=True)
@@ -954,15 +955,15 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to copy tracks from's name",
         target_playlist_name="The playlist to copy tracks to's name.",
-        track_names="A semicolon separated list of track names (or indices, if <by_index> is true) to copy."
+        track_names="A semicolon separated list of track names (or indices, if <by_index> is true) to copy.",
+        by_index="Copy tracks by their index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def copy_playlist_track(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction) or\
-            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
+            not await check_channel(self.guild_states, interaction):
             return
         
         await interaction.response.defer(thinking=True)
@@ -1022,7 +1023,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to fetch tracks from's name.",
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
-        by_index="Fetch tracks by their index."
+        by_index="Fetch tracks by their index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1101,7 +1102,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.command(name="playlist-fetch-random-tracks", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to get tracks from's name.",
-        amount="The amount of random tracks to fetch, must be <= 25 (default)"
+        amount="The amount of random tracks to fetch, must be <= 25 (default 1)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
@@ -1271,8 +1272,8 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to modify's name.",
         old_track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to rename.",
-        new_track_names=f"A semicolon separated list of new names to assign to each old name.",
-        by_index="Rename tracks by their index."
+        new_track_names="A semicolon separated list of new names to assign to each old name.",
+        by_index="Rename tracks by their index. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
