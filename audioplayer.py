@@ -105,7 +105,7 @@ class AudioPlayer:
 
             history_length = len(history)
             if history_length >= self.max_history_track_limit:
-                history.pop(history_length - 1)
+                history.pop(0)
 
             history.append(track)
 
