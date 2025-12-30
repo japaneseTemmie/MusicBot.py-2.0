@@ -4,7 +4,7 @@ from settings import CAN_LOG, LOGGER
 from init.constants import (
     PLAYBACK_END_GRACE_PERIOD, 
     MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW, 
-    FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MILLIS,
+    FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS,
     IS_STREAM_URL_ALIVE_REQUEST_HEADERS
 )
 from init.logutils import log_to_discord_log, log
@@ -25,7 +25,7 @@ async def get_ffmpeg_options(position: int) -> dict[str, str]:
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
     
     return {
-        "before_options": f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max {FFMPEG_RECONNECT_TIMEOUT_SECONDS} -rw_timeout {FFMPEG_READ_WRITE_TIMEOUT_MILLIS}",
+        "before_options": f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max {FFMPEG_RECONNECT_TIMEOUT_SECONDS} -rw_timeout {FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS}",
         "options": f"-vn -ss {position}"
     }
 
