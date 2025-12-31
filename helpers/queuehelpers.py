@@ -48,9 +48,9 @@ async def validate_page_number(total: int, page: int) -> bool | Error:
 
 # Functions to update the copied queue when /queueloop is enabled.
 async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict[str, Any], track: dict[str, Any]) -> None:
-    """ Update the `queue_to_loop` state with the `old` and `new` output of a replace track function.
+    """ Update the queue to loop by replacing an old track with the new one.
 
-    This function must be called after replacing an item from the `queue` state and `is_looping_queue` state is active. """
+    This function must be called after replacing an item from the queue and `is_looping_queue` state is active. """
     
     if interaction.guild.id in guild_states:
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
@@ -65,9 +65,9 @@ async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: I
             queue_to_loop.insert(loop_index, track)
 
 async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interaction, tracks_to_remove: list[dict[str, Any]]) -> None:
-    """ Update the `queue_to_loop` state by removing items that are not in the `queue` state.
+    """ Update the queue to loop by removing items that are not in the queue.
 
-    This function must be called after removing items from the `queue` state and `is_looping_queue` state is active. """
+    This function must be called after removing items from the queue and `is_looping_queue` state is active. """
     
     if interaction.guild.id in guild_states:
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
@@ -79,9 +79,9 @@ async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: In
                     break
 
 async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
-    """ Update the `queue_to_loop` state with the latest extracted items from `queue`.
+    """ Update the queue to loop with the latest extracted items from a queue.
 
-    This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is True. """
+    This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is active. """
     
     if interaction.guild.id in guild_states:
         queue = guild_states[interaction.guild.id]["queue"]
@@ -169,9 +169,9 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
     return Error(f"Could not find track **{track[:50]}**.")
 
 async def get_previous_visual_track(current: dict[str, Any] | None, history: list[dict[str, Any]] | list) -> dict[str, Any] | Error:
-    """ Return the previous track in an iterable `history` based on the current track.
+    """ Return the previous track in a history of tracks based on the current track.
 
-    Does not remove the returned track. """
+    Do not remove the returned track. """
     
     if not history:
         return Error("Track history is empty. Nothing to show.")
@@ -192,9 +192,9 @@ async def get_next_visual_track(
         queue: list[dict[str, Any]], 
         queue_to_loop: list[dict[str, Any]]
     ) -> dict[str, Any] | Error:
-    """ Get the next track in an iterable `queue` (and `queue_to_loop`) based on different states.
+    """ Get the next track based on different states.
 
-    Does not remove the returned track from the queue. """
+    Do not remove the returned track from the queue. """
     
     if is_looping and track_to_loop:
         next_track = track_to_loop
@@ -337,9 +337,9 @@ async def match_website_filter(filter_website: str, track_website: str) -> bool:
             return filter_website == track_website
 
 async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
-    """ Match given `filters` to `track`. 
+    """ Match given filters to a track. 
     
-    Possible matches are: Uploader, Duration and Website"""
+    Possible matches are: Uploader, Duration and Website """
     
     matches = []
     track_uploader, track_duration, track_website = track.get("uploader"), format_to_seconds(track.get("duration")), track.get("source_website")
@@ -358,9 +358,9 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     return all(matches)
 
 async def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
-    """ Find the next track with the given filters. 
+    """ Find the next track in a queue with the given filters. 
     
-    Returns the matching track or the next one if no filters match. """
+    Return the matching track or the next one if no filters match. """
     
     for i, track in enumerate(queue.copy()):
         if await match_filters(track, filters):
@@ -370,7 +370,7 @@ async def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[st
 
 # Functions to get stuff from a queue.
 async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
-    """ Get track objects from an interable `queue` based on their names (or indices). 
+    """ Get tracks from a queue based on their names (or indices, if `by_index` is `True`). 
     
     Returns a list of tracks or Error. """
     
@@ -403,7 +403,7 @@ async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int,
 # Apply playlist tracks' title and source website to tracks
 # Has no effect on titles if users did not modify them.
 async def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list[dict[str, Any]]) -> None:
-    """ Replaces a track's 'title' and 'source_website' keys' values with values from the playlist. """
+    """ Replace a track's 'title' and 'source_website' keys' values with values from the playlist. """
     
     for track, playlist_track in zip(tracks, playlist):
         track["title"] = playlist_track["title"]
@@ -411,9 +411,9 @@ async def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist
 
 # Functions to modify a queue
 async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
-    """ Remove given `tracks` from iterable `queue`.
+    """ Remove given tracks from queue.
      
-    Returns removed tracks or Error. """
+    Return removed tracks or Error. """
     
     removed = []
     to_remove = []
@@ -427,7 +427,7 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
         if isinstance(found_track, Error):
             return found_track
         elif found_track[1] in to_remove:
-            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation!")
+            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation.")
 
         to_remove.append(found_track[1])
         removed.append(found_track[0])
@@ -439,9 +439,9 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
     return removed if removed else Error("Could not find given tracks.")
 
 async def reposition_track_in_queue(track: str, index: int, queue: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int, int] | Error:
-    """ Repositions a track to a new index in an iterable `queue`.
+    """ Reposition a track to a new index in a queue.
     
-    Returns a tuple with found track [0], old 1-based index [1], and new 1-based index [2] or Error. """
+    Return a tuple with found track [0], old 1-based index [1], and new 1-based index [2] or Error. """
     
     if index < 1 or index > len(queue):
         return Error(f"Given new index (**{index}**) is out of bounds!")
@@ -468,9 +468,9 @@ async def replace_track_in_queue(
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict[str, Any], dict[str, Any]] | Error:
-    """ Replace a track in an iterable `queue` by extracting a new one.
+    """ Replace a track in a queue by extracting a new one.
     
-    Returns a tuple with old track [0] and new one [1] or Error. """
+    Return a tuple with old track [0] and new one [1] or Error. """
     
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
@@ -508,9 +508,9 @@ async def replace_track_in_queue(
     return extracted_track, removed_track
 
 async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any]], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict[str, Any], str]] | Error:
-    """ Bulk renames tracks in an iterable `queue`.
+    """ Bulk rename tracks in a queue.
      
-    Returns a list with a tuple with track object [0] and new name [1] or Error. """
+    Return a list with a tuple with track object [0] and new name [1] or Error. """
 
     renamed, seen = [], set()
 
@@ -535,7 +535,7 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
         elif new_name.replace(" ", "") == found_track[0]["title"].replace(" ", ""):
             return Error(f"Cannot rename a track (**{found_track[0]['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
         elif found_track[1] in seen:
-            return Error(f"Track **{found_track[0]['title'][:50]}** was already renamed during this operation!")
+            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation.")
         
         old_track = deepcopy(found_track[0])
         old_track_index = found_track[1]
@@ -547,10 +547,12 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
 
     return renamed if renamed else Error(f"Could not find given tracks.")
 
-async def place_track_in_playlist(queue: list, index: int | None, track: dict[str, Any]) -> tuple[dict[str, Any], int] | Error:
-    """ Place a track at a specified or last index in an iterable `queue`.
+async def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any]) -> tuple[dict[str, Any], int] | Error:
+    """ Place a track at a specified or last index in a queue.
+
+    If `index` is `None`, the track will be placed at the last index of the queue.
     
-    Returns a tuple with placed track [0] and its index [1]. """
+    Return a tuple with placed track [0] and its index [1]. """
     
     if index is None:
         index = len(queue) + 1
@@ -596,7 +598,7 @@ async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[
 
 # Custom split
 def split(s: str) -> list[str]:
-    """ Custom split. Use `re.split` to split an item on each semicolon with the exception when it's prefixed with a backslash ('\\\\'). """
+    """ Split string `s` when a semicolon in found. Except when it is prefixed by a backslash ('\\\\') """
     
     parts = re.split(r'(?<!\\);', s)
     return [part.replace(r'\;', ';') for part in parts]
