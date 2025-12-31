@@ -18,6 +18,8 @@ from time import sleep
 from shutil import which
 from dotenv import load_dotenv
 
+VERSION = "1.8-main"
+
 log(f"Running discord.py version {discord.__version__}")
 separator()
 sleep(0.5)
