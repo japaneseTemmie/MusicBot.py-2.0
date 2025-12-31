@@ -15,7 +15,8 @@ from random import randint, sample
 
 # Function to get a hashmap of queue pages to display
 def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
-    """ Create a hashmap of queue pages. Each page is 25 elements log.
+    """ Create a hashmap of queue pages. Each page is 25 elements long.
+
     Must be sent to a thread, as it contains blocking code. """
     
     queue_copy = deepcopy(queue)
@@ -128,21 +129,23 @@ async def check_queue_length(interaction: Interaction | None, max_limit: int, qu
     return True
 
 # Input sanitation & validation
-async def sanitize_name(name: str) -> str:
-    """ Sanitize a playlist name by removing unwanted chars and additionally, return a fixed name if the sanitized one is empty. """
+async def sanitize_name(name: str, default: str="Untitled") -> str:
+    """ Sanitize a playlist name by removing unwanted chars.
+     
+    Additionally, return a fixed name if the sanitized one is empty. """
     
-    return name.replace("\\", "").strip() or "Untitled"
+    return name.replace("\\", "").strip() or default
 
 async def name_exceeds_length(limit: int, name: str) -> bool:
     """ Check if a name exceeds length `limit`.
 
-    Returns a boolean. """
+    Return a boolean. """
     
     return len(name) > limit
 
 # Functions for finding items
 async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int] | Error:
-    """ Find a track given its name or index in an iterable.
+    """ Find a track given its name or index (if `by_index` is True) in an iterable.
 
     Returns a tuple with the track hashmap [0] and its index [1] or an Error object. """
     
@@ -220,7 +223,14 @@ async def get_next_track(
     ) -> dict[str, Any]:
     """ Get the next track based on different states.
 
-    Removes the returned track from the queue. """
+    Priority:
+
+    1. loop state
+    2. filters
+    3. random state
+    4. no modifiers
+
+    Remove the returned track from the queue. """
     
     if is_looping and track_to_loop:
         next_track = track_to_loop
@@ -233,13 +243,20 @@ async def get_next_track(
     
     return next_track
 
-async def try_index(iterable: list[Any], index: int, expected: Any) -> bool:
+async def try_index(iterable: list[Any], index: int, expected: Any=None) -> bool | Any:
     """ Test an index and see if it contains anything.
 
-    Return True if it matches `expected`, False otherwise or on IndexError """
+    If `expected` is given, return `True` if it matches `expected`, `False` otherwise. 
+    
+    If `expected` is not given, return the found item. 
+    
+    Return `False` on IndexError. """
     
     try:
-        return iterable[index] == expected
+        if expected:
+            return iterable[index] == expected
+        
+        return iterable[index]
     except IndexError:
         return False
 
@@ -361,7 +378,7 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
 async def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
     """ Find the next track with the given filters. 
     
-    Returns the matching track or the next one. """
+    Returns the matching track or the next one if no filters match. """
     
     for i, track in enumerate(queue.copy()):
         if await match_filters(track, filters):
@@ -393,8 +410,8 @@ async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int,
     """ Return random amount of tracks from an interable `queue`. """
     
     if amount < 0:
-        return Error(f"Amount cannot be less than 0.")
-    elif len(queue) < amount:
+        return Error(f"Amount cannot be less than **0**.")
+    elif amount > len(queue):
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
     elif amount > max_limit:
         return Error(f"Given amount is higher than the maximum allowed limit. (**{max_limit}**)")
