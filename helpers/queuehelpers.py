@@ -33,13 +33,17 @@ def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
 
     return pages
 
-async def validate_page_number(total: int, page: int) -> None | Error:
-    """ Check if page number `n` is in a valid ranage. """
+async def validate_page_number(total: int, page: int) -> bool | Error:
+    """ Check if page number `page` is in a valid ranage [0, `total` - 1]. 
+    
+    Return an Error object or True. """
 
     if page < 0:
         return Error("Page cannot be 0 or less.")
     elif page > total - 1:
         return Error(f"Page is higher than the maximum page number (**{total}**).")
+    
+    return True
 
 # Functions to update the copied queue when /queueloop is enabled.
 async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict[str, Any], track: dict[str, Any]) -> None:
@@ -56,7 +60,7 @@ async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: I
                     loop_index = i
                     break
             
-            queue_to_loop.remove(old_track)
+            queue_to_loop.pop(loop_index)
             queue_to_loop.insert(loop_index, track)
 
 async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interaction, tracks_to_remove: list[dict[str, Any]]) -> None:
@@ -65,12 +69,13 @@ async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: In
     This function must be called after removing items from the `queue` state and `is_looping_queue` state is active. """
     
     if interaction.guild.id in guild_states:
-        queue = guild_states[interaction.guild.id]["queue"]
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
 
         for track_to_remove in tracks_to_remove:
-            if track_to_remove not in queue and track_to_remove in queue_to_loop:
-                queue_to_loop.remove(track_to_remove)
+            for i, track in enumerate(queue_to_loop.copy()):
+                if track == track_to_remove:
+                    queue_to_loop.pop(i)
+                    break
 
 async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
     """ Update the `queue_to_loop` state with the latest extracted items from `queue`.
@@ -573,7 +578,7 @@ async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[
     
     if amount < 0:
         return Error("Amount cannot be less than **0**.")
-    elif amount > len(queue):
+    elif amount > 1 and amount > len(queue) + 1: # +1 because we have to account for the current track
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
     elif amount > 25:
         return Error("Amount can only be less than **25**.")

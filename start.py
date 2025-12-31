@@ -113,7 +113,7 @@ def main() -> None:
 
             install_dependencies()
         else:
-            log("Failed to create venv")
+            log("Failed to create venv", "runner")
             sysexit(1)
     else:
         log(f"venv found at {VENV_PATH}", "runner")
