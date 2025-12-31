@@ -426,11 +426,14 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
 
         if isinstance(found_track, Error):
             return found_track
-        elif found_track[1] in to_remove:
+        
+        track_to_remove, track_index = found_track[0], found_track[1]
+
+        if track_index in to_remove:
             return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation.")
 
-        to_remove.append(found_track[1])
-        removed.append(found_track[0])
+        to_remove.append(track_index)
+        removed.append(track_to_remove)
 
     sotred_indices = sorted(to_remove, reverse=True)
     for index in sotred_indices:
@@ -449,14 +452,16 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict[str
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
         return found_track
-
-    if found_track[1] == index - 1:
-        return Error(f"Track **{found_track[0]['title'][:50]}** is already at index **{index}**!")
     
-    track_dict = queue.pop(found_track[1])
+    track_to_reposition, track_index = found_track[0], found_track[1]
+
+    if track_index == index - 1:
+        return Error(f"Track **{track_to_reposition['title'][:50]}** is already at index **{index}**!")
+    
+    track_dict = queue.pop(track_index)
     queue.insert(index - 1, track_dict)
 
-    return track_dict, found_track[1] + 1, index
+    return track_dict, track_index + 1, index
 
 async def replace_track_in_queue(
         guild_states: dict[str, Any],
@@ -475,6 +480,8 @@ async def replace_track_in_queue(
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):
         return found_track
+    
+    track_to_replace, track_index = found_track[0], found_track[1]
 
     allowed_query_types = (
         SourceWebsite.YOUTUBE.value, 
@@ -490,8 +497,8 @@ async def replace_track_in_queue(
     if isinstance(extracted_track, Error):
         return extracted_track
 
-    if extracted_track["webpage_url"] == found_track[0]["webpage_url"]:
-        return Error(f"Cannot replace a track (**{found_track[0]['title']}**) with the same one.")
+    if extracted_track["webpage_url"] == track_to_replace["webpage_url"]:
+        return Error(f"Cannot replace a track (**{track_to_replace['title'][:50]}**) with the same one.")
 
     if is_playlist:
         extracted_track = {
@@ -502,8 +509,8 @@ async def replace_track_in_queue(
             'source_website': extracted_track['source_website']
         }
     
-    removed_track = queue.pop(found_track[1])
-    queue.insert(found_track[1], extracted_track)
+    removed_track = queue.pop(track_index)
+    queue.insert(track_index, extracted_track)
 
     return extracted_track, removed_track
 
@@ -512,7 +519,9 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
      
     Return a list with a tuple with track object [0] and new name [1] or Error. """
 
-    renamed, seen = [], set()
+    renamed = []
+    to_rename = []
+    seen = set()
 
     old_names_length = len(names)
     new_names_length = len(new_names)
@@ -532,18 +541,20 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
 
         if isinstance(found_track, Error):
             return found_track
-        elif new_name.replace(" ", "") == found_track[0]["title"].replace(" ", ""):
-            return Error(f"Cannot rename a track (**{found_track[0]['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
-        elif found_track[1] in seen:
-            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation.")
         
-        old_track = deepcopy(found_track[0])
-        old_track_index = found_track[1]
-        
-        queue[old_track_index]["title"] = new_name
+        track_to_rename, index = found_track[0], found_track[1]
 
-        renamed.append((old_track, new_name))
-        seen.add(old_track_index)
+        if new_name.replace(" ", "") == track_to_rename["title"].replace(" ", ""):
+            return Error(f"Cannot rename a track (**{track_to_rename['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
+        elif index in seen:
+            return Error(f"Track **{track_to_rename['title'][:50]}** was already removed during this operation.")
+
+        to_rename.append((new_name, index))
+        renamed.append((deepcopy(track_to_rename), new_name))
+        seen.add(index)
+        
+    for new_name, index in to_rename:
+        queue[index]["title"] = new_name
 
     return renamed if renamed else Error(f"Could not find given tracks.")
 
