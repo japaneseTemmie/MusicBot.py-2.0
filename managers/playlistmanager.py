@@ -177,8 +177,7 @@ class PlaylistManager:
 
         If successful, returns a tuple with a boolean or Error 
         indicating write success [0] (always `True` if `write_to_file` is False),
-        the list of removed tracks [1], 
-        and the playlist queue itself before track removal. Error otherwise. """
+        the list of removed tracks [1]. Error otherwise. """
         
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
@@ -191,8 +190,6 @@ class PlaylistManager:
         playlist = content[playlist_name]
         if await is_playlist_empty(playlist):
             return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot remove tracks.")
-        
-        playlist_copy = deepcopy(playlist)
 
         found = await remove_track_from_queue(tracks_to_remove, playlist, by_index)
         if isinstance(found, Error):
@@ -203,7 +200,7 @@ class PlaylistManager:
         else:
             success = True
 
-        return success, found, playlist_copy
+        return success, found
 
     async def replace(
             self,
@@ -518,7 +515,7 @@ class PlaylistManager:
         """ Bulk edits track names to new given ones.
 
         if successful, returns a tuple with a boolean or Error indicating write success [0] (always `True` if `write_to_file` is False), a list of tuples with
-        old track [0] and the new name [1], and a copy of the old playlist queue [2]. Error otherwise. """
+        old track [0] and the new name [1]. Error otherwise. """
         
         if not await has_playlists(content):
             return Error("This guild does not have any saved playlists.")
@@ -531,8 +528,6 @@ class PlaylistManager:
 
         if await is_playlist_empty(playlist):
             return Error(f"Playlist {playlist_name[:self.max_name_length]} is empty. Cannot rename tracks.")
-        
-        playlist_copy = deepcopy(playlist)
 
         found = await rename_tracks_in_queue(self.max_name_length, playlist, tracks_to_rename, new_track_names, by_index)
         if isinstance(found, Error):
@@ -543,7 +538,7 @@ class PlaylistManager:
         else:
             success = True
 
-        return success, found, playlist_copy
+        return success, found
     
     async def place(
             self, 

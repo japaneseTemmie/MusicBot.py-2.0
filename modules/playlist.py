@@ -7,7 +7,7 @@ from audioplayer import AudioPlayer
 from error import Error
 from webextractor import SourceWebsite
 from init.logutils import log_to_discord_log
-from embedgenerator import generate_added_track_embed, generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed
+from helpers.embedhelpers import generate_added_track_embed, generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed
 from helpers.guildhelpers import (
     user_has_role, check_channel, check_guild_state, update_guild_state, update_guild_states, update_query_extraction_state,
 )
@@ -15,7 +15,7 @@ from helpers.playlisthelpers import (
     is_playlist_locked, lock_playlist, unlock_playlist, unlock_all_playlists
 )
 from helpers.queuehelpers import (
-    get_pages, get_queue_indices, check_input_length, check_queue_length, split, get_random_tracks_from_queue, sanitize_name, validate_page_number
+    get_pages, check_input_length, check_queue_length, split, get_random_tracks_from_queue, sanitize_name, validate_page_number
 )
 from helpers.voicehelpers import check_users_in_channel
 
@@ -83,9 +83,8 @@ class PlaylistCog(commands.Cog):
             return
 
         playlist_page = playlist_pages[page]
-        playlist_indices = await get_queue_indices(playlist, playlist_page)
 
-        embed = generate_queue_embed(playlist_page, playlist_indices, page, total_pages, False, True)
+        embed = generate_queue_embed(playlist_page, page, total_pages, False, True)
 
         await interaction.followup.send(embed=embed)
 
@@ -178,6 +177,71 @@ class PlaylistCog(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
+
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
+
+    @app_commands.command(name="playlist-save-history", description="Creates or updates a playlist with the current history. See entry in /help for more info.")
+    @app_commands.describe(
+        playlist_name="The playlist to create or update's name."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def save_history_in_playlist(self, interaction: Interaction, playlist_name: str):
+        if not await user_has_role(interaction) or\
+            not await user_has_role(interaction, True) or\
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nPlease wait for the other action first.") or\
+            not await check_guild_state(self.guild_states, interaction, "queue_history", [], "Queue history is empty. Nothing to add."):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+        history = self.guild_states[interaction.guild.id]["queue_history"]
+
+        if await is_playlist_locked(locked):
+            await interaction.followup.send("A playlist is currently locked, please wait.")
+            return
+        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
+        await lock_playlist(interaction, content, locked, playlist_name)
+
+        result = await self.playlist.add_queue(interaction, content, playlist_name, history)
+
+        await unlock_playlist(locked, content, playlist_name)
+        await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
+
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+        elif isinstance(result, tuple):
+            write_success = result[0]
+            added = result[1]
+
+            if not isinstance(write_success, Error):
+                embed = generate_added_track_embed(added, True)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_success.msg)
+
+    @save_history_in_playlist.error
+    async def handle_save_history_in_playlist_error(self, interaction: Interaction, error: Exception):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
         await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
@@ -502,12 +566,9 @@ class PlaylistCog(commands.Cog):
         elif isinstance(result, tuple):
             write_result = result[0]
             removed_tracks = result[1]
-            old_playlist = result[2]
-
-            removed_tracks_indices = await get_queue_indices(old_playlist, removed_tracks) if not by_index else track_names_split
 
             if not isinstance(write_result, Error):
-                embed = generate_removed_tracks_embed(removed_tracks, removed_tracks_indices, True)
+                embed = generate_removed_tracks_embed(removed_tracks, True)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -1311,12 +1372,9 @@ class PlaylistCog(commands.Cog):
         elif isinstance(result, tuple):
             write_result = result[0]
             modified_tracks = result[1]
-            old_playlist = result[2]
-
-            modified_tracks_indices = await get_queue_indices(old_playlist, [track for track, _ in modified_tracks]) if not by_index else old_track_names_split
 
             if not isinstance(write_result, Error):
-                embed = generate_renamed_tracks_embed(modified_tracks, modified_tracks_indices)
+                embed = generate_renamed_tracks_embed(modified_tracks)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)

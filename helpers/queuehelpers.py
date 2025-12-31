@@ -260,24 +260,6 @@ async def try_index(iterable: list[Any], index: int, expected: Any=None) -> bool
     except IndexError:
         return False
 
-async def get_queue_indices(queue: list[dict[str, Any]], tracks: list[dict[str, Any]], one_based: bool=True) -> list[int]:
-    """ Return the queue indices matching each item in `tracks`. 
-    
-    Additionally, one base indices may be returned if `one_based` is True. """
-
-    indices = []
-    seen = set()
-
-    for usr_track in tracks:
-        for i, queue_track in enumerate(queue):
-            if queue_track == usr_track and i not in seen:
-                indices.append(i + 1 if one_based else i)
-                seen.add(i)
-
-                break
-
-    return indices
-
 # Playback filters
 async def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool]) -> str:
     """ Return a string with added filters ready to be sent to the text channel. """
@@ -444,9 +426,9 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
 
         if isinstance(found_track, Error):
             return found_track
-        elif found_track[0] in removed:
+        elif found_track[1] in to_remove:
             return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation!")
-        
+
         to_remove.append(found_track[1])
         removed.append(found_track[0])
 

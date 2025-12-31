@@ -180,6 +180,7 @@ class AudioPlayer:
         is_random = self.guild_states[interaction.guild.id]["is_random"]
         track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        play_success = False
 
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
 
@@ -187,10 +188,12 @@ class AudioPlayer:
         if stop_reason is not None:
             return
 
+        await update_guild_state(self.guild_states, interaction, True, "is_modifying")
+
         if not queue and not\
             is_looping and not\
             queue_to_loop:
-            await update_guild_states(self.guild_states, interaction, (None, 0, 0), ("current_track", "start_time", "elapsed_time"))
+            await update_guild_states(self.guild_states, interaction, (None, 0, 0, False), ("current_track", "start_time", "elapsed_time", "is_modifying"))
             
             if can_update_status:
                 await update_guild_state(self.guild_states, interaction, None, "voice_status")
@@ -207,14 +210,11 @@ class AudioPlayer:
 
         track = await get_next_track(is_random, is_looping, track_to_loop, filters, queue)
 
-        play_success = False
         try:
             await update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
             play_success = await self.play_track(interaction, voice_client, track)
-
-            await update_guild_states(self.guild_states, interaction, (0, 0), ("crash_recovery_count", "last_recovery_time"))
         finally:
-            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            await update_guild_states(self.guild_states, interaction, (False, False, 0, 0), ("voice_client_locked", "is_modifying", "crash_recovery_count", "last_recovery_time"))
 
         if not is_looping and play_success:
             await send_func(f"Now playing: **{track['title']}**")

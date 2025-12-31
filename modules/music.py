@@ -14,7 +14,7 @@ from helpers.queuehelpers import (
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
     find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue, skip_tracks_in_queue,
-    get_queue_indices, get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string,
+    get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string,
     validate_page_number
 )
 from helpers.voicehelpers import (
@@ -22,7 +22,7 @@ from helpers.voicehelpers import (
 )
 from helpers.extractorhelpers import fetch_query, fetch_queries, add_results_to_queue
 from helpers.playlisthelpers import is_playlist_locked
-from embedgenerator import (
+from helpers.embedhelpers import (
     generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
     generate_queue_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
 )
@@ -1010,9 +1010,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
-        removed_tracks_indices = await get_queue_indices(queue_copy, result) if not by_index else track_names_split
-
-        embed = generate_removed_tracks_embed(result, removed_tracks_indices)
+        embed = generate_removed_tracks_embed(result)
         await interaction.followup.send(embed=embed)
 
     @remove_track.error
@@ -1331,9 +1329,8 @@ class MusicCog(commands.Cog):
             return
 
         queue_page = queue_pages[page]
-        queue_indices = await get_queue_indices(queue, queue_page)
 
-        embed = generate_queue_embed(queue_page, queue_indices, page, len(queue_pages))
+        embed = generate_queue_embed(queue_page, page, len(queue_pages))
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
         
@@ -1386,9 +1383,8 @@ class MusicCog(commands.Cog):
             return
 
         history_page = history_pages[page]
-        history_indices = await get_queue_indices(track_history, history_page)
 
-        embed = generate_queue_embed(history_page, history_indices, page, len(history_pages), True)
+        embed = generate_queue_embed(history_page, page, len(history_pages), True)
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 

@@ -1,4 +1,4 @@
-""" Embed generator module for discord.py bot. """
+""" Embed helpers module for discord.py bot. """
 
 import discord
 from random import randint
@@ -61,12 +61,10 @@ def generate_skipped_tracks_embed(skipped: list[dict[str, Any]]) -> discord.Embe
 
     return embed
 
-def generate_removed_tracks_embed(found: list[dict[str, Any]], found_indices: list[int] | None, is_playlist: bool=False) -> discord.Embed:
+def generate_removed_tracks_embed(found: list[dict[str, Any]], is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed showing the removed tracks from a queue.
      
-    `found` is the list of removed tracks.
-
-    [Optional] `found_indices` is the corresponding indices of the tracks in the queue. """
+    `found` is the list of removed tracks. """
     
     embed = discord.Embed(
         title=f"{'Queue' if not is_playlist else 'Playlist'} update: Removed tracks",
@@ -77,7 +75,7 @@ def generate_removed_tracks_embed(found: list[dict[str, Any]], found_indices: li
     for i, track in enumerate(found):
         if i < 24:
             embed.add_field(
-                name=(f"**{found_indices[i]}.** " if found_indices is not None else "") + f"[ `{track.get('title', 'Unknown')}` ]",
+                name=f"[ `{track.get('title', 'Unknown')}` ]",
                 value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track.get('duration', 'Unknown')}` ]; Source: [ `{track.get('source_website', 'Unknown')}` ]",
                 inline=False
             )
@@ -87,12 +85,10 @@ def generate_removed_tracks_embed(found: list[dict[str, Any]], found_indices: li
 
     return embed
 
-def generate_renamed_tracks_embed(found: list[tuple[dict, str]], found_indices: list[int] | None) -> discord.Embed:
+def generate_renamed_tracks_embed(found: list[tuple[dict, str]]) -> discord.Embed:
     """ Generate an embed to show renamed tracks in a queue.
     
-    `found` is a list of tuples with old track (`dict`) and new name (`str`).
-
-    [Optional] `found_indices` is the corresponding indices of the old tracks in the queue. """
+    `found` is a list of tuples with old track (`dict`) and new name (`str`). """
     
     embed = discord.Embed(
         title="Playlist update: Renamed tracks",
@@ -103,7 +99,7 @@ def generate_renamed_tracks_embed(found: list[tuple[dict, str]], found_indices: 
     for i, (track, new) in enumerate(found):
         if i < 24:
             embed.add_field(
-                name=(f"**{found_indices[i]}**. " if found_indices is not None else "") + f"[ `{track.get('title', 'Unknown')}` ] --> [ `{new}` ]",
+                name=f"[ `{track.get('title', 'Unknown')}` ] --> [ `{new}` ]",
                 value=f"Author: [ `{track.get('uploader', 'Unknown')}` ]; Duration: [ `{track.get('duration', 'Unknown')}` ]; Source: [ `{track.get('source_website', 'Unknown')}` ]",
                 inline=False
             )
@@ -194,12 +190,10 @@ def generate_extraction_progress_embed(current_item_name: str, total: int, curre
 
     return embed
 
-def generate_queue_embed(queue: list[dict[str, Any]], queue_indices: list[int] | None, page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
+def generate_queue_embed(queue: list[dict[str, Any]], page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed to show tracks in a queue page.
     
-    `queue` is a list of tracks.
-
-    [Optional] `queue_indices` is the corresponding indices of the tracks in the queue. """
+    `queue` is a list of 25 tracks. """
     
     embed = discord.Embed(
         title=f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}",
@@ -207,9 +201,9 @@ def generate_queue_embed(queue: list[dict[str, Any]], queue_indices: list[int] |
         timestamp=datetime.now()
     )
     
-    for i, track in enumerate(queue):
+    for track in queue:
         embed.add_field(
-            name=(f"**{queue_indices[i]}.** " if queue_indices is not None else "") + f"[ `{track.get('title', 'Unknown')}` ]",
+            name=f"[ `{track.get('title', 'Unknown')}` ]",
             value=f"Author: [ `{track.get('uploader', 'Unknown')}` ], Duration: [ `{track.get('duration', 'Unknown')}` ], Source: [ `{track.get('source_website', 'Unknown')}` ]",
             inline=False
         )
