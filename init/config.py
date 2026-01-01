@@ -32,7 +32,13 @@ def get_other_default_config_data() -> dict[str, Any]:
         "enable_logging": True,
         "log_level": "normal",
         "use_sharding": False,
-        "auto_delete_unused_guild_data": True
+        "auto_delete_unused_guild_data": True,
+        "max_queue_track_limit": 100,
+        "max_track_history_limit": 200,
+        "max_query_limit": 25,
+        "max_playlist_limit": 10,
+        "max_playlist_track_limit": 100,
+        "max_playlist_name_length": 50
     }
 
 def get_default_modules_config_data() -> dict[str, bool]:
