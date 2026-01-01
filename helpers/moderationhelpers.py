@@ -4,7 +4,7 @@ import discord
 from typing import Callable
 
 # Moderation utilities
-async def get_ban_entries(guild: discord.Guild) -> list[discord.User] | list:
+async def get_banned_users(guild: discord.Guild) -> list[discord.User] | list:
     """ Get a list of `discord.User` objects from a guild's ban entries. """
 
     members = []
@@ -17,14 +17,14 @@ async def get_role(roles: list[discord.Role], role: str, get_by_id: bool=False) 
     return discord.utils.get(roles, name=role) if not get_by_id and not role.isdigit() else\
     discord.utils.get(roles, id=int(role))
 
-async def get_user_to_unban(ban_entries: list[discord.User], member: str | int) -> discord.User:
+async def get_user_to_unban(banned_users: list[discord.User], member: str | int) -> discord.User:
     """ Match a given user's name or ID to users in a ban entry list and return the object. """
     
     member_obj = None
     funcs = [
-        lambda: discord.utils.get(ban_entries, id=int(member) if member.isdigit() else None),
-        lambda: discord.utils.get(ban_entries, name=member.strip()),
-        lambda: discord.utils.get(ban_entries, global_name=member.strip())
+        lambda: discord.utils.get(banned_users, id=int(member) if member.isdigit() else None),
+        lambda: discord.utils.get(banned_users, name=member.strip()),
+        lambda: discord.utils.get(banned_users, global_name=member.strip())
     ]
 
     for func in funcs:

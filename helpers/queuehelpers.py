@@ -466,7 +466,7 @@ async def replace_track_in_queue(
     ) -> tuple[dict[str, Any], dict[str, Any]] | Error:
     """ Replace a track in a queue by extracting a new one.
     
-    Return a tuple with old track [0] and new one [1] or Error. """
+    Return a tuple with new track [0] and old one [1] or Error. """
     
     found_track = await find_track(track, queue, by_index)
     if isinstance(found_track, Error):

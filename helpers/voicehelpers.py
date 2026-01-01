@@ -242,4 +242,7 @@ async def set_voice_status(guild_states: dict[str, Any], interaction: Interactio
         voice_client = guild_states[interaction.guild.id]["voice_client"]
         status = guild_states[interaction.guild.id]["voice_status"]
 
-        await voice_client.channel.edit(status=status)
+        try:
+            await voice_client.channel.edit(status=status)
+        except discord.errors.Forbidden:
+            pass

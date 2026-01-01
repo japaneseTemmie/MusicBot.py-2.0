@@ -7,7 +7,7 @@ from settings import CAN_LOG, LOGGER
 from init.constants import COOLDOWNS
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
-from helpers.moderationhelpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions
+from helpers.moderationhelpers import get_purge_check, get_banned_users, get_user_to_unban, remove_markdown_or_mentions
 from helpers.timehelpers import format_to_seconds_extended
 
 import discord
@@ -181,12 +181,12 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(ban_members=True)
     @app_commands.guild_only
     async def unban_member(self, interaction: Interaction, member: str, reason: str="None", show: bool=False):
-        ban_entries = await get_ban_entries(interaction.guild)
-        if not ban_entries:
+        banned_users = await get_banned_users(interaction.guild)
+        if not banned_users:
             await interaction.response.send_message("Ban entries are empty.", ephemeral=True)
             return
 
-        member_to_unban = await get_user_to_unban(ban_entries, member.strip())
+        member_to_unban = await get_user_to_unban(banned_users, member.strip())
         if member_to_unban is None:
             await interaction.response.send_message(f"Could not find member **{member}** in ban entries.", ephemeral=True)
             return
