@@ -1317,7 +1317,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_reading_queue")
 
-        queue_pages = await asyncio.to_thread(get_pages, queue)
+        queue_pages = await get_pages(queue)
         total_pages = len(queue_pages)
         page -= 1
 
@@ -1371,7 +1371,7 @@ class MusicCog(commands.Cog):
         
         await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
         
-        history_pages = await asyncio.to_thread(get_pages, track_history)
+        history_pages = await get_pages(track_history)
         total_pages = len(history_pages)
         page -= 1
 

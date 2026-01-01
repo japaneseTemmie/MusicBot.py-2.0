@@ -14,22 +14,14 @@ from copy import deepcopy
 from random import randint, sample
 
 # Function to get a hashmap of queue pages to display
-def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
-    """ Create a hashmap of queue pages. Each page is 25 elements long.
+async def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
+    """ Create a hashmap of queue pages. Each page is 25 elements long. """
 
-    Must be sent to a thread, as it contains blocking code. """
-    
-    queue_copy = deepcopy(queue)
     pages = {}
-    tracks = []
     max_page = 0
 
-    while queue_copy:
-        for _ in range(min(25, len(queue_copy))):
-            tracks.append(queue_copy.pop(0))
-        
-        pages[max_page] = tracks
-        tracks = []
+    for i in range(0, len(queue), 25):
+        pages[max_page] = queue[i:i + 25]
         max_page += 1
 
     return pages
@@ -148,10 +140,9 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
     """ Find a track given its name or index (if `by_index` is True) in an iterable.
 
     Returns a tuple with the track hashmap [0] and its index [1] or an Error object. """
-    
-    if by_index:
-        track = track.strip()
 
+    track = track.lower().replace(" ", "")  
+    if by_index:
         if not track.isdigit():
             return Error(f"**{track[:50]}** is not an integer number!")
         
@@ -163,7 +154,7 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
         return iterable[track_index - 1], track_index - 1
 
     for i, track_info in enumerate(iterable):
-        if track.lower().replace(" ", "") == track_info["title"].lower().replace(" ", ""):
+        if track == track_info["title"].lower().replace(" ", ""):
             return track_info, i
         
     return Error(f"Could not find track **{track[:50]}**.")
@@ -542,16 +533,16 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
         if isinstance(found_track, Error):
             return found_track
         
-        track_to_rename, index = found_track[0], found_track[1]
+        track_to_rename, track_index = found_track[0], found_track[1]
 
         if new_name.replace(" ", "") == track_to_rename["title"].replace(" ", ""):
             return Error(f"Cannot rename a track (**{track_to_rename['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
-        elif index in seen:
-            return Error(f"Track **{track_to_rename['title'][:50]}** was already removed during this operation.")
+        elif track_index in seen:
+            return Error(f"Track **{track_to_rename['title'][:max_name_length]}** was already removed during this operation.")
 
-        to_rename.append((new_name, index))
+        to_rename.append((new_name, track_index))
         renamed.append((deepcopy(track_to_rename), new_name))
-        seen.add(index)
+        seen.add(track_index)
         
     for new_name, index in to_rename:
         queue[index]["title"] = new_name

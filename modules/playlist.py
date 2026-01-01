@@ -73,7 +73,7 @@ class PlaylistCog(commands.Cog):
             await interaction.followup.send(playlist.msg)
             return
 
-        playlist_pages = await asyncio.to_thread(get_pages, playlist)
+        playlist_pages = await get_pages(playlist)
         total_pages = len(playlist_pages)
         page -= 1
 
