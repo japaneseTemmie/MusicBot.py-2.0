@@ -2,7 +2,8 @@
 
 Handles queue management and track playback. """
 
-from settings import COOLDOWNS, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from init.logutils import log, separator, log_to_discord_log
 from helpers.timehelpers import format_to_minutes, format_to_seconds
 from helpers.guildhelpers import (
@@ -65,7 +66,7 @@ class MusicCog(commands.Cog):
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
         search_provider="[EXPERIMENTAL] The website to search for each search query on. URLs ignore this. (default YouTube)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ADD_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(search_provider=[
             app_commands.Choice(name="SoundCloud search", value="soundcloud"),
             app_commands.Choice(name="YouTube search", value="youtube")
@@ -161,7 +162,7 @@ class MusicCog(commands.Cog):
         search_provider="[EXPERIMENTAL] The website to search for the search query on. URLs ignore this. (default YouTube)",
         keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (default True)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYNOW_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
             app_commands.Choice(name="SoundCloud search", value="soundcloud"),
@@ -248,7 +249,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         amount="The amount of tracks to skip. Must be <= 25. (default 1)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SKIP_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def skip_track(self, interaction: Interaction, amount: int=1):
         if not await user_has_role(interaction) or\
@@ -305,7 +306,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="nextinfo", description="Shows information about the next track.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["NEXTINFO_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_next_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -356,7 +357,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="previousinfo", description="Shows information about the previous track.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PREVIOUSINFO_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_previous_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -401,7 +402,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="pause", description="Pauses track playback.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PAUSE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def pause_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -452,7 +453,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="resume", description="Resumes track playback.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["RESUME_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def resume_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -503,7 +504,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="stop", description="Stops the current track and resets bot state.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["STOP_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def stop_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -555,7 +556,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="restart", description="Restarts the current track.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["RESTART_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def restart_track(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -601,7 +602,7 @@ class MusicCog(commands.Cog):
         by_index="Select track by its index. (default False)",
         keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (defaut False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SELECT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def select_track(self, interaction: Interaction, track_name: str, by_index: bool=False, keep_current_track: bool=False):
         if not await user_has_role(interaction) or\
@@ -660,7 +661,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         keep_current_track="Keeps the current track (if any) by re-inserting it at the start of the queue. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SELECT_RANDOM_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def select_random_track(self, interaction: Interaction, keep_current_track: bool=False):
         if not await user_has_role(interaction) or\
@@ -714,7 +715,7 @@ class MusicCog(commands.Cog):
         search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this. (default YouTube)",
         by_index="Replace a track by its index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REPLACE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
             app_commands.Choice(name="SoundCloud search", value="soundcloud"),
@@ -781,7 +782,7 @@ class MusicCog(commands.Cog):
         track_name="The track to loop's name or index (if <by_index> is True). (defaults to current track)",
         by_index="Whether or not to search for track by its index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["LOOP_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def loop_track(self, interaction: Interaction, track_name: str=None, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -833,7 +834,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="random", description="Randomizes track selection. Functions as a toggle.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["RANDOM_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def randomize_track_selection(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -870,7 +871,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         include_current_track="Whether or not to keep the current track. Has no effect when disabling. (default True)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["QUEUELOOP_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def loop_queue(self, interaction: Interaction, include_current_track: bool=True):
         if not await user_has_role(interaction) or\
@@ -923,7 +924,7 @@ class MusicCog(commands.Cog):
         clear_history="Include track history in removal. (default False)",
         clear_loop_queue="Include the loop queue in removal. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CLEAR_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def clear_queue(self, interaction: Interaction, clear_history: bool=False, clear_loop_queue: bool=False):
         if not await user_has_role(interaction) or\
@@ -978,7 +979,7 @@ class MusicCog(commands.Cog):
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
         by_index="Remove tracks by their index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REMOVE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def remove_track(self, interaction: Interaction, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -1035,7 +1036,7 @@ class MusicCog(commands.Cog):
         new_index="The new index of the track. Must be > 0 and <= maximum queue index.",
         by_index="Reposition a track by its index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REPOSITION_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reposition_track(self, interaction: Interaction, track_name: str, new_index: int, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -1079,7 +1080,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="shuffle", description="Shuffles the queue randomly.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SHUFFLE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def shuffle_queue(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1124,7 +1125,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         position="The position to seek to. Must be HH:MM:SS or shorter version (ex. 1:30)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SEEK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def seek_to(self, interaction: Interaction, position: str):
         if not await user_has_role(interaction) or\
@@ -1176,7 +1177,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         time="The amount of time to rewind by. Must be HH:MM:SS or shorter version (ex. 1:50)."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REWIND_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def rewind_track(self, interaction: Interaction, time: str):
         if not await user_has_role(interaction) or\
@@ -1239,7 +1240,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         time="The amount of time to forward by. Must be HH:MM:SS or shorter version (ex. 2:00)."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["FORWARD_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def forward_track(self, interaction: Interaction, time: str):
         if not await user_has_role(interaction) or\
@@ -1301,7 +1302,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         page="The queue page to view. Must be > 0."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["QUEUE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_queue(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
@@ -1356,7 +1357,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         page="The history page to view. Must be > 0."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["HISTORY_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_history(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
@@ -1407,7 +1408,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="extraction-progress", description="Show info about the current extraction process. (if any)")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTION_PROGRESS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_extraction(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1441,7 +1442,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="stop-extraction", description="Submits a request to stop any currently running extraction process.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["STOP_EXTRACTION_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def stop_extraction(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1472,7 +1473,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="epoch", description="Shows the elapsed time since the first track.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EPOCH_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_start_time(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1509,7 +1510,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="yoink", description="DMs current track info to the user who invoked the command.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["YOINK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def dm_track_info(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1553,7 +1554,7 @@ class MusicCog(commands.Cog):
         max_duration="The maximum duration range to match. Must be HH:MM:SS.",
         website="The website to match."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["FILTER_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         website=[
             app_commands.Choice(name=SourceWebsite.YOUTUBE.value, value=SourceWebsite.YOUTUBE.value),
@@ -1620,7 +1621,7 @@ class MusicCog(commands.Cog):
         author="Whether or not to clear the author filter. (default False)",
         website="Whether or not to clear the website filter. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CLEAR_FILTERS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def clear_track_filters(self, interaction: Interaction, min_duration: bool=False, max_duration: bool=False, author: bool=False, website: bool=False):
         if not await user_has_role(interaction) or\
@@ -1666,7 +1667,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred")
 
     @app_commands.command(name="view-filters", description="View the currently active filters.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["VIEW_FILTERS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_filters(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1705,7 +1706,7 @@ class MusicCog(commands.Cog):
         await send_func("An unknown error occurred")
 
     @app_commands.command(name="nowplaying", description="Shows rich information about the current track.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["NOWPLAYING_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_current_track_info(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -1766,7 +1767,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         enable="New value of the flag."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ALLOW_GREETINGS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def set_allow_greetings(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\
@@ -1799,7 +1800,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         enable="New value of the flag."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ALLOW_VOICE_STATUS_EDIT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def set_allow_voice_status_edit(self, interaction: Interaction, enable: bool):
         if not await user_has_role(interaction) or\

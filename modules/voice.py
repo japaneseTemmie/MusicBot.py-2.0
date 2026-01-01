@@ -2,7 +2,8 @@
 
 Handles voice clients and guild resource allocation. """
 
-from settings import COOLDOWNS, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.voicehelpers import check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move
@@ -51,7 +52,7 @@ class VoiceCog(commands.Cog):
                 await handle_channel_move(self.guild_states, member, before, after)
 
     @app_commands.command(name="join", description="Invites the bot to join your voice channel.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["JOIN_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def join_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
@@ -105,7 +106,7 @@ class VoiceCog(commands.Cog):
         )
 
     @app_commands.command(name="leave", description="Makes the bot leave your voice channel.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["LEAVE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def leave_channel(self, interaction: Interaction):
         if not await user_has_role(interaction) or\

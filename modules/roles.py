@@ -2,11 +2,12 @@
 
 Includes a class with methods to manage music and playlist permissions. """
 
-from settings import COOLDOWNS, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from managers.rolemanager import RoleManager
-from init.logutils import log_to_discord_log
 from error import Error
 from bot import Bot, ShardedBot
+from init.logutils import log_to_discord_log
 
 import discord
 from discord import app_commands
@@ -38,7 +39,7 @@ class RolesCog(commands.Cog):
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_SET_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def set_music_role(self, interaction: Interaction, role: discord.Role, playlist: bool, overwrite: bool=False, show: bool=False):
         await interaction.response.defer(ephemeral=not show)
@@ -72,7 +73,7 @@ class RolesCog(commands.Cog):
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_GET_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def get_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
         await interaction.response.defer(ephemeral=not show)
@@ -102,7 +103,7 @@ class RolesCog(commands.Cog):
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_WIPE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def wipe_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
         await interaction.response.defer(ephemeral=not show)
@@ -135,7 +136,7 @@ class RolesCog(commands.Cog):
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_RESET_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reset_roles(self, interaction: Interaction, show: bool=False):
         await interaction.response.defer(ephemeral=not show)

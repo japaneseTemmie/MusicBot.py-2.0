@@ -1,6 +1,7 @@
 """ Playlist module for discord.py bot. """
 
-from settings import COOLDOWNS, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from managers.playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
@@ -19,7 +20,6 @@ from helpers.queuehelpers import (
 )
 from helpers.voicehelpers import check_users_in_channel
 
-import asyncio
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
@@ -41,7 +41,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to display's name.",
         page="The page to show. Must be > 0 and <= maximum playlist index."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_VIEW_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_playlist(self, interaction: Interaction, playlist_name: str, page: int):
         if not await user_has_role(interaction) or\
@@ -112,7 +112,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The new playlist's name.",
         add_current_track="Whether or not to add the current track, if any. (default True)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_SAVE_QUEUE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def save_queue_in_playlist(self, interaction: Interaction, playlist_name: str, add_current_track: bool=True):
         if not await user_has_role(interaction) or\
@@ -189,7 +189,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The playlist to create or update's name."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_SAVE_HISTORY_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def save_history_in_playlist(self, interaction: Interaction, playlist_name: str):
         if not await user_has_role(interaction) or\
@@ -255,7 +255,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to modify or create's name.",
         index="The index at which the track should be placed. Must be > 0. (default last one)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_SAVE_CURRENT_TRACK_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def save_current_track_in_playlist(self, interaction: Interaction, playlist_name: str, index: int=None):
         if not await user_has_role(interaction) or\
@@ -326,7 +326,7 @@ class PlaylistCog(commands.Cog):
         range_end="The range where track selection will stop. (defaults to end)",
         random_order="Whether or not tracks in the range should be randomly selected. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_SELECT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def select_playlist(self, interaction: Interaction, playlist_name: str, range_start: int=1, range_end: int=None, random_order: bool=False, clear_current_queue: bool=False):
         if not await user_has_role(interaction) or\
@@ -408,7 +408,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.describe(
         playlist_name="The new playlist's name. Must be < 50 (default) characters."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_CREATE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def create_playlist(self, interaction: Interaction, playlist_name: str):
         if not await user_has_role(interaction) or\
@@ -464,7 +464,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to delete's name.",
         erase_contents_only="Whether or not to erase only the contents. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_DELETE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def delete_playlist(self, interaction: Interaction, playlist_name: str, erase_contents_only: bool=False):
         if not await user_has_role(interaction) or\
@@ -531,7 +531,7 @@ class PlaylistCog(commands.Cog):
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to remove.",
         by_index="Remove tracks by their index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_REMOVE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def remove_playlist_track(self, interaction: Interaction, playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -640,7 +640,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to rename's name.",
         new_playlist_name="New name to assign to the playlist. Must be <= 50 (default) characters."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_RENAME_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def rename_playlist(self, interaction: Interaction, playlist_name: str, new_playlist_name: str):
         if not await user_has_role(interaction) or\
@@ -708,7 +708,7 @@ class PlaylistCog(commands.Cog):
         search_provider="[EXPERIMENTAL] The provider used for search query. URLs ignore this. (default YouTube)",
         by_index="Replace a track by its index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_REPLACE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
             app_commands.Choice(name="SoundCloud search", value="soundcloud"),
@@ -796,7 +796,7 @@ class PlaylistCog(commands.Cog):
         new_index="The new index of the track. Must be > 0 and < maximum playlist index.",
         by_index="Reposition a track by its index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_REPOSITION_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def reposition_playlist_track(self, interaction: Interaction, playlist_name: str, track_name: str, new_index: int, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -863,7 +863,7 @@ class PlaylistCog(commands.Cog):
         queries="A semicolon separated list of URLs or search queries. Refer to help entry for valid URLs.",
         search_provider="[EXPERIMENTAL] The provider to use for search queries. URLs ignore this. (default YouTube)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_ADD_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
             app_commands.Choice(name="SoundCloud search", value="soundcloud"),
@@ -951,7 +951,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to duplicate's name.",
         target_playlist_name="The new playlist's name. Must not be the same as the playlist to duplicate's name."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_COPY_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def copy_playlist(self, interaction: Interaction, playlist_name: str, target_playlist_name: str):
         if not await user_has_role(interaction) or\
@@ -1019,7 +1019,7 @@ class PlaylistCog(commands.Cog):
         track_names="A semicolon separated list of track names (or indices, if <by_index> is true) to copy.",
         by_index="Copy tracks by their index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_COPY_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def copy_playlist_track(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -1086,7 +1086,7 @@ class PlaylistCog(commands.Cog):
         track_names="A semicolon separated list of names (or indices, if <by_index> is True) of the tracks to fetch.",
         by_index="Fetch tracks by their index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_FETCH_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def fetch_playlist_track(self, interaction: Interaction, playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -1165,7 +1165,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to get tracks from's name.",
         amount="The amount of random tracks to fetch, must be <= 25 (default 1)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_FETCH_RANDOM_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def choose_random_playlist_tracks(self, interaction: Interaction, playlist_name: str, amount: int=1):
         if not await user_has_role(interaction) or\
@@ -1257,7 +1257,7 @@ class PlaylistCog(commands.Cog):
         playlist_name="The playlist to add the tracks to's name.",
         query="A supported playlist URL."
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["EXTRACTOR_MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_IMPORT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def add_playlist(self, interaction: Interaction, playlist_name: str, query: str):
         if not await user_has_role(interaction) or\
@@ -1336,7 +1336,7 @@ class PlaylistCog(commands.Cog):
         new_track_names="A semicolon separated list of new names to assign to each old name.",
         by_index="Rename tracks by their index. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_RENAME_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def rename_playlist_track(self, interaction: Interaction, playlist_name: str, old_track_names: str, new_track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
@@ -1399,7 +1399,7 @@ class PlaylistCog(commands.Cog):
         await send_func("An unknown error occurred", ephemeral=True)
 
     @app_commands.command(name="playlist-get-saved", description="Shows saved playlists for this guild.")
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["MUSIC_COMMANDS_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_GET_SAVED_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
     async def show_saved_playlists(self, interaction: Interaction):
         if not await user_has_role(interaction) or\

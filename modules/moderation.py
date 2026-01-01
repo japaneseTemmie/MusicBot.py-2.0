@@ -3,7 +3,8 @@
 Includes a class with a few methods for managing
 a Discord guild and its users. """
 
-from settings import COOLDOWNS, CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
 from helpers.moderationhelpers import get_purge_check, get_ban_entries, get_user_to_unban, remove_markdown_or_mentions

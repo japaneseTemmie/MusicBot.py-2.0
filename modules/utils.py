@@ -1,9 +1,10 @@
 """ Utilities module for discord.py bot\n
 Includes a short class for help commands. """
 
-from settings import COOLDOWNS, HELP, CAN_LOG, LOGGER
-from init.logutils import log_to_discord_log
+from settings import HELP, CAN_LOG, LOGGER
+from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
+from init.logutils import log_to_discord_log
 
 from discord import app_commands
 from discord.interactions import Interaction
