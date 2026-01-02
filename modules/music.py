@@ -992,7 +992,6 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         queue = self.guild_states[interaction.guild.id]["queue"]
-        queue_copy = deepcopy(queue)
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
         await update_guild_state(self.guild_states, interaction, True, "is_modifying")
