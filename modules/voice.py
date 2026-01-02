@@ -7,8 +7,9 @@ from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.voicehelpers import check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move
-from helpers.guildhelpers import user_has_role, check_vc_lock, get_default_state, check_guild_state, update_guild_state, check_channel
+from helpers.guildhelpers import user_has_role, get_default_state, check_guild_state, update_guild_state, check_channel
 from helpers.playlisthelpers import is_playlist_locked
+from helpers.lockhelpers import check_vc_lock
 
 import discord
 from discord import app_commands

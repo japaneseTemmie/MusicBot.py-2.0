@@ -1,7 +1,8 @@
 """ Voice helper functions for discord.py bot """
 
-from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED
+from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE
 from bot import Bot, ShardedBot
+from helpers.lockhelpers import get_vc_lock
 from helpers.cachehelpers import invalidate_cache
 from helpers.playlisthelpers import is_playlist_locked
 from helpers.guildhelpers import update_guild_state, update_guild_states
@@ -58,7 +59,7 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
 
     Returns True if none are left and the bot is disconnected, False otherwise. """
     
-    if VOICE_OPERATIONS_LOCKED.is_set():
+    if await get_vc_lock():
         return True # bot is disconnected
 
     voice_client = guild_states[member.guild.id]["voice_client"]

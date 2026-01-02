@@ -2,12 +2,13 @@
 
 from settings import (
     ACTIVITY_DATA, ACTIVITY, STATUS,
-    VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED, ROLE_LOCKS, PLAYLIST_LOCKS, 
+    ROLE_LOCKS, PLAYLIST_LOCKS, 
     LOGGER, CAN_LOG, CONFIG
 )
 from init.constants import MAX_IO_SYNC_WAIT_TIME, STREAM_VALIDATION_TIMEOUT
 from loader import ModuleLoader
 from init.config import correct_type
+from helpers.lockhelpers import set_global_locks, get_file_lock, get_vc_lock
 from init.logutils import log, separator, log_to_discord_log
 from guildchecks import ensure_guild_data, check_guild_data
 
@@ -183,16 +184,15 @@ class Bot(commands.Bot):
         await asyncio.sleep(0.3)
 
     async def on_ready(self) -> None:
+        if self.has_finished_on_ready:
+            log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
+            return
+        
         async with self.on_ready_lock:
-            if self.has_finished_on_ready:
-                log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
-                return
-            
             log("Starting setup in locked mode")
             separator()
 
-            VOICE_OPERATIONS_LOCKED.set()
-            FILE_OPERATIONS_LOCKED.set()
+            await set_global_locks(True, True)
 
             log(f"Logged in as {self.user.name}")
             separator()
@@ -209,8 +209,7 @@ class Bot(commands.Bot):
             
             self.has_finished_on_ready = True
 
-            VOICE_OPERATIONS_LOCKED.clear()
-            FILE_OPERATIONS_LOCKED.clear()
+            await set_global_locks(False, False)
 
     async def on_shard_ready(self, shard_id: int) -> None:
         log(f"Shard {shard_id} is ready.")
@@ -238,11 +237,10 @@ class Bot(commands.Bot):
         log("Attempting a cleanup..")
         separator()
 
-        FILE_OPERATIONS_LOCKED.set()
-        VOICE_OPERATIONS_LOCKED.set()
+        await set_global_locks(True, True)
 
-        log(f"File operations locked permanently: {FILE_OPERATIONS_LOCKED.is_set()}")
-        log(f"Voice state permanently locked: {VOICE_OPERATIONS_LOCKED.is_set()}")
+        log(f"File operations locked permanently: {await get_file_lock()}")
+        log(f"Voice state permanently locked: {await get_vc_lock()}")
         separator()
         
         await self.wait_for_read_write_sync()

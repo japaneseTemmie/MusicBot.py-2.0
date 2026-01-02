@@ -1,8 +1,9 @@
 """ Guild helper functions for discord.py bot """
 
-from settings import CAN_LOG, LOGGER, PATH, ROLE_LOCKS, ROLE_FILE_CACHE, VOICE_OPERATIONS_LOCKED, FILE_OPERATIONS_LOCKED
+from settings import CAN_LOG, LOGGER, PATH, ROLE_LOCKS, ROLE_FILE_CACHE
 from error import Error
 from helpers.iohelpers import read_file_json, write_file_json, ensure_paths
+from helpers.lockhelpers import check_file_lock
 from helpers.cachehelpers import get_cache, store_cache
 from init.logutils import log
 
@@ -244,42 +245,6 @@ async def check_channel(guild_states: dict[str, Any], interaction: Interaction) 
         await interaction.response.send_message(f"To avoid results in different channels, please run this command in **{text_channel.mention}**.")
         return False
     
-    return True
-
-async def check_vc_lock(reply_to_interaction: bool=False, interaction: Interaction | None=None, msg_on_locked: str | None=None) -> bool | Error:
-    """ Check the `VOICE_OPERATIONS_LOCKED` flag.
-    
-    If True, return an error object or reply to the interaction with `msg_on_locked` or a default message and return False. """
-    
-    msg = msg_on_locked or "Voice connections temporarily disabled."
-    
-    if VOICE_OPERATIONS_LOCKED.is_set():
-        
-        if reply_to_interaction and interaction is not None:
-            await interaction.response.send_message(msg) if not interaction.response.is_done() else\
-            await interaction.followup.send(msg)
-            return False
-        else:
-            return Error(msg)
-    
-    return True
-
-async def check_file_lock(reply_to_interaction: bool=False, interaction: Interaction | None=None, msg_on_locked: str | None=None) -> bool | Error:
-    """ Check the `FILE_OPERATIONS_LOCKED` flag.
-    
-    If True, return an error object or reply to an interaction with `msg_on_locked` or a default entry and return False. """
-    
-    msg = msg_on_locked or "Role/Playlist reading temporarily disabled."
-    
-    if FILE_OPERATIONS_LOCKED.is_set():
-        
-        if reply_to_interaction and interaction is not None:
-            await interaction.response.send_message(msg) if not interaction.response.is_done() else\
-            await interaction.followup.send(msg)
-            return False
-        else:
-            return Error(msg)
-        
     return True
 
 async def check_guild_state(
