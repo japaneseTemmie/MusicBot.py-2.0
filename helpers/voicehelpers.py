@@ -1,6 +1,7 @@
 """ Voice helper functions for discord.py bot """
 
 from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE
+from init.constants import GREET_TIMEOUT_SECONDS
 from bot import Bot, ShardedBot
 from helpers.lockhelpers import get_vc_lock
 from helpers.cachehelpers import invalidate_cache
@@ -23,20 +24,19 @@ async def greet_new_user_in_vc(guild_states: dict[str, Any], user: discord.Membe
         text_channel = guild_states[user.guild.id]["interaction_channel"]
         current_track = guild_states[user.guild.id]["current_track"]
         voice_client = guild_states[user.guild.id]["voice_client"]
-        timeout = guild_states[user.guild.id]["greet_timeouts"].get(user.id, False)
+        last_greet_time = guild_states[user.guild.id]["last_greet_time"].get(user.id, None)
 
-        if timeout or not can_greet:
+        if (last_greet_time is not None and\
+            monotonic() - last_greet_time < 10) or not can_greet:
             return
         
+        guild_states[user.guild.id]["last_greet_time"][user.id] = monotonic()
+
         welcome_text = f"Welcome to **{voice_client.channel.name}**, {user.mention}!"
         listening_text = f"Currently listening to: '**{current_track['title']}**' {'(paused)' if voice_client.is_paused() else ''}" if current_track is not None else\
         f"Currently listening to nothing.."
 
         await text_channel.send(f"{welcome_text}\n{listening_text}")
-        guild_states[user.guild.id]["greet_timeouts"][user.id] = True
-        
-        await asyncio.sleep(10) # sleepy time :3
-        guild_states[user.guild.id]["greet_timeouts"][user.id] = False
 
 # Disconnect behavior
 async def cleanup_guilds(guild_states: dict[str, Any], clients: list[discord.VoiceClient]) -> None:

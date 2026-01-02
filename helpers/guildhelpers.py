@@ -222,7 +222,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "handling_disconnect_action": False,
         "handling_move_action": False,
         "interaction_channel": current_text_channel,
-        "greet_timeouts": {}
+        "last_greet_time": {}
     }
 
 # Functions for checking guild states and replying to interactions
