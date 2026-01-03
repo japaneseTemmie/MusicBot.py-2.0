@@ -7,7 +7,6 @@ from settings import (
 )
 from init.constants import MAX_IO_SYNC_WAIT_TIME, STREAM_VALIDATION_TIMEOUT
 from loader import ModuleLoader
-from init.config import correct_type
 from helpers.lockhelpers import set_global_locks, get_file_lock, get_vc_lock
 from init.logutils import log, separator, log_to_discord_log
 from guildchecks import ensure_guild_data, check_guild_data
@@ -33,23 +32,6 @@ class Bot(commands.Bot):
         self.loaded_cogs = []
         self.synced_commands = []
         self.guild_states = {}
-
-        self.max_track_limit = correct_type(CONFIG.get("max_queue_track_limit", 100), int, 100)
-        self.max_history_track_limit = correct_type(CONFIG.get("max_history_track_limit", 200), int, 200)
-        self.max_query_limit = correct_type(CONFIG.get("max_query_limit", 25), int, 25)
-
-        self.max_playlist_limit = correct_type(CONFIG.get("max_playlist_limit", 10), int, 10)
-        self.max_playlist_item_limit = correct_type(CONFIG.get("max_playlist_track_limit", 100), int, 100)
-        self.max_playlist_name_length = correct_type(CONFIG.get("max_playlist_name_length", 50), int, 50)
-
-        self.max_channel_name_length = 100
-        self.max_topic_length = 1024
-        self.max_slowmode = 21600
-        self.max_bitrate = 96000
-        self.max_stage_bitrate = 64000
-        self.max_user_limit = 99
-        self.max_announcement_length = 2000
-        self.max_purge_limit = 500
 
     """ Overwritten functions """
 

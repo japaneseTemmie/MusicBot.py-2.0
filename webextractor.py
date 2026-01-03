@@ -7,7 +7,7 @@ Supported websites
 - SoundCloud (Songs and sets)
 - Bandcamp (Songs and albums) """
 
-from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE
+from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE, MAX_ITEM_NAME_LENGTH
 from init.logutils import log_to_discord_log
 from helpers.timehelpers import format_to_minutes
 from helpers.cachehelpers import get_cache, store_cache
@@ -147,7 +147,7 @@ def parse_info(info: dict[str, Any], query: str, query_type: QueryType) -> dict[
     # If it's a search, prettify the first entry and return
     if query_type.source_website in SEARCH_WEBSITES and "entries" in info:
         if len(info["entries"]) == 0:
-            return Error(f"No results found for query `{query[:50]}`.")
+            return Error(f"No results found for query `{query[:MAX_ITEM_NAME_LENGTH]}`.")
         
         first_entry = info["entries"][0]
         
@@ -164,7 +164,7 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
     Return a single hashmap containing a media URL readable by FFmpeg and optional metadata or a list of the same type if `query` is a playlist URL. """
 
     if not query_type.is_url and INVALID_URL_PATTERN.match(query):
-        return Error(f"Invalid URL-like query supplied: `{query[:50]}`.")
+        return Error(f"Invalid URL-like query supplied: `{query[:MAX_ITEM_NAME_LENGTH]}`.")
     
     if allow_cache:
         cache = get_cache(EXTRACTOR_CACHE, query + f"::{query_type.source_website}")
@@ -180,7 +180,7 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
     except Exception as e:
         log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
-        return Error(f"An internal error occured while extracting `{query[:50]}`. Please try another source website.")
+        return Error(f"An internal error occured while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`. Please try another source website.")
 
     if info is not None:
         prettified_info = parse_info(info, query, query_type)
@@ -189,4 +189,4 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
         
         return prettified_info
     
-    return Error(f"An error occured while extracting `{query[:50]}`.")
+    return Error(f"An error occured while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`.")

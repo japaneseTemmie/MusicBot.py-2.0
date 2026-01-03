@@ -1,10 +1,11 @@
 """ Queue helper functions for discord.py bot """
 
+from settings import MAX_ITEM_NAME_LENGTH
+from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS
 from error import Error
 from webextractor import SourceWebsite, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
-from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS
 
 import re
 from discord.interactions import Interaction
@@ -144,7 +145,7 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
     track = track.lower().replace(" ", "")  
     if by_index:
         if not track.isdigit():
-            return Error(f"**{track[:50]}** is not an integer number!")
+            return Error(f"**{track[:MAX_ITEM_NAME_LENGTH]}** is not an integer number!")
         
         track_index = int(track)
 
@@ -157,7 +158,7 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
         if track == track_info["title"].lower().replace(" ", ""):
             return track_info, i
         
-    return Error(f"Could not find track **{track[:50]}**.")
+    return Error(f"Could not find track **{track[:MAX_ITEM_NAME_LENGTH]}**.")
 
 async def get_previous_visual_track(current: dict[str, Any] | None, history: list[dict[str, Any]] | list) -> dict[str, Any] | Error:
     """ Return the previous track in a history of tracks based on the current track.
@@ -421,7 +422,7 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
         track_to_remove, track_index = found_track[0], found_track[1]
 
         if track_index in to_remove:
-            return Error(f"Track **{found_track[0]['title'][:50]}** was already removed during this operation.")
+            return Error(f"Track **{found_track[0]['title'][:MAX_ITEM_NAME_LENGTH]}** was already removed during this operation.")
 
         to_remove.append(track_index)
         removed.append(track_to_remove)
@@ -447,7 +448,7 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict[str
     track_to_reposition, track_index = found_track[0], found_track[1]
 
     if track_index == index - 1:
-        return Error(f"Track **{track_to_reposition['title'][:50]}** is already at index **{index}**!")
+        return Error(f"Track **{track_to_reposition['title'][:MAX_ITEM_NAME_LENGTH]}** is already at index **{index}**!")
     
     track_dict = queue.pop(track_index)
     queue.insert(index - 1, track_dict)
@@ -489,7 +490,7 @@ async def replace_track_in_queue(
         return extracted_track
 
     if extracted_track["webpage_url"] == track_to_replace["webpage_url"]:
-        return Error(f"Cannot replace a track (**{track_to_replace['title'][:50]}**) with the same one.")
+        return Error(f"Cannot replace a track (**{track_to_replace['title'][:MAX_ITEM_NAME_LENGTH]}**) with the same one.")
 
     if is_playlist:
         extracted_track = {
@@ -570,7 +571,7 @@ async def place_track_in_queue(queue: list, index: int | None, track: dict[str, 
     }
 
     if playlist_track in queue and await try_index(queue, index - 1, playlist_track):
-        return Error(f"Cannot place track (**{track['title'][:50]}**) because it already exists at the specified index.")
+        return Error(f"Cannot place track (**{track['title'][:MAX_ITEM_NAME_LENGTH]}**) because it already exists at the specified index.")
     
     queue.insert(index - 1, playlist_track)
 

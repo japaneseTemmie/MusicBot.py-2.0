@@ -3,7 +3,7 @@
 Includes a few methods for managing playlists
 and fetching tracks from them. """
 
-from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS
+from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, MAX_PLAYLIST_LIMIT, MAX_PLAYLIST_TRACK_LIMIT, MAX_ITEM_NAME_LENGTH
 from helpers.playlisthelpers import (
     has_playlists, playlist_exists, is_playlist_empty, is_content_full,
     is_playlist_full, cleanup_locked_playlists
@@ -26,10 +26,6 @@ from random import shuffle
 class PlaylistManager:
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
-
-        self.max_limit = self.client.max_playlist_limit
-        self.max_item_limit = self.client.max_playlist_item_limit
-        self.max_name_length = self.client.max_playlist_name_length
 
     async def read(self, interaction: Interaction) -> dict[str, list] | Error:
         """ Safely read the content of a guild's playlist file.
@@ -74,12 +70,12 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
 
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist.")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist.")
         
         playlist = content[playlist_name]
 
         if await is_playlist_empty(playlist):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty.")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty.")
 
         return playlist
 
@@ -98,16 +94,16 @@ class PlaylistManager:
 
         If successful, returns a boolean, otherwise, Error (always `True` if `write_to_file` is False). """
         
-        if await name_exceeds_length(self.max_name_length, playlist_name):
-            return Error(f"Playlist name is too long! Must be <= **{self.max_name_length}** characters.")
+        if await name_exceeds_length(MAX_ITEM_NAME_LENGTH, playlist_name):
+            return Error(f"Playlist name is too long! Must be <= **{MAX_ITEM_NAME_LENGTH}** characters.")
 
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
         if await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** already exists!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** already exists!")
 
-        if await is_content_full(self.max_limit, content):
-            return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
+        if await is_content_full(MAX_PLAYLIST_LIMIT, content):
+            return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
 
         content[playlist_name] = []
 
@@ -137,13 +133,13 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
 
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
         if contents_only:
             playlist = content[playlist_name]
 
             if await is_playlist_empty(playlist):
-                return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot delete contents.")
+                return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty. Cannot delete contents.")
             
             previous_contents = deepcopy(playlist)
             playlist.clear()
@@ -185,11 +181,11 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
     
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
         playlist = content[playlist_name]
         if await is_playlist_empty(playlist):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot remove tracks.")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty. Cannot remove tracks.")
 
         found = await remove_track_from_queue(tracks_to_remove, playlist, by_index)
         if isinstance(found, Error):
@@ -225,12 +221,12 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
 
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
         playlist = content[playlist_name]
 
         if await is_playlist_empty(playlist):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot replace track.")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty. Cannot replace track.")
 
         result = await replace_track_in_queue(guild_states, interaction, playlist, old, new, provider, True, by_index)
         if isinstance(result, Error):
@@ -264,12 +260,12 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
 
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
         
         playlist = content[playlist_name]
 
         if await is_playlist_empty(playlist):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** is empty. Cannot reposition track.")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty. Cannot reposition track.")
         
         result = await reposition_track_in_queue(track, index, playlist, by_index)
         if isinstance(result, Error):
@@ -395,15 +391,15 @@ class PlaylistManager:
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
 
         if not await playlist_exists(content, playlist_name):
-            if await is_content_full(self.max_limit, content):
-                return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
+            if await is_content_full(MAX_PLAYLIST_LIMIT, content):
+                return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
 
-            if await name_exceeds_length(self.max_name_length, playlist_name):
-                return Error(f"Name **{playlist_name[:self.max_name_length]}**.. is too long! Must be <= **{self.max_name_length}** characters.")
+            if await name_exceeds_length(MAX_ITEM_NAME_LENGTH, playlist_name):
+                return Error(f"Name **{playlist_name[:MAX_ITEM_NAME_LENGTH]}**.. is too long! Must be <= **{MAX_ITEM_NAME_LENGTH}** characters.")
 
             content[playlist_name] = []
-        elif await is_playlist_full(self.max_item_limit, content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** has reached the **{self.max_item_limit}** track limit!\nCannot add more tracks.")
+        elif await is_playlist_full(MAX_PLAYLIST_TRACK_LIMIT, content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** has reached the **{MAX_PLAYLIST_TRACK_LIMIT}** track limit!\nCannot add more tracks.")
 
         playlist = content[playlist_name]
         to_add = [{
@@ -414,7 +410,7 @@ class PlaylistManager:
                 'source_website': track["source_website"]
             } for track in queue]
 
-        added = await add_results_to_queue(interaction, to_add, playlist, self.max_item_limit)
+        added = await add_results_to_queue(interaction, to_add, playlist, MAX_PLAYLIST_TRACK_LIMIT)
 
         if write_to_file:
             success = await self.write(interaction, content, backup)
@@ -439,11 +435,11 @@ class PlaylistManager:
         If successful, returns same types as `add_queue()`. With the addition of extraction Errors. """
 
         # Avoid returning these errors when using add_queue() to not waste bandwidth
-        if await is_playlist_full(self.max_item_limit, content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** has reached the maximum track limit of **{self.max_item_limit}**!\nCannot add more tracks.")
+        if await is_playlist_full(MAX_PLAYLIST_TRACK_LIMIT, content, playlist_name):
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** has reached the maximum track limit of **{MAX_PLAYLIST_TRACK_LIMIT}**!\nCannot add more tracks.")
         
-        if await is_content_full(self.max_limit, content) and not await playlist_exists(content, playlist_name):
-            return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
+        if await is_content_full(MAX_PLAYLIST_LIMIT, content) and not await playlist_exists(content, playlist_name):
+            return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
 
         provider = provider.value if provider else None
         found = await fetch_queries(guild_states, interaction, queries, allowed_query_types=allowed_query_types, provider=provider)
@@ -484,13 +480,13 @@ class PlaylistManager:
             return Error("This guild has no saved playlists.")
 
         if not await playlist_exists(content, orig_playlist_name):
-            return Error(f"Playlist **{orig_playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{orig_playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
-        if await name_exceeds_length(self.max_name_length, new_playlist_name):
-            return Error(f"New name **{new_playlist_name[:self.max_name_length]}**.. is too long! Must be < **{self.max_name_length}** characters.")
+        if await name_exceeds_length(MAX_ITEM_NAME_LENGTH, new_playlist_name):
+            return Error(f"New name **{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**.. is too long! Must be < **{MAX_ITEM_NAME_LENGTH}** characters.")
 
         if new_playlist_name.lower().replace(" ", "") == orig_playlist_name.lower().replace(" ", ""):
-            return Error(f"Cannot rename a playlist (**{orig_playlist_name[:self.max_name_length]}**) to the same name (**{new_playlist_name[:self.max_name_length]}**).")
+            return Error(f"Cannot rename a playlist (**{orig_playlist_name[:MAX_ITEM_NAME_LENGTH]}**) to the same name (**{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**).")
 
         playlists = content.items()
         content = {new_playlist_name if key == orig_playlist_name else key: value for key, value in playlists}
@@ -521,15 +517,15 @@ class PlaylistManager:
             return Error("This guild does not have any saved playlists.")
 
         if not await playlist_exists(content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:self.max_name_length]}** does not exist!")
+            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         playlist = content[playlist_name]
 
         if await is_playlist_empty(playlist):
-            return Error(f"Playlist {playlist_name[:self.max_name_length]} is empty. Cannot rename tracks.")
+            return Error(f"Playlist {playlist_name[:MAX_ITEM_NAME_LENGTH]} is empty. Cannot rename tracks.")
 
-        found = await rename_tracks_in_queue(self.max_name_length, playlist, tracks_to_rename, new_track_names, by_index)
+        found = await rename_tracks_in_queue(MAX_ITEM_NAME_LENGTH, playlist, tracks_to_rename, new_track_names, by_index)
         if isinstance(found, Error):
             return found
 
@@ -557,11 +553,11 @@ class PlaylistManager:
         backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
         
         if not await playlist_exists(content, playlist_name):
-            if await is_content_full(self.max_limit, content):
-                return Error(f"Maximum playlist limit of **{self.max_limit}** reached! Please delete a playlist to free a slot.")
+            if await is_content_full(MAX_PLAYLIST_LIMIT, content):
+                return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
             
-            if await name_exceeds_length(self.max_name_length, playlist_name):
-                return Error(f"Name **{playlist_name[:self.max_name_length]}**.. is too long! Must be <= **{self.max_name_length}** characters.")
+            if await name_exceeds_length(MAX_ITEM_NAME_LENGTH, playlist_name):
+                return Error(f"Name **{playlist_name[:MAX_ITEM_NAME_LENGTH]}**.. is too long! Must be <= **{MAX_ITEM_NAME_LENGTH}** characters.")
 
             content[playlist_name] = []
             

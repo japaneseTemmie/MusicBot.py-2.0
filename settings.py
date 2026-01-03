@@ -52,6 +52,13 @@ USE_SHARDING = correct_type(CONFIG.get("use_sharding", False), bool, False)
 ENABLE_FILE_BACKUPS = correct_type(CONFIG.get("enable_file_backups", True), bool, True)
 CAN_AUTO_DELETE_GUILD_DATA = correct_type(CONFIG.get("auto_delete_unused_guild_data", True), bool, True)
 
+MAX_QUEUE_TRACK_LIMIT = correct_type(CONFIG.get("max_queue_track_limit", 100), int, 100)
+MAX_TRACK_HISTORY_LIMIT = correct_type(CONFIG.get("max_history_track_limit", 200), int, 200)
+MAX_QUERY_LIMIT = correct_type(CONFIG.get("max_query_limit", 25), int, 25)
+MAX_PLAYLIST_LIMIT = correct_type(CONFIG.get("max_playlist_limit", 10), int, 10)
+MAX_PLAYLIST_TRACK_LIMIT = correct_type(CONFIG.get("max_playlist_track_limit", 100), int, 100)
+MAX_ITEM_NAME_LENGTH = correct_type(CONFIG.get("max_playlist_name_length", 50), int, 50)
+
 HELP = open_help_file(PATH)
 
 # Logging
@@ -71,12 +78,6 @@ ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=600)
-
-# Event objects that function as locks for safe shutdown.
-# Use .clear() to release the lock.
-# Use .set() to acquire the lock and refuse any VoiceClient or I/O operation.
-# Use .wait() to block the event loop if a lock is acquired (should be used rarely).
-# Use .is_set() to check if a lock is acquired (True) or not (False). Refuse operation if True. """
 FILE_OPERATIONS_LOCKED = asyncio.Event()
 VOICE_OPERATIONS_LOCKED = asyncio.Event()
 

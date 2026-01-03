@@ -4,7 +4,11 @@ Includes a class with a few methods for managing
 a Discord guild and its users. """
 
 from settings import CAN_LOG, LOGGER
-from init.constants import COOLDOWNS
+from init.constants import (
+    COOLDOWNS,
+    MAX_CHANNEL_NAME_LENGTH, MAX_TOPIC_LENGTH, MAX_SLOWMODE, MAX_BITRATE, MAX_STAGE_BITRATE,
+    MAX_USER_LIMIT, MAX_ANNOUNCEMENT_LENGTH_LIMIT, MAX_PURGE_LIMIT
+)
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
 from helpers.moderationhelpers import get_purge_check, get_banned_users, get_user_to_unban, remove_markdown_or_mentions
@@ -20,15 +24,6 @@ from time import time as get_unix_timestamp
 class ModerationCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
-
-        self.max_channel_name_length = self.client.max_channel_name_length
-        self.max_topic_length = self.client.max_topic_length
-        self.max_slowmode = self.client.max_slowmode
-        self.max_bitrate = self.client.max_bitrate
-        self.max_stage_bitrate = self.client.max_stage_bitrate
-        self.max_user_limit = self.client.max_user_limit
-        self.max_announcement_length = self.client.max_announcement_length
-        self.max_purge_limit = self.client.max_purge_limit
 
     async def handle_command_error(self, interaction: Interaction, error: Exception):
         """ AIO error handler for moderation commands.
@@ -82,7 +77,7 @@ class ModerationCog(commands.Cog):
         await interaction.response.defer(ephemeral=True) # This will take ages so we need to defer
 
         channel = interaction.channel if channel is None else channel
-        amount = max(1, min(self.max_purge_limit, amount))
+        amount = max(1, min(MAX_PURGE_LIMIT, amount))
 
         deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word))
         deleted_message_amount = len(deleted_messages)
@@ -403,15 +398,15 @@ class ModerationCog(commands.Cog):
         guild_features = interaction.guild.features
         topic = topic.strip()
         name = name.strip()
-        if len(name) > self.max_channel_name_length:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
-        elif len(topic) > self.max_topic_length:
-            await interaction.response.send_message(f"`topic` field is too long! Must be < **{self.max_topic_length}** characters.", ephemeral=True)
+        elif len(topic) > MAX_TOPIC_LENGTH:
+            await interaction.response.send_message(f"`topic` field is too long! Must be < **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
 
         position = max(0, min(position, len(interaction.guild.channels) - 1))
-        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
+        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
 
         if announcement and "NEWS" not in guild_features:
             await interaction.response.send_message(f"Announcement channels require a community-enabled guild.", ephemeral=True)
@@ -460,12 +455,12 @@ class ModerationCog(commands.Cog):
         ):
         
         position = max(0, min(position, len(interaction.guild.channels) - 1))
-        bitrate = max(8000, min(bitrate, self.max_bitrate))
-        user_limit = max(0, min(self.max_user_limit, user_limit))
+        bitrate = max(8000, min(bitrate, MAX_BITRATE))
+        user_limit = max(0, min(MAX_USER_LIMIT, user_limit))
         name = name.strip()
 
-        if len(name) > self.max_channel_name_length:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         
         created_channel = await interaction.guild.create_voice_channel(name, category=category, position=position, bitrate=bitrate, user_limit=user_limit, video_quality_mode=video_quality_mode)
@@ -497,8 +492,8 @@ class ModerationCog(commands.Cog):
         position = max(0, min(position, len(interaction.guild.channels) - 1))
         name = name.strip()
 
-        if len(name) > self.max_channel_name_length:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
 
         created_category = await interaction.guild.create_category(name=name, position=position)
@@ -537,15 +532,15 @@ class ModerationCog(commands.Cog):
 
         guild_features = interaction.guild.features
         position = max(0, min(len(interaction.guild.channels) - 1, position))
-        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
+        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
         name = name.strip()
         post_guidelines = post_guidelines.strip()
 
-        if len(name) > self.max_channel_name_length:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
-        elif len(post_guidelines) > self.max_topic_length:
-            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be < **{self.max_topic_length}** characters.", ephemeral=True)
+        elif len(post_guidelines) > MAX_TOPIC_LENGTH:
+            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be < **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Forum channels require a community-enabled guild.", ephemeral=True)
@@ -591,11 +586,11 @@ class ModerationCog(commands.Cog):
         
         guild_features = interaction.guild.features
         position = max(0, min(len(interaction.guild.channels) - 1, position))
-        bitrate = max(8000, min(self.max_stage_bitrate, bitrate))
+        bitrate = max(8000, min(MAX_STAGE_BITRATE, bitrate))
         name = name.strip()
 
-        if len(name) > self.max_channel_name_length:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{self.max_channel_name_length}** characters.", ephemeral=True)
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Stage channels require a community-enabled guild.", ephemeral=True)
@@ -626,7 +621,7 @@ class ModerationCog(commands.Cog):
     @app_commands.guild_only
     async def change_slowmode(self, interaction: Interaction, slowmode_delay: int, channel: discord.TextChannel=None, show: bool=False):
         channel = interaction.channel if channel is None else channel
-        slowmode_delay = max(0, min(slowmode_delay, self.max_slowmode))
+        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
         old_delay = int(channel.slowmode_delay) # Make a copy of the integer
 
         if slowmode_delay == old_delay:
@@ -659,8 +654,8 @@ class ModerationCog(commands.Cog):
         channel = interaction.channel if channel is None else channel
         message = message.strip()
 
-        if len(message) > self.max_announcement_length:
-            await interaction.response.send_message(f"Message exceeds **{self.max_announcement_length}** characters.", ephemeral=True)
+        if len(message) > MAX_ANNOUNCEMENT_LENGTH_LIMIT:
+            await interaction.response.send_message(f"Message exceeds **{MAX_ANNOUNCEMENT_LENGTH_LIMIT}** characters.", ephemeral=True)
             return
         
         if no_markdown or no_mentions:

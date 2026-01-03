@@ -1,6 +1,6 @@
 """ Audio player wrapper module for discord.py bot. """
 
-from settings import CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
@@ -30,8 +30,6 @@ class AudioPlayer:
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
-
-        self.max_history_track_limit = self.client.max_history_track_limit
 
     async def submit_track_to_player(
             self, 
@@ -103,7 +101,7 @@ class AudioPlayer:
             state is None:
 
             history_length = len(history)
-            if history_length >= self.max_history_track_limit:
+            if history_length >= MAX_TRACK_HISTORY_LIMIT:
                 history.pop(0)
 
             history.append(track)

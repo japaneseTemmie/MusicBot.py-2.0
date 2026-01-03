@@ -2,7 +2,7 @@
 
 Handles queue management and track playback. """
 
-from settings import CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT
 from init.constants import COOLDOWNS
 from init.logutils import log, separator, log_to_discord_log
 from helpers.timehelpers import format_to_minutes, format_to_seconds
@@ -33,7 +33,6 @@ from audioplayer import AudioPlayer
 from bot import Bot, ShardedBot
 
 import discord
-import asyncio
 from time import monotonic, time as get_unix_timestamp
 from copy import deepcopy
 from random import randint, shuffle
@@ -45,10 +44,6 @@ class MusicCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
-        
-        self.max_track_limit = self.client.max_track_limit
-        self.max_history_track_limit = self.client.max_history_track_limit
-        self.max_query_limit = self.client.max_query_limit
         
         self.player = AudioPlayer(self.client)
 
@@ -87,10 +82,10 @@ class MusicCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
-        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
         if not is_queue_length_ok:
             return
-        queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
+        queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(queries))
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
@@ -115,7 +110,7 @@ class MusicCog(commands.Cog):
         if isinstance(found, Error):
             await interaction.followup.send(found.msg)
         elif isinstance(found, list):
-            added = await add_results_to_queue(interaction, found, queue, self.max_track_limit)
+            added = await add_results_to_queue(interaction, found, queue, MAX_QUEUE_TRACK_LIMIT)
             
             if is_looping_queue:
                 await update_loop_queue_add(self.guild_states, interaction)
@@ -185,7 +180,7 @@ class MusicCog(commands.Cog):
 
         if current_track is not None and keep_current_track:
             # Must check queue length before re-inserting
-            is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+            is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
             is_queue_not_being_modified = await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.")
 
             if not is_queue_length_ok or\

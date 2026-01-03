@@ -6,6 +6,14 @@ from logging import INFO, DEBUG, ERROR, WARNING, CRITICAL
 VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings": WARNING, "critical": CRITICAL}
 VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching, "listening": discord.ActivityType.listening}
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
+MAX_CHANNEL_NAME_LENGTH = 100
+MAX_TOPIC_LENGTH = 1024
+MAX_SLOWMODE = 21600
+MAX_BITRATE = 96000
+MAX_STAGE_BITRATE = 64000
+MAX_USER_LIMIT = 99
+MAX_ANNOUNCEMENT_LENGTH_LIMIT = 2000
+MAX_PURGE_LIMIT = 500
 GREET_TIMEOUT_SECONDS = 10
 PLAYBACK_END_GRACE_PERIOD = 1
 STREAM_VALIDATION_TIMEOUT = 3

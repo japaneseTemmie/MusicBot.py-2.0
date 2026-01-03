@@ -1,6 +1,6 @@
 """ Playlist module for discord.py bot. """
 
-from settings import CAN_LOG, LOGGER
+from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT
 from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from managers.playlistmanager import PlaylistManager
@@ -29,9 +29,6 @@ class PlaylistCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
-
-        self.max_track_limit = self.client.max_track_limit
-        self.max_query_limit = self.client.max_query_limit
 
         self.playlist = PlaylistManager(self.client)
         self.player = AudioPlayer(self.client)
@@ -348,7 +345,7 @@ class PlaylistCog(commands.Cog):
             queue.clear()
             queue_to_loop.clear()
 
-        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
         if not is_queue_length_ok:
             return
 
@@ -367,7 +364,7 @@ class PlaylistCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await self.playlist.select(self.guild_states, self.max_track_limit, interaction, content, playlist_name, range_start, range_end, random_order)
+        result = await self.playlist.select(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, range_start, range_end, random_order)
         
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
@@ -895,7 +892,7 @@ class PlaylistCog(commands.Cog):
         
         await lock_playlist(interaction, content, locked, playlist_name)
 
-        queries_split = await check_input_length(interaction, self.max_query_limit, split(queries))
+        queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(queries))
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
@@ -1103,8 +1100,8 @@ class PlaylistCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        queries_split = await check_input_length(interaction, self.max_query_limit, split(track_names))
-        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue)
+        queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(track_names))
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
         if not is_queue_length_ok:
             return
 
@@ -1123,7 +1120,7 @@ class PlaylistCog(commands.Cog):
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))        
 
-        result = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, queries_split, by_index=by_index)
+        result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, queries_split, by_index=by_index)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
@@ -1182,7 +1179,7 @@ class PlaylistCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        is_queue_length_ok = await check_queue_length(interaction, self.max_track_limit, queue) 
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue) 
         if not is_queue_length_ok:
             return
 
@@ -1215,7 +1212,7 @@ class PlaylistCog(commands.Cog):
         
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await self.playlist.fetch(self.guild_states, self.max_track_limit, interaction, content, playlist_name, random_tracks, True)
+        result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, random_tracks, True)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
