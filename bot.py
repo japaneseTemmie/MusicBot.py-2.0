@@ -25,10 +25,10 @@ class Bot(commands.Bot):
     def __init__(self, command_prefix: str, **options) -> None:
         super().__init__(command_prefix=command_prefix, help_command=None, **options)
         
-        self.on_ready_lock = asyncio.Lock()
-        
-        self.has_finished_on_ready = False # Avoid re-running on_ready() in case of disconnects and reconnects, since it contains code that blocks the bot
+        self.setup_lock = asyncio.Lock()
+        self.has_finished_on_ready = False
         self.is_sharded = False
+        self.stream_url_check_session = None
 
         self.loaded_cogs = []
         self.synced_commands = []
@@ -51,10 +51,73 @@ class Bot(commands.Bot):
         self.max_announcement_length = 2000
         self.max_purge_limit = 500
 
+    """ Overwritten functions """
+
     async def setup_hook(self) -> None:
-        self.stream_url_check_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
-        log("Set up a ClientSession for stream URL checks")
+        log("Running setup_hook()")
         separator()
+
+        await self.setup_client_session()
+
+    async def on_ready(self) -> None:
+        if self.has_finished_on_ready:
+            separator()
+            log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
+            separator()
+            return
+
+        async with self.setup_lock:
+            await set_global_locks(True, True)
+
+            log(f"Logged in as {self.user.name}")
+            separator()
+
+            log(f"Command prefix is '{self.command_prefix}'")
+            separator()
+
+            log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
+            separator()
+
+            await self.post_login_tasks()
+
+            log(f"Ready with {len(self.loaded_cogs)} modules and {len(self.synced_commands)} commands :{'3' * randint(1, 10)}")
+            separator()
+
+            self.has_finished_on_ready = True
+
+            await set_global_locks(False, False)
+
+    async def on_shard_ready(self, shard_id: int) -> None:
+        log(f"Shard {shard_id} is ready.")
+
+    async def close(self) -> None:
+        """ Attempt to cleanly exit the program. Called when SIGINT is recieved. (either by user or runner script) """
+        
+        separator()
+        log("Requested to terminate program.")
+        log("Attempting a cleanup..")
+        separator()
+
+        await set_global_locks(True, True)
+
+        log(f"File operations locked permanently: {await get_file_lock()}")
+        log(f"Voice state permanently locked: {await get_vc_lock()}")
+        separator()
+        
+        await self.wait_for_read_write_sync()
+
+        await super().close()
+
+        if self.stream_url_check_session is not None:
+            await self.stream_url_check_session.close()
+            log("Closed ClientSession for stream URL checks")
+
+        separator()
+        log(f"Bai bai :{'3' * randint(1, 10)}")
+
+        log_to_discord_log("Connection closed by host.\nEnd of log.", can_log=CAN_LOG, logger=LOGGER)
+
+    """ Bot functions """
 
     async def get_cogs(self) -> list[type[commands.Cog]]:
         """ Get cogs from all modules and their respective enable value from config.json """
@@ -153,6 +216,41 @@ class Bot(commands.Bot):
 
         return self.synced_commands
 
+    async def setup_client_session(self) -> None:
+        """ Set up an aiohttp ClientSession for stream URL checks """
+
+        self.stream_url_check_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
+        log("Set up a ClientSession for stream URL checks")
+        separator()
+
+    async def handle_filesystem_tasks(self) -> bool:
+        """ Handle filesystem tasks such as checking the `guild_data` directory and unused data """
+        
+        guild_data_exists = await ensure_guild_data()
+        if not guild_data_exists:
+            return False
+        
+        guild_data_is_ok = await check_guild_data(self.user.name, self.guilds, self.is_sharded)
+        if not guild_data_is_ok:
+            log("Failed check: Guild data")
+
+        return True
+
+    async def handle_api_tasks(self) -> bool:
+        """ Handle API tasks such as loading cogs, syncing commands with the API and setting an activity """
+
+        loaded_cogs = await self.load_cogs()
+        if not loaded_cogs:
+            return False
+
+        synced_commands = await self.sync_commands()
+        if not synced_commands:
+            return False
+
+        await self.set_activity()
+
+        return True
+
     async def post_login_tasks(self) -> None:
         """ Handle any post-login tasks like checking guild directories, loading cogs, and syncing commands with the Discord API. """
         
@@ -160,59 +258,17 @@ class Bot(commands.Bot):
         separator()
         await asyncio.sleep(0.3)
 
-        guild_data_exists = await ensure_guild_data()
-        if not guild_data_exists:
+        fs_success = await self.handle_filesystem_tasks()
+        if not fs_success:
             await self.close()
-        
-        guild_data_is_ok = await check_guild_data(self.user.name, self.guilds, self.is_sharded)
-        if not guild_data_is_ok:
-            log("Failed check: Guild data")
 
         await asyncio.sleep(0.3)
 
-        loaded_cogs = await self.load_cogs()
-        if not loaded_cogs:
+        api_success = await self.handle_api_tasks()
+        if not api_success:
             await self.close()
+
         await asyncio.sleep(0.3)
-
-        synced_commands = await self.sync_commands()
-        if not synced_commands:
-            await self.close()
-        await asyncio.sleep(0.3)
-
-        await self.set_activity()
-        await asyncio.sleep(0.3)
-
-    async def on_ready(self) -> None:
-        if self.has_finished_on_ready:
-            log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
-            return
-        
-        async with self.on_ready_lock:
-            log("Starting setup in locked mode")
-            separator()
-
-            await set_global_locks(True, True)
-
-            log(f"Logged in as {self.user.name}")
-            separator()
-            log(f"Command prefix is '{self.command_prefix}'")
-            separator()
-
-            await self.post_login_tasks()
-
-            log(f"Running in {'sharded' if self.is_sharded else 'non-sharded'} mode.")
-            separator()
-
-            log(f"Ready with {len(self.loaded_cogs)} modules and {len(self.synced_commands)} commands :{'3' * randint(1, 10)}")
-            separator()
-            
-            self.has_finished_on_ready = True
-
-            await set_global_locks(False, False)
-
-    async def on_shard_ready(self, shard_id: int) -> None:
-        log(f"Shard {shard_id} is ready.")
 
     async def wait_for_read_write_sync(self) -> None:
         """ Wait for any write/reads to finish before closing to keep data safe. """
@@ -224,37 +280,10 @@ class Bot(commands.Bot):
         while (any(playlist_lock.locked() for playlist_lock in PLAYLIST_LOCKS.values()) or\
             any(role_lock.locked() for role_lock in ROLE_LOCKS.values())) and (monotonic() - start_time < MAX_IO_SYNC_WAIT_TIME):
             
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
 
         log("done")
         separator()
-
-    async def close(self) -> None:
-        """ Attempt to cleanly exit the program. Called when SIGINT is recieved. (either by user or runner script) """
-        
-        separator()
-        log("Requested to terminate program.")
-        log("Attempting a cleanup..")
-        separator()
-
-        await set_global_locks(True, True)
-
-        log(f"File operations locked permanently: {await get_file_lock()}")
-        log(f"Voice state permanently locked: {await get_vc_lock()}")
-        separator()
-        
-        await self.wait_for_read_write_sync()
-
-        await super().close()
-
-        if hasattr(self, "stream_url_check_session"):
-            await self.stream_url_check_session.close()
-            log("Closed ClientSession for stream URL checks")
-
-        separator()
-        log(f"Bai bai :{'3' * randint(1, 10)}")
-
-        log_to_discord_log("Connection closed by host.\nEnd of log.", can_log=CAN_LOG, logger=LOGGER)
 
 class ShardedBot(commands.AutoShardedBot, Bot):
     """ `Bot` class with sharding. """
