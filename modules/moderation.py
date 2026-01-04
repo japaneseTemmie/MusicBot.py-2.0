@@ -379,7 +379,7 @@ class ModerationCog(commands.Cog):
         announcement="Whether or not the channel is an announcement channel. (default False)",
         slowmode_delay="The slowmode delay to apply to the channel, must be in seconds. (defaults to 0)",
         nsfw="Whether or not the channel is NSFW. (default False)",
-        position="The new channel's position relative to all channels. (defaults to 0)",
+        position="The new channel's position relative to all channels. (defaults to 1)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
@@ -444,7 +444,7 @@ class ModerationCog(commands.Cog):
     @app_commands.describe(
         name="The name of the new channel.",
         category="The category to apply the new channel to. (defaults to no category)",
-        position="The position of the channel relative to all channels. (defaults to 0)",
+        position="The position of the channel relative to all channels. (defaults to 1)",
         bitrate="The bitrate of the new channel. (defaults to 64000)",
         user_limit="The new channel's user limit. (defaults to infinite)",
         video_quality_mode="The new channel's video quality mode, if unsure, leave empty (auto).",
@@ -504,7 +504,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="make-category", description="Creates a category. See entry in /help for more info.")
     @app_commands.describe(
         name="The new category's name.",
-        position="The new category's position relative to all channels. (defaults to 0)",
+        position="The new category's position relative to all channels. (defaults to 1)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CREATE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
@@ -537,7 +537,7 @@ class ModerationCog(commands.Cog):
     @app_commands.describe(
         name="The new forum's name.",
         post_guidelines="The new forum's post guidelines. (default none)",
-        position="The new forum's position relative to all channels. (defaults to 0)",
+        position="The new forum's position relative to all channels. (defaults to 1)",
         category="The new forum's category. (defaults to no category)",
         slowmode_delay="The slowmode delay to apply to the new forum in seconds. (defaults to 0)",
         nsfw="Whether or not the new forum should be marked as NSFW. (default False)",
@@ -603,7 +603,7 @@ class ModerationCog(commands.Cog):
     @app_commands.describe(
         name="The new stage channel's name.",
         category="The category to apply the new stage channel to. (defaults to no category)",
-        position="The position of the new channel relative to all channels. (defaults to 0)",
+        position="The position of the new channel relative to all channels. (defaults to 1)",
         bitrate="The new stage channel's bitrate. (defaults to 64000).",
         video_quality_mode="The new stage channel's video quality mode, if unsure, leave the default (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
@@ -661,7 +661,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to modify. Defaults to current one.",
-        slowmode_delay="The new slowmode delay in seconds to set. (defaults to 0)",
+        slowmode_delay="The new slowmode delay in seconds to set.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CHANGE_SLOWMODE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
