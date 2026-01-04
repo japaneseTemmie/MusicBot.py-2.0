@@ -7,7 +7,7 @@ from settings import CAN_LOG, LOGGER
 from init.constants import (
     COOLDOWNS,
     MAX_CHANNEL_NAME_LENGTH, MAX_TOPIC_LENGTH, MAX_SLOWMODE, MAX_STAGE_BITRATE,
-    MAX_USER_LIMIT, MAX_ANNOUNCEMENT_LENGTH_LIMIT, MAX_PURGE_LIMIT
+    MAX_USER_LIMIT, MAX_ANNOUNCEMENT_LENGTH_LIMIT, MAX_PURGE_LIMIT, MAX_FORUM_TOPIC_LENGTH
 )
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
@@ -248,7 +248,7 @@ class ModerationCog(commands.Cog):
         await member.timeout(timestamp, reason=reason)
         await interaction.response.send_message(
             f"User **{member.name}** has been timed out{f' by **{interaction.user.display_name}**' if show else ''}.\n"
-            f"Timeout will expire on **{timestamp.strftime("%Y/%m/%d @ %H:%M:%S")}**.",
+            f"Timeout will expire on **{timestamp.strftime('%Y/%m/%d @ %H:%M:%S')}**.",
             ephemeral=not show
         )
 
@@ -568,14 +568,14 @@ class ModerationCog(commands.Cog):
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
             await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
-        elif len(post_guidelines) > MAX_TOPIC_LENGTH:
-            await interaction.response.send_message(f"Post guidelines field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+        elif len(post_guidelines) > MAX_FORUM_TOPIC_LENGTH:
+            await interaction.response.send_message(f"Post guidelines field is too long! Must be <= **{MAX_FORUM_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
             await interaction.response.send_message(f"Position must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
             return
         elif slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
-            await interaction.response.send_message(f"Slowmode delay must be >= **0** or <= **{MAX_SLOWMODE}**.", ephemeral=True)
+            await interaction.response.send_message(f"Slowmode delay must be >= **0** and <= **{MAX_SLOWMODE}**.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Forum channels require a community-enabled guild.", ephemeral=True)
@@ -588,7 +588,7 @@ class ModerationCog(commands.Cog):
 
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
-            f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
+            f"Post guidelines: **{created_channel.topic[:1024] if created_channel.topic else 'None'}**\n"
             f"Position: **{created_channel.position + 1}**\n"
             f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
             f"Slowmode delay: **{created_channel.slowmode_delay}**s\n"
@@ -836,7 +836,7 @@ class ModerationCog(commands.Cog):
         await member.edit(mute=mute, reason=reason.strip())
 
         await interaction.response.send_message(
-            f"Member **{member.name}** has been **{"muted" if mute else "unmuted"}**"
+            f"Member **{member.name}** has been **{'muted' if mute else 'unmuted'}**"
             f"{f' by **{interaction.user.display_name}**' if show else ''}.", ephemeral=not show
         )
         

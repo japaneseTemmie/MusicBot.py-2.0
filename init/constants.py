@@ -8,6 +8,7 @@ VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": dis
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
 MAX_CHANNEL_NAME_LENGTH = 100
 MAX_TOPIC_LENGTH = 1024
+MAX_FORUM_TOPIC_LENGTH = 4096
 MAX_SLOWMODE = 21600 
 MAX_BITRATE = 96000 # default, changes depending on guild
 MAX_STAGE_BITRATE = 64000
