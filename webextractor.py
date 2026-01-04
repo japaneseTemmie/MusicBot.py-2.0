@@ -59,7 +59,6 @@ class QueryType:
 # List of regex pattern to match website URLs
 # Second item is the 'source_website' string
 # Remember to update parse_info() after any changes made here.
-INVALID_URL_PATTERN = re.compile(r"^(((http|https|ftp):\/\/)?(www\.)?[a-zA-Z0-9-_\.]+\.[a-zA-Z]{2,}(\/?[^\s]+)?)$")
 URL_PATTERNS = [
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/playlist\?list=[a-zA-Z0-9_-]+(\/)?"), SourceWebsite.YOUTUBE_PLAYLIST.value),
     (re.compile(r"(https:\/\/)?(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}(&list=[a-zA-Z0-9_-]+)?(&index=[0-9])?(\/)?"), SourceWebsite.YOUTUBE.value),
@@ -132,7 +131,7 @@ def prettify_info(info: dict[str, Any], source_website: str | None=None) -> dict
 
     info["upload_date"] = prettify_date(upload_date)
     info["duration"] = prettify_duration(duration)
-    info["uploader"] = info["uploader"] or "Unknown" # Some newgrounds tracks fail to get uploader, better to display as 'unknown' than 'None'
+    info["uploader"] = info.get("uploader") or "Unknown" # Some newgrounds tracks fail to get uploader, better to display as 'unknown' than 'None'
     info["source_website"] = source_website or "Unknown"
 
     return info
@@ -162,9 +161,6 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
     Must be sent to a thread if working with an asyncio loop, as the web requests block the main thread. 
     
     Return a single hashmap containing a media URL readable by FFmpeg and optional metadata or a list of the same type if `query` is a playlist URL. """
-
-    if not query_type.is_url and INVALID_URL_PATTERN.match(query):
-        return Error(f"Invalid URL-like query supplied: `{query[:MAX_ITEM_NAME_LENGTH]}`.")
     
     if allow_cache:
         cache = get_cache(EXTRACTOR_CACHE, query + f"::{query_type.source_website}")
