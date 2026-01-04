@@ -61,7 +61,7 @@ class ModerationCog(commands.Cog):
 
         await send_func("An unknown error occurred.", ephemeral=True)
 
-    @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel.")
+    @app_commands.command(name="purge", description="Bulk removes selected amount of text messages in a channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to purge. (defaults to the current channel)",
         amount="The amount of messages to delete. Must be > 0 and <= 500. (defaults to 100)",
@@ -256,7 +256,7 @@ class ModerationCog(commands.Cog):
     async def handle_time_out_member_error(self, interaction: Interaction, error: Exception):
         await self.handle_command_error(interaction, error)
 
-    @app_commands.command(name="remove-timeout", description="Removes a timeout from a user.")
+    @app_commands.command(name="remove-timeout", description="Removes a timeout from a member.")
     @app_commands.describe(
         member="The member to remove the timeout from.",
         reason="Reason for removing the timeout. (defaults to 'None')",
@@ -354,7 +354,7 @@ class ModerationCog(commands.Cog):
     async def handle_remove_role_error(self, interaction: Interaction, error: Exception):
         await self.handle_command_error(interaction, error)
 
-    @app_commands.command(name="remove-channel", description="Removes a channel from the current guild. See entry in /help for more info.")
+    @app_commands.command(name="remove-channel", description="Removes a channel from the current guild.")
     @app_commands.describe(
         channel="The channel to delete.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
