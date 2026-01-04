@@ -75,7 +75,7 @@ class ModerationCog(commands.Cog):
     @app_commands.guild_only
     async def purge_channel(self, interaction: Interaction, channel: discord.TextChannel=None, amount: int=100, user: discord.Member=None, word: str=None, show: bool=False):
         if amount < 1 or amount > MAX_PURGE_LIMIT:
-            await interaction.response.send_message(f"`amount` must be >= **1** and <= **{MAX_PURGE_LIMIT}**", ephemeral=True)
+            await interaction.response.send_message(f"Amount must be >= **1** and <= **{MAX_PURGE_LIMIT}**", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True) # This will take ages so we need to defer
@@ -406,16 +406,16 @@ class ModerationCog(commands.Cog):
         channel_amount = len(interaction.guild.channels)
         
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif len(topic) > MAX_TOPIC_LENGTH:
-            await interaction.response.send_message(f"`topic` field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Topic field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
-            await interaction.response.send_message(f"`position` must be >= **1** or <= **{channel_amount}**.", ephemeral=True)
+            await interaction.response.send_message(f"Position must be >= **1** or <= **{channel_amount}**.", ephemeral=True)
             return
         elif slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
-            await interaction.response.send_message(f"`slowmode_delay` must be >= **0** and <= **{MAX_SLOWMODE}**.", ephemeral=True)
+            await interaction.response.send_message(f"Slowmode delay must be >= **0** and <= **{MAX_SLOWMODE}**.", ephemeral=True)
             return
         elif announcement and "NEWS" not in guild_features:
             await interaction.response.send_message(f"Announcement channels require a community-enabled guild.", ephemeral=True)
@@ -432,7 +432,7 @@ class ModerationCog(commands.Cog):
             f"Announcement channel: **{created_channel.is_news()}**\n"
             f"Slowmode delay: **{created_channel.slowmode_delay}** seconds\n"
             f"NSFW: **{created_channel.is_nsfw()}**\n"
-            f"Position: **{created_channel.position}**\n"
+            f"Position: **{created_channel.position + 1}**\n"
             f"Topic: **{created_channel.topic if created_channel.topic else 'None'}**.", ephemeral=not show
         )
 
@@ -471,16 +471,16 @@ class ModerationCog(commands.Cog):
         name = name.strip()
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif user_limit < 0 or user_limit > MAX_USER_LIMIT:
-            await interaction.response.send_message(f"`user_limit` must be >= **1** and <= **{MAX_USER_LIMIT}**.", ephemeral=True)
+            await interaction.response.send_message(f"User limit must be >= **1** and <= **{MAX_USER_LIMIT}**.", ephemeral=True)
             return
         elif bitrate < 8000 or bitrate > max_bitrate:
-            await interaction.response.send_message(f"`bitrate` must be >= **8000** and <= **{max_bitrate}**.", ephemeral=True)
+            await interaction.response.send_message(f"Bitrate must be >= **8000** and <= **{max_bitrate}**.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
-            await interaction.response.send_message(f"`position` should be >= **1** and <= **{channel_amount}**", ephemeral=True)
+            await interaction.response.send_message(f"Position should be >= **1** and <= **{channel_amount}**", ephemeral=True)
             return
 
         position -= 1
@@ -491,7 +491,7 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
             f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-            f"Position: **{created_channel.position}**\n"
+            f"Position: **{created_channel.position + 1}**\n"
             f"Bitrate: **{created_channel.bitrate}**kbps\n"
             f"User limit: **{created_channel.user_limit}**\n"
             f"Video quality: **{created_channel.video_quality_mode.name}**.", ephemeral=not show
@@ -516,10 +516,10 @@ class ModerationCog(commands.Cog):
         channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
-            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
+            await interaction.response.send_message(f"Position must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
             return
 
         position -= 1
@@ -527,7 +527,7 @@ class ModerationCog(commands.Cog):
         created_category = await interaction.guild.create_category(name=name, position=position)
         await created_category.edit(position=created_category.position)
 
-        await interaction.response.send_message(f"Created category named **{created_category.name}** at position **{created_category.position}**", ephemeral=not show)
+        await interaction.response.send_message(f"Created category named **{created_category.name}** at position **{created_category.position + 1}**", ephemeral=not show)
 
     @create_category.error
     async def handle_create_category_error(self, interaction: Interaction, error: Exception):
@@ -566,16 +566,16 @@ class ModerationCog(commands.Cog):
         channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif len(post_guidelines) > MAX_TOPIC_LENGTH:
-            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Post guidelines field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
-            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
+            await interaction.response.send_message(f"Position must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
             return
         elif slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
-            await interaction.response.send_message(f"`slowmode_delay` must be >= **0** or <= **{MAX_SLOWMODE}**.", ephemeral=True)
+            await interaction.response.send_message(f"Slowmode delay must be >= **0** or <= **{MAX_SLOWMODE}**.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Forum channels require a community-enabled guild.", ephemeral=True)
@@ -589,9 +589,9 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
             f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
-            f"Position: **{created_channel.position}**\n"
+            f"Position: **{created_channel.position + 1}**\n"
             f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-            f"Slowmode delay: **{created_channel.slowmode_delay}**\n"
+            f"Slowmode delay: **{created_channel.slowmode_delay}**s\n"
             f"NSFW: **{created_channel.is_nsfw()}**", ephemeral=not show
         )
 
@@ -629,13 +629,13 @@ class ModerationCog(commands.Cog):
         channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"Name field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif position < 1 or position > channel_amount:
-            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
+            await interaction.response.send_message(f"Position must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
             return
         elif bitrate < 8000 or bitrate > MAX_STAGE_BITRATE:
-            await interaction.response.send_message(f"`bitrate` must be >= **8000** or <= **{MAX_STAGE_BITRATE}**.", ephemeral=True)
+            await interaction.response.send_message(f"Bitrate must be >= **8000** or <= **{MAX_STAGE_BITRATE}**.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Stage channels require a community-enabled guild.", ephemeral=True)
@@ -649,7 +649,7 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(
             f"Created channel named **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
             f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
-            f"Position: **{created_channel.position}**\n"
+            f"Position: **{created_channel.position + 1}**\n"
             f"Bitrate: **{created_channel.bitrate}**kbps\n"
             f"Video quality mode: **{created_channel.video_quality_mode.name}**", ephemeral=not show
         )
