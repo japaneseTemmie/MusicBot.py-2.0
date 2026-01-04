@@ -108,6 +108,7 @@ class MusicCog(commands.Cog):
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         if isinstance(found, Error):
+            await update_guild_state(self.guild_states, interaction, False, "is_modifying")
             await interaction.followup.send(found.msg)
         elif isinstance(found, list):
             added = await add_results_to_queue(interaction, found, queue, MAX_QUEUE_TRACK_LIMIT)
@@ -220,6 +221,10 @@ class MusicCog(commands.Cog):
 
             await interaction.followup.send(f"Now playing: **{extracted_track['title']}**")
         elif isinstance(extracted_track, Error):
+            queue_being_modified = self.guild_states[interaction.guild.id]["is_modifying"]
+            if queue_being_modified:
+                await update_guild_state(self.guild_states, interaction, False, "is_modifying")
+            
             await interaction.followup.send(extracted_track.msg)
 
     @play_track_now.error

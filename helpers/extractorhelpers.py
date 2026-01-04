@@ -86,6 +86,9 @@ async def fetch_queries(
         )
 
         if isinstance(extracted_query, Error):
+            if can_extract:
+                await update_guild_state(guild_states, interaction, False, "can_extract")
+            
             return extracted_query
         elif isinstance(extracted_query, list):
             found.extend(extracted_query)
