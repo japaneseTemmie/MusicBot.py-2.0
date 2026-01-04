@@ -6,7 +6,7 @@ a Discord guild and its users. """
 from settings import CAN_LOG, LOGGER
 from init.constants import (
     COOLDOWNS,
-    MAX_CHANNEL_NAME_LENGTH, MAX_TOPIC_LENGTH, MAX_SLOWMODE, MAX_BITRATE, MAX_STAGE_BITRATE,
+    MAX_CHANNEL_NAME_LENGTH, MAX_TOPIC_LENGTH, MAX_SLOWMODE, MAX_STAGE_BITRATE,
     MAX_USER_LIMIT, MAX_ANNOUNCEMENT_LENGTH_LIMIT, MAX_PURGE_LIMIT
 )
 from init.logutils import log_to_discord_log
@@ -74,12 +74,16 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_messages=True)
     @app_commands.guild_only
     async def purge_channel(self, interaction: Interaction, channel: discord.TextChannel=None, amount: int=100, user: discord.Member=None, word: str=None, show: bool=False):
+        if amount < 1 or amount > MAX_PURGE_LIMIT:
+            await interaction.response.send_message(f"`amount` must be >= **1** and <= **{MAX_PURGE_LIMIT}**", ephemeral=True)
+            return
+
         await interaction.response.defer(ephemeral=True) # This will take ages so we need to defer
 
         channel = interaction.channel if channel is None else channel
-        amount = max(1, min(MAX_PURGE_LIMIT, amount))
+        after = datetime.fromtimestamp(get_unix_timestamp() - 86400 * 14).astimezone() # prevent purge from deleting messages older than 14 days and getting rate limited to shit
 
-        deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word))
+        deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word), after=after)
         deleted_message_amount = len(deleted_messages)
 
         if deleted_message_amount < 1:
@@ -391,28 +395,36 @@ class ModerationCog(commands.Cog):
             announcement: bool=False,
             slowmode_delay: int=0,
             nsfw: bool=False,
-            position: int=0,
+            position: int=1,
             show: bool=False
         ):
         
         guild_features = interaction.guild.features
+
         topic = topic.strip()
         name = name.strip()
+        channel_amount = len(interaction.guild.channels)
+        
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif len(topic) > MAX_TOPIC_LENGTH:
-            await interaction.response.send_message(f"`topic` field is too long! Must be < **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`topic` field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
             return
-
-        position = max(0, min(position, len(interaction.guild.channels) - 1))
-        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
-
-        if announcement and "NEWS" not in guild_features:
+        elif position < 1 or position > channel_amount:
+            await interaction.response.send_message(f"`position` must be >= **1** or <= **{channel_amount}**.", ephemeral=True)
+            return
+        elif slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
+            await interaction.response.send_message(f"`slowmode_delay` must be >= **0** and <= **{MAX_SLOWMODE}**.", ephemeral=True)
+            return
+        elif announcement and "NEWS" not in guild_features:
             await interaction.response.send_message(f"Announcement channels require a community-enabled guild.", ephemeral=True)
             return
+        
+        position -= 1
 
         created_channel = await interaction.guild.create_text_channel(name, category=category, news=announcement, slowmode_delay=slowmode_delay, nsfw=nsfw, position=position, topic=topic)
+        await created_channel.edit(position=created_channel.position) # ??? discord wtf
 
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
@@ -433,8 +445,8 @@ class ModerationCog(commands.Cog):
         name="The name of the new channel.",
         category="The category to apply the new channel to. (defaults to no category)",
         position="The position of the channel relative to all channels. (defaults to 0)",
-        bitrate="The bitrate of the new channel, must be >= 8000 and <= 96000. (defaults to 64000)",
-        user_limit="The new channel's user limit. Must be >= 0 and <= 99. (defaults to infinite)",
+        bitrate="The bitrate of the new channel. (defaults to 64000)",
+        user_limit="The new channel's user limit. (defaults to infinite)",
         video_quality_mode="The new channel's video quality mode, if unsure, leave empty (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
@@ -447,23 +459,34 @@ class ModerationCog(commands.Cog):
             interaction: Interaction,
             name: str,
             category: discord.CategoryChannel=None,
-            position: int=0,
+            position: int=1,
             bitrate: int=64000,
             user_limit: int=0,
             video_quality_mode: discord.VideoQualityMode=discord.VideoQualityMode.auto,
             show: bool=False
         ):
         
-        position = max(0, min(position, len(interaction.guild.channels) - 1))
-        bitrate = max(8000, min(bitrate, MAX_BITRATE))
-        user_limit = max(0, min(MAX_USER_LIMIT, user_limit))
+        max_bitrate = interaction.guild.bitrate_limit
+        channel_amount = len(interaction.guild.channels)
         name = name.strip()
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
-        
+        elif user_limit < 0 or user_limit > MAX_USER_LIMIT:
+            await interaction.response.send_message(f"`user_limit` must be >= **1** and <= **{MAX_USER_LIMIT}**.", ephemeral=True)
+            return
+        elif bitrate < 8000 or bitrate > max_bitrate:
+            await interaction.response.send_message(f"`bitrate` must be >= **8000** and <= **{max_bitrate}**.", ephemeral=True)
+            return
+        elif position < 1 or position > channel_amount:
+            await interaction.response.send_message(f"`position` should be >= **1** and <= **{channel_amount}**", ephemeral=True)
+            return
+
+        position -= 1
+
         created_channel = await interaction.guild.create_voice_channel(name, category=category, position=position, bitrate=bitrate, user_limit=user_limit, video_quality_mode=video_quality_mode)
+        await created_channel.edit(position=created_channel.position)
 
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
@@ -488,15 +511,21 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
-    async def create_category(self, interaction: Interaction, name: str, position: int=0, show: bool=False):
-        position = max(0, min(position, len(interaction.guild.channels) - 1))
+    async def create_category(self, interaction: Interaction, name: str, position: int=1, show: bool=False):
         name = name.strip()
+        channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            return
+        elif position < 1 or position > channel_amount:
+            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
             return
 
+        position -= 1
+
         created_category = await interaction.guild.create_category(name=name, position=position)
+        await created_category.edit(position=created_category.position)
 
         await interaction.response.send_message(f"Created category named **{created_category.name}** at position **{created_category.position}**", ephemeral=not show)
 
@@ -507,10 +536,10 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="make-forum", description="Creates a forum channel. See entry in /help for more info.")
     @app_commands.describe(
         name="The new forum's name.",
-        post_guidelines="The new forum's post guidelines. Must be < 1024 characters. (default none)",
+        post_guidelines="The new forum's post guidelines. (default none)",
         position="The new forum's position relative to all channels. (defaults to 0)",
         category="The new forum's category. (defaults to no category)",
-        slowmode_delay="The slowmode delay to apply to the new forum in seconds. Maximum is 21600. (defaults to 0)",
+        slowmode_delay="The slowmode delay to apply to the new forum in seconds. (defaults to 0)",
         nsfw="Whether or not the new forum should be marked as NSFW. (default False)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
@@ -523,7 +552,7 @@ class ModerationCog(commands.Cog):
             interaction: Interaction,
             name: str,
             post_guidelines: str="",
-            position: int=0,
+            position: int=1,
             category: discord.CategoryChannel=None,
             slowmode_delay: int=0,
             nsfw: bool=False,
@@ -531,22 +560,32 @@ class ModerationCog(commands.Cog):
         ):
 
         guild_features = interaction.guild.features
-        position = max(0, min(len(interaction.guild.channels) - 1, position))
-        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
+
         name = name.strip()
         post_guidelines = post_guidelines.strip()
+        channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
             return
         elif len(post_guidelines) > MAX_TOPIC_LENGTH:
-            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be < **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`post_guidelines` field is too long! Must be <= **{MAX_TOPIC_LENGTH}** characters.", ephemeral=True)
+            return
+        elif position < 1 or position > channel_amount:
+            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
+            return
+        elif slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
+            await interaction.response.send_message(f"`slowmode_delay` must be >= **0** or <= **{MAX_SLOWMODE}**.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Forum channels require a community-enabled guild.", ephemeral=True)
             return
 
+        position -= 1
+
         created_channel = await interaction.guild.create_forum(name=name, topic=post_guidelines, position=position, category=category, slowmode_delay=slowmode_delay, nsfw=nsfw)
+        await created_channel.edit(position=created_channel.position)
+
         await interaction.response.send_message(
             f"Created channel **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
             f"Post guidelines: **{created_channel.topic if created_channel.topic else 'None'}**\n"
@@ -565,7 +604,7 @@ class ModerationCog(commands.Cog):
         name="The new stage channel's name.",
         category="The category to apply the new stage channel to. (defaults to no category)",
         position="The position of the new channel relative to all channels. (defaults to 0)",
-        bitrate="The new stage channel's bitrate. Must be >= 8000 and <= 64000. (defaults to 64000).",
+        bitrate="The new stage channel's bitrate. (defaults to 64000).",
         video_quality_mode="The new stage channel's video quality mode, if unsure, leave the default (auto).",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
@@ -578,25 +617,35 @@ class ModerationCog(commands.Cog):
             interaction: Interaction,
             name: str,
             category: discord.CategoryChannel=None,
-            position: int=0,
+            position: int=1,
             bitrate: int=64000,
             video_quality_mode: discord.VideoQualityMode=discord.VideoQualityMode.auto,
             show: bool=False
         ):
         
         guild_features = interaction.guild.features
-        position = max(0, min(len(interaction.guild.channels) - 1, position))
-        bitrate = max(8000, min(MAX_STAGE_BITRATE, bitrate))
+
         name = name.strip()
+        channel_amount = len(interaction.guild.channels)
 
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
-            await interaction.response.send_message(f"`name` field is too long! Must be < **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            await interaction.response.send_message(f"`name` field is too long! Must be <= **{MAX_CHANNEL_NAME_LENGTH}** characters.", ephemeral=True)
+            return
+        elif position < 1 or position > channel_amount:
+            await interaction.response.send_message(f"`position` must be >= **1** and <= **{channel_amount}**.", ephemeral=True)
+            return
+        elif bitrate < 8000 or bitrate > MAX_STAGE_BITRATE:
+            await interaction.response.send_message(f"`bitrate` must be >= **8000** or <= **{MAX_STAGE_BITRATE}**.", ephemeral=True)
             return
         elif "COMMUNITY" not in guild_features:
             await interaction.response.send_message("Stage channels require a community-enabled guild.", ephemeral=True)
             return
 
+        position -= 1
+
         created_channel = await interaction.guild.create_stage_channel(name=name, category=category, position=position, bitrate=bitrate, video_quality_mode=video_quality_mode)
+        await created_channel.edit(position=created_channel.position)
+
         await interaction.response.send_message(
             f"Created channel named **{created_channel.name}** of type **{created_channel.type.name}** with parameters:\n"
             f"Category: **{created_channel.category.name if created_channel.category is not None else 'None'}**\n"
@@ -612,7 +661,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="slowmode", description="Change slowmode of current or specified channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to modify. Defaults to current one.",
-        slowmode_delay="The new slowmode delay in seconds to set. Maximum is 21600. (defaults to 0)",
+        slowmode_delay="The new slowmode delay in seconds to set. (defaults to 0)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["CHANGE_SLOWMODE_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
@@ -620,19 +669,22 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_channels=True)
     @app_commands.guild_only
     async def change_slowmode(self, interaction: Interaction, slowmode_delay: int, channel: discord.TextChannel=None, show: bool=False):
-        channel = interaction.channel if channel is None else channel
-        slowmode_delay = max(0, min(slowmode_delay, MAX_SLOWMODE))
-        old_delay = int(channel.slowmode_delay) # Make a copy of the integer
+        if slowmode_delay < 0 or slowmode_delay > MAX_SLOWMODE:
+            await interaction.response.send_message(f"`slowmode_delay` must be >= **0** and <= **{MAX_SLOWMODE}**.", ephemeral=True)
+            return
 
+        channel = interaction.channel if channel is None else channel
+        old_delay = channel.slowmode_delay
+        
         if slowmode_delay == old_delay:
             await interaction.response.send_message(f"Slowmode delay is already set to **{slowmode_delay}** seconds.")
             return
 
-        await channel.edit(slowmode_delay=slowmode_delay)
+        new_channel = await channel.edit(slowmode_delay=slowmode_delay)
 
         await interaction.response.send_message(
             f"New slowmode delay applied for channel **{channel.name}**!\n"
-            f"Old: **{old_delay}** seconds; New: **{channel.slowmode_delay}** seconds", ephemeral=not show
+            f"Old: **{old_delay}** seconds; New: **{new_channel.slowmode_delay}** seconds", ephemeral=not show
         )
 
     @change_slowmode.error
@@ -642,7 +694,7 @@ class ModerationCog(commands.Cog):
     @app_commands.command(name="announce", description="Announce a message in the current/specified channel. See entry in /help for more info.")
     @app_commands.describe(
         channel="The channel to announce the message in. Leave empty for current one.",
-        message="The message to announce. Must be < 2000 characters long.",
+        message="The message to announce. Must be <= 2000 characters long.",
         no_markdown="Whether or not to ignore markdown text formatting. (default False)",
         no_mentions="Whether or not to ignore formatting of mentions. (default False)"
     )
