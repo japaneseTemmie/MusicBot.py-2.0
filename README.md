@@ -37,9 +37,10 @@ an **extended** moderation module alongside other new features!
 - Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
 - Enhanced command functionality, with 40+ music commands and 15+ moderation commands.
-- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds**, **SoundCloud** (song, search or sets*) and **Bandcamp** (song or albums*).
+- Multi-website support, with **YouTube** (search, video or playlist*), **Newgrounds** (audio only), **SoundCloud** (song, search or sets*) and **Bandcamp** (song or albums*).
 - Guild and voice channel auto-cleanup functionality.
 - Sharding support.
+- Many configurable options.
 - Extendable with custom modules.
 - Easily self-hostable.
 
@@ -72,15 +73,15 @@ _*Support may depend on command._
   
   Make sure to **not share it with _anyone_**. Treat it like a _password_.
 - Go to the `Installation` Section, uncheck `User install` in the `Installation Contexts` box.
-- In the `Default install settings` box, include `bot` in the `Scopes` entry and add the following permissions in the `Permissions` entry (note that permissions can be disabled if related modules won't be used):
+- In the `Default install settings` box, include `bot` in the `Scopes` entry and add the following permissions in the `Permissions` entry (note that permissions can be disabled if related modules won't be used, however, other modules that also depend on those permissions will break):
 
-  | Permission Category |                Permissions                  |
-  |---------------------|---------------------------------------------|
-  | Server Management   | Manage Server, Manage Roles, Manage Channels, Manage Threads and Manage Messages |
-  | Moderation          | Kick Members, Ban Members and Moderate Members |
-  | Messaging           | Send Messages, Send Messages in Threads and Read Message History |
-  | Voice               | Connect, Speak, Move Members, Mute Members |
-  | Other               | Embed Links, Mention Everyone |
+  |               Permission Category                 |                                    Permissions                                   |
+  |---------------------------------------------------|----------------------------------------------------------------------------------|
+  | Server Management (moderation and roles module)   | Manage Server, Manage Roles, Manage Channels, Manage Threads and Manage Messages |
+  | Moderation (moderation module)                    | Kick Members, Ban Members and Moderate Members                                   |
+  | Messaging (all modules)                           | Send Messages, Send Messages in Threads and Read Message History                 |
+  | Voice (voice, music and moderation module)        | Connect, Speak, Move Members, Mute Members, Set voice channel status             |
+  | Other (moderation, music and playlist module)     | Embed Links, Mention Everyone                                                    |
 
 - Save the changes. Copy the link provided in the `Install link` box.
   Open it in a browser window and add your bot to your server.
@@ -290,7 +291,7 @@ Best practices:
 - Check out the [example module](./modules/example.py) and follow the [discord.py documentation](https://discordpy.readthedocs.io/en/stable/api.html) for help with the Discord API.
 - Check locks before running I/O file or VoiceClient operations (`channel.connect()`/`vc.play()`/`vc.stop()`/`vc.pause()` etc.). You can use the `check_vc_lock()` or `check_file_lock()`  async functions from `helpers.lockhelpers`.
 - Do _not_ call `sleep()` or anything that blocks the main thread. Use `asyncio.sleep()` instead if working within an async context.
-- Do _not_ do file I/O directly, instead, send the `write_file_text|bytes|json()` or `open_file_text|bytes|json()` function (from `helpers.iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions. File I/O blocks the main thread.
+- Do _not_ do file I/O directly, instead, send the `write_file_text|bytes|json()` or `read_file_text|bytes|json()` function (from `helpers.iohelpers`) to an asyncio thread and await its result. Or, write your own _async_ I/O functions, as file I/O blocks the main thread.
 - Custom helpers should be kept in a new module in `./helpers`.
 - Avoid interacting with core modules, as they were not written with an API-like system in mind.
 - To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled through the `CAN_LOG` constant found in `settings.py`), use `log_to_discord_log()` (from `init.logutils`). 
