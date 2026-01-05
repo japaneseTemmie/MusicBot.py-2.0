@@ -46,12 +46,12 @@ class RolesCog(commands.Cog):
 
         content = await self.roles.read(interaction)
         if isinstance(content, Error):
-            await interaction.followup.send(content.msg, ephemeral=True)
+            await interaction.followup.send(content.msg)
             return
         
         result = await self.roles.set_role(interaction, content, role, playlist, overwrite)
         if isinstance(result, Error):
-            await interaction.followup.send(result.msg, ephemeral=True)
+            await interaction.followup.send(result.msg)
             return
         
         write_success = result[0]
@@ -80,12 +80,12 @@ class RolesCog(commands.Cog):
         
         content = await self.roles.read(interaction)
         if isinstance(content, Error):
-            await interaction.followup.send(content.msg, ephemeral=True)
+            await interaction.followup.send(content.msg)
             return
 
         result = await self.roles.get_role(interaction, content, playlist)
         if isinstance(result, Error):
-            await interaction.followup.send(result.msg, ephemeral=True)
+            await interaction.followup.send(result.msg)
             return
         
         role_type = result[0]
@@ -110,12 +110,12 @@ class RolesCog(commands.Cog):
 
         content = await self.roles.read(interaction)
         if isinstance(content, Error):
-            await interaction.followup.send(content.msg, ephemeral=True)
+            await interaction.followup.send(content.msg)
             return
         
         result = await self.roles.wipe_role(interaction, content, playlist)
         if isinstance(result, Error):
-            await interaction.followup.send(result.msg, ephemeral=True)
+            await interaction.followup.send(result.msg)
             return
         
         write_success = result[0]
@@ -143,7 +143,7 @@ class RolesCog(commands.Cog):
         
         result = await self.roles.reset(interaction)
         if isinstance(result, Error):
-            await interaction.followup.send(result.msg, ephemeral=True)
+            await interaction.followup.send(result.msg)
             return
         
         await interaction.followup.send("Successfully rewritten role structure.")
