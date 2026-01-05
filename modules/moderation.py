@@ -69,7 +69,7 @@ class ModerationCog(commands.Cog):
         word="Delete only messages that have this word. (defaults to none)",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PURGE_CHANNEL_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     @app_commands.checks.has_permissions(manage_messages=True)
     @app_commands.checks.bot_has_permissions(manage_messages=True)
     @app_commands.guild_only
