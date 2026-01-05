@@ -210,3 +210,26 @@ def generate_queue_embed(queue: list[dict[str, Any]], page: int, page_length: in
     embed.set_footer(text=f"Total tracks in page: {len(queue)}")
 
     return embed
+
+def generate_ping_embed(websocket: float, response: float, shards: list[tuple[int, float]] | None=None, show_shards: bool=False) -> discord.Embed:
+    websocket = round(websocket * 1000, 1)
+    response = round(response * 1000, 1)
+    
+    embed = discord.Embed(
+        title="Pong!",
+        colour=discord.Colour.blurple() if websocket <= 300 else discord.Colour.red(),
+        timestamp=datetime.now()
+    )
+
+    embed.add_field(name="Websocket latency", value=f"[ `{websocket}ms` ]", inline=True)
+    embed.add_field(name="Response latency", value=f"[ `{response}ms` ]", inline=True)
+
+    if show_shards and shards is not None:
+        for i, (shard, latency) in enumerate(shards):
+            if i < 24:
+                embed.add_field(name=f"Shard {shard} websocket latency", value=f"[ `{round(latency * 1000, 1)}ms` ]", inline=False)
+            else:
+                embed.add_field(name="+ More", value="", inline=False)
+                break
+
+    return embed

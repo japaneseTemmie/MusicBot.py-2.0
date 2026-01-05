@@ -4,11 +4,13 @@ Includes a short class for help commands. """
 from settings import HELP, CAN_LOG, LOGGER
 from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
+from helpers.embedhelpers import generate_ping_embed
 from init.logutils import log_to_discord_log
 
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
+from time import perf_counter
 
 class UtilsCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
@@ -17,17 +19,33 @@ class UtilsCog(commands.Cog):
     @app_commands.command(name="ping", description="Shows bot latency in ms.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PING_COMMAND_COOLDOWN"], key=lambda i: i.user.id)
     async def send_latency(self, interaction: Interaction):
-        latency = round(self.client.latency * 1000, 1)
-        await interaction.response.send_message(f"Pong!\nLatency: **{latency}**ms")
+        websocket_latency = self.client.latency
+        
+        start = perf_counter()
+        
+        await interaction.response.defer(thinking=True)
+
+        response_latency = perf_counter() - start
+
+        embed = generate_ping_embed(
+            websocket_latency, 
+            response_latency, 
+            None if not self.client.is_sharded else self.client.latencies, 
+            await self.client.is_owner(interaction.user) and self.client.is_sharded
+        )
+        await interaction.followup.send(embed=embed)
 
     @send_latency.error
     async def handle_send_latency_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
+            return
+        
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.")
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="help", description="Show specified help entry.")
     @app_commands.describe(
