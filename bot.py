@@ -161,14 +161,14 @@ class Bot(commands.Bot):
         """ Set up an activity, if configured. """
         
         if ACTIVITY:
-            log(f"Setting activity name to '{ACTIVITY_DATA["activity_name"]}'")
-            log(f"Setting activity type to '{ACTIVITY_DATA["activity_type"]}'")
+            log(f"Setting activity name to '{ACTIVITY_DATA['activity_name']}'")
+            log(f"Setting activity type to '{ACTIVITY_DATA['activity_type']}'")
             
             if ACTIVITY_DATA["activity_type"] in ("listening", "playing"):
-                log(f"Setting activity state to '{ACTIVITY_DATA["activity_state"]}'")
+                log(f"Setting activity state to '{ACTIVITY_DATA['activity_state']}'")
 
         if STATUS:
-            log(f"Setting {'(random)' if ACTIVITY_DATA["status_type"] is None else ''} status to '{STATUS.name}'")
+            log(f"Setting {'(random)' if ACTIVITY_DATA['status_type'] is None else ''} status to '{STATUS.name}'")
 
         await self.change_presence(activity=ACTIVITY, status=STATUS)
 
