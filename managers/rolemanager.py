@@ -90,8 +90,8 @@ class RoleManager:
 
         return role_to_look_for, role_obj
     
-    async def wipe_role(self, interaction: Interaction, content: dict[str, str], playlist: bool, write_to_file: bool=True) -> tuple[bool | Error, str] | Error:
-        """ Wipe a music or playlist role from the role structure.
+    async def remove_role(self, interaction: Interaction, content: dict[str, str], playlist: bool, write_to_file: bool=True) -> tuple[bool | Error, str] | Error:
+        """ Remove a music or playlist role from the role structure.
          
         If successful, return a tuple with a boolean or Error object write success value [0] (always `True` if `write_to_file` is False) 
         and removed role type (music or playlist) [1]. Otherwise Error. """

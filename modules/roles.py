@@ -97,15 +97,15 @@ class RolesCog(commands.Cog):
     async def handle_get_role_error(self, interaction: Interaction, error: Exception):
         await self.handle_command_error(interaction, error)
 
-    @app_commands.command(name="role-wipe", description="Removes the current music/playlist role set up for this guild.")
+    @app_commands.command(name="role-remove", description="Removes the current music/playlist role set up for this guild.")
     @app_commands.describe(
         playlist="Whether or not the command should remove the playlist role.",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_WIPE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ROLE_REMOVE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def wipe_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
+    async def remove_music_role(self, interaction: Interaction, playlist: bool, show: bool=False):
         await interaction.response.defer(ephemeral=not show)
 
         content = await self.roles.read(interaction)
@@ -113,7 +113,7 @@ class RolesCog(commands.Cog):
             await interaction.followup.send(content.msg)
             return
         
-        result = await self.roles.wipe_role(interaction, content, playlist)
+        result = await self.roles.remove_role(interaction, content, playlist)
         if isinstance(result, Error):
             await interaction.followup.send(result.msg)
             return
@@ -127,8 +127,8 @@ class RolesCog(commands.Cog):
 
         await interaction.followup.send(f"Removed **{role_type}** role for this guild.")
 
-    @wipe_music_role.error
-    async def handle_wipe_role_error(self, interaction: Interaction, error: Exception):
+    @remove_music_role.error
+    async def handle_remove_role_error(self, interaction: Interaction, error: Exception):
         await self.handle_command_error(interaction, error)
 
     @app_commands.command(name="role-reset", description="Rewrites the saved role structure.")
