@@ -95,6 +95,10 @@ else:
 separator()
 
 INTENTS = Intents.all()
+INTENTS.presences = False
+INTENTS.guild_typing = False
+INTENTS.dm_typing = False
+
 ACTIVITY = get_activity(ACTIVITY_DATA)
 STATUS = get_status(ACTIVITY_DATA["status_type"])
 sleep(0.4)
