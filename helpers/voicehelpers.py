@@ -161,7 +161,8 @@ async def close_voice_clients(guild_states: dict[str, Any], client: Bot | Sharde
 
             log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Cleared voice channel status for channel ID {voice_client.channel.id}")
 
-        await voice_client.disconnect()
+        if voice_client.is_connected():
+            await voice_client.disconnect(force=True)
         
         voice_client.cleanup()
         log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Cleaned up channel ID {voice_client.channel.id}")
