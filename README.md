@@ -297,6 +297,9 @@ Best practices:
 - To log errors or messages to stdout, use `log()`. Instead, to log to the `discord.log` file (if logging is explicitly enabled through the `CAN_LOG` constant found in `settings.py`), use `log_to_discord_log()` (from `init.logutils`). 
 - Do _not_ use the `TOKEN` constant anywhere unless there's a _very_ good reason to. (like running the bot itself)
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications) and update role permissions for your bot.
+- To reduce gateway event spam / load, some gateway intents are hardcoded to be disabled by default. Intents include:
+  - User presences [API reference](https://discord.com/developers/docs/events/gateway-events#presence-update)
+  - User Typing [API reference](https://discord.com/developers/docs/events/gateway-events#typing-start)
 
 Then, add a new key in `config.json` named `enable_{class_name}` to allow enabling/disabling the module, and set its value to `true`, or else the bot won't load your Cog.
 
