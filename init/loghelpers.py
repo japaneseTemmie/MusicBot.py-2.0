@@ -24,7 +24,7 @@ def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Forma
     
     formatter = Formatter("[{asctime}] | {levelname:<8} {name}: {message}", "%d/%m/%Y @ %H:%M:%S", style="{")
     
-    level = correct_type(config.get("log_level", "normal").strip(), str, "normal")
+    level = correct_type(config.get("log_level", "normal"), str, "normal").strip()
     
     log(f"Log level found: {level}, actual: {VALID_LOG_LEVELS.get(level, INFO)}")
     separator()
