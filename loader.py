@@ -12,7 +12,7 @@ from typing import Any
 from os.path import isdir
 from os import listdir
 from inspect import getmembers, isclass
-from importlib import import_module, reload
+from importlib import import_module
 
 class ModuleLoader:
     """ Loader object.

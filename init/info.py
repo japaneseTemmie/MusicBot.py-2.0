@@ -2,7 +2,7 @@
 
 from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
 from init.logutils import log, separator
-from init.config import correct_type
+from init.config import correct_type, correct_value_in
 
 import discord
 from os import name
@@ -46,7 +46,7 @@ def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
         "status_type": correct_type(config.get("status_type", None), (str, NoneType), None),
         "activity_enabled": correct_type(config.get("enable_activity", False), bool, False),
         "activity_name": correct_type(config.get("activity_name", "with the API"), str, "with the API"),
-        "activity_type": correct_type(config.get("activity_type", "playing"), VALID_ACTIVITY_TYPES, "playing", "in")
+        "activity_type": correct_value_in(config.get("activity_type", "playing"), VALID_ACTIVITY_TYPES, "playing")
     }
 
     if data["activity_type"] in ("playing", "listening"):

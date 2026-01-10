@@ -3,11 +3,33 @@
 from helpers.iohelpers import read_file_json, write_file_json
 from init.logutils import log, separator
 
+from typing import Any, Type
 from copy import deepcopy
 from os.path import join, exists
 from time import sleep
-from typing import Any, Optional
 
+# Small helpers
+def correct_type(value: Any, expected: Type, default: Any) -> Any:
+    """ Correct a config value type. 
+
+    Return corrected value. """
+
+    if isinstance(value, expected):
+        return value
+    
+    return default
+
+def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
+    """ Correct a config value given an 'allowlist' 
+    
+    Return corrected value. """
+
+    if value in allowed:
+        return value
+    
+    return default
+
+# Defaults
 def get_default_yt_dlp_config_data() -> dict[str, Any]:
     return {
         "quiet": True,
@@ -52,24 +74,6 @@ def get_default_modules_config_data() -> dict[str, bool]:
         "enable_MyCog": False
     }
 
-def correct_type(value: Any, correct_type: type | tuple[Any], default: Any, condition: str="isinstance") -> Any:
-    """ Correct a config value type. 
-    
-    `condition` is the condition to check. Can be 'isinstance' or 'in'.
-    
-    'isinstance' uses the isinstance function to check whether value is of the correct type(s).
-
-    'in' checks if the value is in a tuple of objects.
-
-    Returns corrected value. """
-
-    if condition == "isinstance" and isinstance(value, correct_type):
-        return value
-    elif condition == "in" and value in correct_type:
-        return value
-    
-    return default
-
 def get_default_config_data() -> dict[str, Any]:
     config = {
         "yt_dlp_options": get_default_yt_dlp_config_data(),
@@ -79,57 +83,30 @@ def get_default_config_data() -> dict[str, Any]:
 
     return config
 
-def get_expected_modules() -> tuple[list[Optional[str]], list[Optional[str]]]:
-    """ Get a tuple of lists containing default enabled and disabled modules. """
-    
-    enabled, disabled = [], []
+# Config manipulation
+def add_to_config(data: dict[str, Any], defaults: dict[str, Any]) -> None:
+    """ Compare `defaults`' keys with `data`'s keys and if any are missing, add them accordingly. """
 
-    for k, v in get_default_modules_config_data().items():
-        enabled.append(k) if v else disabled.append(k)
+    for key, value in defaults.items():
+        if key not in data:
+            data[key] = value
+        elif isinstance(value, dict):
+            add_to_config(data[key], defaults[key])
 
-    return enabled, disabled
+def add_missing_settings(config: dict[str, Any]) -> None:
+    """ Check config and compare it to default settings, if any keys are missing, add them accordingly. """
 
-def add_other_missing_settings_to_config(config: dict[str, Any], expected_settings: dict[str, Any]) -> None:
-    """ Compares the `expected_settings` keys with `config`'s keys and replaces missing ones with default ones. """
-    
-    for key in expected_settings:
-        if key not in config:
-            config[key] = expected_settings[key]
+    default = get_default_config_data()
 
-def add_missing_modules_to_config(config: dict[str, Any], expected_enabled_modules: list[str], expected_disabled_modules: list[str]) -> None:
-    """ Compares the module-related keys in `config` with given `expected_enabled_modules` and `expected_disabled_modules`, if a key is missing, it'll add it accordingly. """
-    
-    for module_name in expected_enabled_modules:
-        if module_name not in config:
-            config[module_name] = True
-
-    for module_name in expected_disabled_modules:
-        if module_name not in config:
-            config[module_name] = False
-
-def add_missing_yt_dlp_options_to_config(config: dict[str, Any], expected_yt_dlp_options: dict[str, Any]) -> None:
-    """ Compares the `expected_yt_dlp_config` keys with `config`'s `yt_dlp_options`'s keys and replaces missing keys with default ones. """
-
-    if "yt_dlp_options" not in config:
-        config["yt_dlp_options"] = expected_yt_dlp_options
-        return
-
-    for key in expected_yt_dlp_options:
-        if key not in config["yt_dlp_options"]:
-            config["yt_dlp_options"][key] = expected_yt_dlp_options[key]
+    # Check if keys are missing
+    add_to_config(config, default)
 
 def check_config(config: dict[str, Any]) -> dict[str, Any] | None:
     """ Checks if config file has any missing keys. If so, adds them with default values. """
     
     orig_config = deepcopy(config)
-    expected_yt_dlp_options = get_default_yt_dlp_config_data()
-    expected_other_settings = get_other_default_config_data()
 
-    expected_enabled_modules, expected_disabled_modules = get_expected_modules()
-
-    add_missing_yt_dlp_options_to_config(config, expected_yt_dlp_options)
-    add_other_missing_settings_to_config(config, expected_other_settings)
-    add_missing_modules_to_config(config, expected_enabled_modules, expected_disabled_modules)
+    add_missing_settings(config)
 
     if config != orig_config:
         return config
@@ -171,6 +148,8 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
         result = write_file_json(path, new_content)
         if result == False:
             log("Failed to update config file contents.")
+        else:
+            content = new_content
     else:
         log("Config file is up to date.")
     separator()

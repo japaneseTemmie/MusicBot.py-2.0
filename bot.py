@@ -150,7 +150,6 @@ class Bot(commands.Bot):
 
         if cogs and not self.loaded_cogs:
             log(f"All cogs failed to load. Check log file if present.")
-            await asyncio.sleep(5)
 
         log("done")
         separator()
