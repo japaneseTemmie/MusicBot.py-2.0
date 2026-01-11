@@ -2,7 +2,7 @@
 
 from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
 from init.logutils import log, separator
-from init.config import correct_type, correct_value_in
+from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, correct_value_in
 
 import discord
 from os import name
@@ -43,14 +43,14 @@ def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
     Available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type`, `activity_state` """
     
     data = {
-        "status_type": correct_type(config.get("status_type", None), (str, NoneType), None),
-        "activity_enabled": correct_type(config.get("enable_activity", False), bool, False),
-        "activity_name": correct_type(config.get("activity_name", "with the API"), str, "with the API"),
-        "activity_type": correct_value_in(config.get("activity_type", "playing"), VALID_ACTIVITY_TYPES, "playing")
+        "status_type": correct_type(get_config_value(config, "status_type", ConfigCategory.ACTIVITY), (str, NoneType), None),
+        "activity_enabled": correct_type(get_config_value(config, "enable_activity", ConfigCategory.ACTIVITY), bool, False),
+        "activity_name": correct_type(get_config_value(config, "activity_name", ConfigCategory.ACTIVITY), str, "with the API"),
+        "activity_type": correct_value_in(get_config_value(config, "activity_type", ConfigCategory.ACTIVITY), VALID_ACTIVITY_TYPES, "playing")
     }
 
     if data["activity_type"] in ("playing", "listening"):
-        data["activity_state"] = correct_type(config.get("activity_state", None), (str, NoneType), None)
+        data["activity_state"] = correct_type(get_config_value(config, "activity_state", ConfigCategory.ACTIVITY), (str, NoneType), None)
     else:
         data["activity_state"] = None
     

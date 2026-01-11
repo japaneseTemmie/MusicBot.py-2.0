@@ -1,11 +1,12 @@
 """ General settings configuration for discord.py bot """
 
 from init.info import get_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
-from init.config import get_config_data, get_default_yt_dlp_config_data, correct_type
 from init.help import open_help_file
+from init.config import get_config_data
 from init.loghelpers import set_up_logging, remove_log
 from init.logutils import log, separator
 from init.constants import MAX_FETCH_CALLS, VALID_LOG_LEVELS
+from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, get_default_yt_dlp_config_data
 
 import asyncio
 import discord
@@ -43,19 +44,19 @@ load_dotenv()
 sleep(0.2)
 
 # Define config constants
-CAN_LOG = correct_type(CONFIG.get("enable_logging", True), bool, True)
-YDL_OPTIONS = correct_type(CONFIG.get("yt_dlp_options", get_default_yt_dlp_config_data()), dict, get_default_yt_dlp_config_data())
-COMMAND_PREFIX = correct_type(CONFIG.get("command_prefix", "?"), str, "?")
-USE_SHARDING = correct_type(CONFIG.get("use_sharding", False), bool, False)
-ENABLE_FILE_BACKUPS = correct_type(CONFIG.get("enable_file_backups", True), bool, True)
-CAN_AUTO_DELETE_GUILD_DATA = correct_type(CONFIG.get("auto_delete_unused_guild_data", True), bool, True)
+CAN_LOG = correct_type(get_config_value(CONFIG, "can_log", ConfigCategory.OTHER), bool, True)
+YDL_OPTIONS = correct_type(get_config_value(CONFIG, ConfigCategory.YT_DLP.value), dict, get_default_yt_dlp_config_data())
+COMMAND_PREFIX = correct_type(get_config_value(CONFIG, "command_prefix", ConfigCategory.OTHER), str, "?")
+USE_SHARDING = correct_type(get_config_value(CONFIG, "use_sharding", ConfigCategory.OTHER), bool, False)
+ENABLE_FILE_BACKUPS = correct_type(get_config_value(CONFIG, "enable_file_backups", ConfigCategory.OTHER), bool, True)
+CAN_AUTO_DELETE_GUILD_DATA = correct_type(get_config_value(CONFIG, "auto_delete_unused_guild_data", ConfigCategory.OTHER), bool, True)
 
-MAX_QUEUE_TRACK_LIMIT = correct_type(CONFIG.get("max_queue_track_limit", 100), int, 100)
-MAX_TRACK_HISTORY_LIMIT = correct_type(CONFIG.get("max_history_track_limit", 200), int, 200)
-MAX_QUERY_LIMIT = correct_type(CONFIG.get("max_query_limit", 25), int, 25)
-MAX_PLAYLIST_LIMIT = correct_type(CONFIG.get("max_playlist_limit", 10), int, 10)
-MAX_PLAYLIST_TRACK_LIMIT = correct_type(CONFIG.get("max_playlist_track_limit", 100), int, 100)
-MAX_ITEM_NAME_LENGTH = correct_type(CONFIG.get("max_playlist_name_length", 50), int, 50)
+MAX_QUEUE_TRACK_LIMIT = correct_type(get_config_value(CONFIG, "max_queue_track_limit", ConfigCategory.LIMITS), int, 100)
+MAX_TRACK_HISTORY_LIMIT = correct_type(get_config_value(CONFIG, "max_history_track_limit", ConfigCategory.LIMITS), int, 200)
+MAX_QUERY_LIMIT = correct_type(get_config_value(CONFIG, "max_query_limit", ConfigCategory.LIMITS), int, 25)
+MAX_PLAYLIST_LIMIT = correct_type(get_config_value(CONFIG, "max_playlist_limit", ConfigCategory.LIMITS), int, 10)
+MAX_PLAYLIST_TRACK_LIMIT = correct_type(get_config_value(CONFIG, "max_playlist_track_limit", ConfigCategory.LIMITS), int, 100)
+MAX_ITEM_NAME_LENGTH = correct_type(get_config_value(CONFIG, "max_name_length", ConfigCategory.LIMITS), int, 50)
 
 HELP = open_help_file(PATH)
 

@@ -4,7 +4,7 @@ Helper module to dynamically load all modules found in a specified directory. ""
 
 from settings import CAN_LOG, LOGGER
 from init.logutils import log, log_to_discord_log
-from init.config import correct_type
+from helpers.confighelpers import ConfigCategory, get_config_value, correct_type
 
 from discord.ext import commands
 from types import ModuleType
@@ -73,7 +73,7 @@ class ModuleLoader:
         
         values = []
         for name in class_names:
-            config_value = correct_type(config.get(f"enable_{name}", False), bool, False)
+            config_value = correct_type(get_config_value(config, f"enable_{name}", ConfigCategory.MODULES), bool, False)
 
             values.append((name, config_value))
 
