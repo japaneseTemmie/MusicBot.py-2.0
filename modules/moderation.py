@@ -18,8 +18,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.interactions import Interaction
-from datetime import datetime
-from time import time as get_unix_timestamp
+from datetime import datetime, timedelta, timezone
 
 class ModerationCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
@@ -51,8 +50,10 @@ class ModerationCog(commands.Cog):
         if isinstance(error, app_commands.errors.CommandInvokeError):
             if isinstance(error.original, discord.errors.Forbidden):
                 await send_func("I'm unable to do that! Please check my permissions. (Including channel overrides)", ephemeral=True)
+                return
             elif isinstance(error.original, discord.errors.HTTPException):
                 await send_func("Something went wrong while requesting changes. Try again later.", ephemeral=True)
+                return
             
             log_to_discord_log(error.original, can_log=CAN_LOG, logger=LOGGER)
             return
@@ -81,13 +82,13 @@ class ModerationCog(commands.Cog):
         await interaction.response.defer(ephemeral=True) # This will take ages so we need to defer
 
         channel = interaction.channel if channel is None else channel
-        after = datetime.fromtimestamp(get_unix_timestamp() - 86400 * 14).astimezone() # prevent purge from deleting messages older than 14 days and getting rate limited to shit
+        after = datetime.now(timezone.utc) - timedelta(days=13, hours=50)
 
         deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word), after=after)
         deleted_message_amount = len(deleted_messages)
 
         if deleted_message_amount < 1:
-            await interaction.followup.send("No messages deleted.")
+            await interaction.followup.send("No messages deleted.\nNote: Due to performance concerns and Discord limitations, I'm only able to delete messages not older than 14 days.")
             return
         
         if show:
@@ -220,7 +221,6 @@ class ModerationCog(commands.Cog):
         bot_top_role = interaction.guild.me.top_role
 
         duration_in_seconds = format_to_seconds_extended(duration.strip())
-        current_time = get_unix_timestamp()
 
         if duration_in_seconds is None:
             await interaction.response.send_message(
@@ -242,13 +242,12 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message(f"Your role (**{member_top_role.name}**) is not high enough to time out member **{member.name}**.", ephemeral=True)
             return
 
-        until_time = int(current_time + duration_in_seconds)
-        timestamp = datetime.fromtimestamp(until_time).astimezone()
+        until = datetime.now(timezone.utc) + timedelta(seconds=duration_in_seconds)
 
-        await member.timeout(timestamp, reason=reason)
+        await member.timeout(until, reason=reason)
         await interaction.response.send_message(
             f"User **{member.name}** has been timed out{f' by **{interaction.user.display_name}**' if show else ''}.\n"
-            f"Timeout will expire on **{timestamp.strftime('%Y/%m/%d @ %H:%M:%S')}**.",
+            f"Timeout will expire on **{until.strftime('%Y/%m/%d @ %H:%M:%S')}**.",
             ephemeral=not show
         )
 
