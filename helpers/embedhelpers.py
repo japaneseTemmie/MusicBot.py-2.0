@@ -1,12 +1,11 @@
 """ Embed helpers module for discord.py bot. """
 
 import discord
-from random import randint
 from datetime import datetime
 from typing import Any
 
 # Helpers
-def _add_until_max_reached(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
+def _add_up_to_24(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
     """ Add fields using defined arguments in `to_add` up to 24, after that add a final field with '+ More'.
      
     `to_add` must be a list of dictionaries containing the following keys for each entry:
@@ -30,8 +29,8 @@ def _add_until_max_reached(embed: discord.Embed, to_add: list[dict[str, str | bo
             embed.add_field(name="+ More", value="", inline=False)
             break
 
-def _add_all(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
-    """ Similar to `_add_until_max_reached()` but all items (up to 25) in `to_add` are added and no '+ More' final field is added. """
+def _add_up_to_25(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
+    """ Similar to `_add_up_to_24()` but all items (up to 25) in `to_add` are added and no '+ More' final field is added. """
     
     for entry in to_add[:25]:
         name = entry.get('name', 'None')
@@ -45,7 +44,7 @@ def _get_embed(title: str, colour: discord.Colour | None=None, timestamp: dateti
     
     if `colour` or `timestamp` are `None`, defaults will be used. """
     
-    colour = colour or discord.Colour.random(seed=randint(1, 1000))
+    colour = colour or discord.Colour.random()
     timestamp = timestamp or datetime.now()
 
     return discord.Embed(
@@ -75,7 +74,7 @@ def generate_added_track_embed(added: list[dict[str, Any]], is_playlist: bool=Fa
     ]
 
     embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue'} update: Added tracks")
-    _add_until_max_reached(embed, to_add)
+    _add_up_to_24(embed, to_add)
 
     return embed
 
@@ -91,7 +90,7 @@ def generate_skipped_tracks_embed(skipped: list[dict[str, Any]]) -> discord.Embe
     ]
 
     embed = _get_embed(f"Skipped {'tracks' if len(skipped) > 1 else 'track'}")
-    _add_until_max_reached(embed, to_add)
+    _add_up_to_24(embed, to_add)
 
     return embed
 
@@ -107,7 +106,7 @@ def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bo
     ]
     
     embed = _get_embed(f"{'Queue' if not is_playlist else 'Playlist'} update: Removed tracks")
-    _add_until_max_reached(embed, to_add)
+    _add_up_to_24(embed, to_add)
 
     return embed
 
@@ -125,7 +124,7 @@ def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]]) -> discord.Em
     ]
 
     embed = _get_embed("Playlist update: Renamed tracks")
-    _add_until_max_reached(embed, to_add)
+    _add_up_to_24(embed, to_add)
 
     return embed
 
@@ -139,7 +138,7 @@ def generate_playlists_embed(names: list[str], remaining: int) -> discord.Embed:
     ]
     
     embed = _get_embed("Saved playlists")
-    _add_until_max_reached(embed, to_add)
+    _add_up_to_24(embed, to_add)
     
     embed.set_footer(text=f"Remaining slots: {remaining}")
 
@@ -228,7 +227,7 @@ def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, page_
     ]
 
     embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}")
-    _add_all(embed, to_add)
+    _add_up_to_25(embed, to_add)
     
     embed.set_footer(text=f"Total tracks in page: {len(queue_page)}")
 
