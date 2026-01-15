@@ -7,7 +7,7 @@ from typing import Any
 
 # Helpers
 def _add_until_max_reached(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
-    """ Add fields using defined arguments in `to_add`.
+    """ Add fields using defined arguments in `to_add` up to 24, after that add a final field with '+ More'.
      
     `to_add` must be a list of dictionaries containing the following keys for each entry:
 
@@ -29,6 +29,16 @@ def _add_until_max_reached(embed: discord.Embed, to_add: list[dict[str, str | bo
         else:
             embed.add_field(name="+ More", value="", inline=False)
             break
+
+def _add_all(embed: discord.Embed, to_add: list[dict[str, str | bool]]) -> None:
+    """ Similar to `_add_until_max_reached()` but all items (up to 25) in `to_add` are added and no '+ More' final field is added. """
+    
+    for entry in to_add[:25]:
+        name = entry.get('name', 'None')
+        value = entry.get('value', 'None')
+        inline = entry.get('inline', False)
+
+        embed.add_field(name=name, value=value, inline=inline)
 
 def _get_embed(title: str, colour: discord.Colour | None=None, timestamp: datetime | None=None) -> discord.Embed:
     """ Generate an Embed object given basic arguments. 
@@ -218,7 +228,7 @@ def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, page_
     ]
 
     embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}")
-    _add_until_max_reached(embed, to_add)
+    _add_all(embed, to_add)
     
     embed.set_footer(text=f"Total tracks in page: {len(queue_page)}")
 
