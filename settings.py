@@ -3,7 +3,7 @@
 from init.info import get_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
 from init.help import open_help_file
 from init.config import get_config_data
-from init.loghelpers import set_up_logging, remove_log
+from init.logsetup import set_up_logging, remove_log
 from init.logutils import log, separator
 from init.constants import MAX_FETCH_CALLS, VALID_LOG_LEVELS
 from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, get_default_yt_dlp_config_data
@@ -62,8 +62,8 @@ HELP = open_help_file(PATH)
 
 # Logging
 # Set up file handler and formatter for discord.py's logging lib, if requested.
-HANDLER, FORMATTER, LOGGER, LEVEL = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
-LOG_LEVEL = VALID_LOG_LEVELS.get(LEVEL, INFO)
+HANDLER, FORMATTER, LOGGER, LOG_LEVEL_STRING = set_up_logging(PATH, CONFIG) if CAN_LOG else remove_log(PATH)
+LOG_LEVEL = VALID_LOG_LEVELS.get(LOG_LEVEL_STRING, INFO)
 
 # FFmpeg validation
 FFMPEG = which("ffmpeg")
@@ -82,7 +82,7 @@ EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=600)
 FILE_OPERATIONS_LOCKED = asyncio.Event()
 VOICE_OPERATIONS_LOCKED = asyncio.Event()
 
-# asyncio Semaphore for extractor.
+# asyncio Semaphore for extractor
 EXTRACTOR_SEMAPHORE = asyncio.Semaphore(MAX_FETCH_CALLS)
 
 # API stuff
