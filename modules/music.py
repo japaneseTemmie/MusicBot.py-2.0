@@ -25,7 +25,7 @@ from helpers.extractorhelpers import fetch_query, fetch_queries, add_results_to_
 from helpers.playlisthelpers import is_playlist_locked
 from helpers.embedhelpers import (
     generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
-    generate_queue_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
+    generate_queue_page_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
 )
 from error import Error
 from webextractor import SourceWebsite
@@ -122,7 +122,7 @@ class MusicCog(commands.Cog):
                 not voice_client.is_paused():
                 await self.player.play_next(interaction)
             
-            embed = generate_added_track_embed(results=added)
+            embed = generate_added_track_embed(added)
 
             await interaction.followup.send(embed=embed)
 
@@ -1330,7 +1330,7 @@ class MusicCog(commands.Cog):
 
         queue_page = queue_pages[page]
 
-        embed = generate_queue_embed(queue_page, page, len(queue_pages))
+        embed = generate_queue_page_embed(queue_page, page, len(queue_pages))
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_queue")
         
@@ -1384,7 +1384,7 @@ class MusicCog(commands.Cog):
 
         history_page = history_pages[page]
 
-        embed = generate_queue_embed(history_page, page, len(history_pages), True)
+        embed = generate_queue_page_embed(history_page, page, len(history_pages), True)
 
         await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 

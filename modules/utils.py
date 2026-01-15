@@ -27,12 +27,7 @@ class UtilsCog(commands.Cog):
 
         response_latency = perf_counter() - start
 
-        embed = generate_ping_embed(
-            websocket_latency, 
-            response_latency, 
-            None if not self.client.is_sharded else self.client.latencies, 
-            await self.client.is_owner(interaction.user) and self.client.is_sharded
-        )
+        embed = generate_ping_embed(websocket_latency, response_latency)
         await interaction.followup.send(embed=embed)
 
     @send_latency.error

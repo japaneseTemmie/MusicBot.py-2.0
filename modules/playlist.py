@@ -1,6 +1,6 @@
 """ Playlist module for discord.py bot. """
 
-from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT
+from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT, MAX_PLAYLIST_LIMIT
 from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from managers.playlistmanager import PlaylistManager
@@ -8,7 +8,10 @@ from audioplayer import AudioPlayer
 from error import Error
 from webextractor import SourceWebsite
 from init.logutils import log_to_discord_log
-from helpers.embedhelpers import generate_added_track_embed, generate_queue_embed, generate_removed_tracks_embed, generate_renamed_tracks_embed
+from helpers.embedhelpers import (
+    generate_added_track_embed, generate_queue_page_embed, generate_removed_tracks_embed,
+    generate_renamed_tracks_embed, generate_playlists_embed
+)
 from helpers.guildhelpers import (
     user_has_role, check_channel, check_guild_state, update_guild_state, update_guild_states, update_query_extraction_state,
 )
@@ -81,7 +84,7 @@ class PlaylistCog(commands.Cog):
 
         playlist_page = playlist_pages[page]
 
-        embed = generate_queue_embed(playlist_page, page, total_pages, False, True)
+        embed = generate_queue_page_embed(playlist_page, page, total_pages, False, True)
 
         await interaction.followup.send(embed=embed)
 
@@ -1422,10 +1425,11 @@ class PlaylistCog(commands.Cog):
             await interaction.followup.send(result.msg)
             return
 
-        playlists_string = "".join([f"- **{key}**\n" for key in result])
-        remaining_slots = self.playlist.max_limit - len(result)
+        remaining_slots = MAX_PLAYLIST_LIMIT - len(result)
 
-        await interaction.followup.send(f"Saved playlists\n{playlists_string}Remaining slots: **{remaining_slots}**.")
+        embed = generate_playlists_embed(result, remaining_slots)
+
+        await interaction.followup.send(embed=embed)
 
         await check_users_in_channel(self.guild_states, interaction)
 
