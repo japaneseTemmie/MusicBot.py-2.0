@@ -1,5 +1,6 @@
 """ Example module for discord.py bot """
 
+# Import basic constants, functions and classes
 from settings import CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
@@ -10,7 +11,7 @@ from discord.ext import commands
 from discord.interactions import Interaction
 from datetime import timedelta
 
-# Cogs allow for modularity in a discord.py-powered bot.
+# Cogs allow for modularity in a discord.py-powered bot. They provide useful features to make building a bot easier.
     
 # Each cog has its own listeners and async methods that work independently from
 # other modules (as long as they don't overlap).
@@ -21,20 +22,19 @@ class MyCog(commands.Cog): # Subclass commands.Cog
         # This example cog doesn't have any custom attributes. But custom attributes go here.
 
     async def time_out_member(self, member: discord.Member, notify: bool) -> None:
-        try:
-            await member.timeout(timedelta(minutes=5), reason="No media in general.")
-            if notify:
-                await member.send(f"You were timed out from **{member.guild.name}**.\nReason: No media in general.")
-        except discord.errors.Forbidden: # We may receive an HTTP 403 'Forbidden' error if the user has DMs disabled or we cannot time out the member.
-            pass # Since this is a listener, it's best if we ignore it.
-        except Exception as e:
-            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER) # Log other exceptions to discord.log (if logging is explicitly enabled in config.json)
+        await member.timeout(timedelta(minutes=5), reason="No media in general.")
+        if notify:
+            await member.send(f"You were timed out from **{member.guild.name}**.\nReason: No media in general.")
 
     async def check_message(self, message: discord.Message) -> None:
-        # Timeout a user that sends attachments in general and delete message
-        if message.attachments and message.channel.name == "general": # Only an example, replace this with a variable.
+        if message.attachments:
             await message.delete()
             await self.time_out_member(message.author, True)
+
+    async def check_message_channel(self, message: discord.Message) -> None:
+        # Timeout a user that sends attachments in general and delete message
+        if message.channel.name == "general": # Only an example, replace this with a variable.
+            await self.check_message(message)
 
     # Define a listener. This is a special 'object' that listens for specific events that get recorded by discord.py.
     # The function will be named after the event we want to catch.
@@ -47,7 +47,12 @@ class MyCog(commands.Cog): # Subclass commands.Cog
         if message.author.bot:
             return
 
-        await self.check_message(message)
+        try:
+            await self.check_message_channel(message)
+        except discord.errors.Forbidden: # We may receive an HTTP 403 'Forbidden' error if the user has DMs disabled or we cannot time out the member.
+            pass # Since this is a listener, it's best if we ignore it.
+        except Exception as e:
+            log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER) # Log other exceptions to discord.log (if logging is explicitly enabled in config.json)
 
     # Define an application command. This is the command that users are going to interact with.
     @app_commands.command(name="my-command", description="My first custom command.") # Define a command with the command() decorator 
