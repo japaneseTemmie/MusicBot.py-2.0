@@ -161,7 +161,7 @@ class PlaylistCog(commands.Cog):
             added = result[1]
 
             if not isinstance(write_result, Error):
-                embed = generate_added_track_embed(added, True)
+                embed = generate_added_track_embed(added, True, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -228,7 +228,7 @@ class PlaylistCog(commands.Cog):
             added = result[1]
 
             if not isinstance(write_success, Error):
-                embed = generate_added_track_embed(added, True)
+                embed = generate_added_track_embed(added, True, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_success.msg)
@@ -568,7 +568,7 @@ class PlaylistCog(commands.Cog):
             removed_tracks = result[1]
 
             if not isinstance(write_result, Error):
-                embed = generate_removed_tracks_embed(removed_tracks, True)
+                embed = generate_removed_tracks_embed(removed_tracks, True, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -920,7 +920,7 @@ class PlaylistCog(commands.Cog):
             added_tracks = result[1]
             
             if not isinstance(write_result, Error):
-                embed = generate_added_track_embed(added_tracks, True)
+                embed = generate_added_track_embed(added_tracks, True, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -990,7 +990,7 @@ class PlaylistCog(commands.Cog):
             added = result[1]
 
             if not isinstance(write_result, Error):
-                embed = generate_added_track_embed(added, True)
+                embed = generate_added_track_embed(added, True, target_playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -1058,7 +1058,7 @@ class PlaylistCog(commands.Cog):
             added = result[1]
 
             if not isinstance(write_result, Error):
-                embed = generate_added_track_embed(added, True)
+                embed = generate_added_track_embed(added, True, target_playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -1136,7 +1136,7 @@ class PlaylistCog(commands.Cog):
                 not voice_client.is_paused():
                 await self.player.play_next(interaction)
 
-            embed = generate_added_track_embed(result, False)
+            embed = generate_added_track_embed(result)
             await interaction.followup.send(embed=embed)
 
         await check_users_in_channel(self.guild_states, interaction)
@@ -1228,7 +1228,7 @@ class PlaylistCog(commands.Cog):
                 not voice_client.is_paused():
                 await self.player.play_next(interaction)
 
-            embed = generate_added_track_embed(result, False)
+            embed = generate_added_track_embed(result)
             await interaction.followup.send(embed=embed)
 
         await check_users_in_channel(self.guild_states, interaction)
@@ -1303,7 +1303,7 @@ class PlaylistCog(commands.Cog):
             added_tracks = result[1]
             
             if not isinstance(write_result, Error):
-                embed = generate_added_track_embed(added_tracks, True)
+                embed = generate_added_track_embed(added_tracks, True, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)
@@ -1374,7 +1374,7 @@ class PlaylistCog(commands.Cog):
             modified_tracks = result[1]
 
             if not isinstance(write_result, Error):
-                embed = generate_renamed_tracks_embed(modified_tracks)
+                embed = generate_renamed_tracks_embed(modified_tracks, playlist_name)
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send(write_result.msg)

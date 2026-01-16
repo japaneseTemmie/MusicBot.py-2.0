@@ -62,7 +62,7 @@ def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
 
     return embed
 
-def generate_added_track_embed(added: list[dict[str, Any]], is_playlist: bool=False) -> discord.Embed:
+def generate_added_track_embed(added: list[dict[str, Any]], is_playlist: bool=False, playlist_name: str | None=None) -> discord.Embed:
     """ Generate an embed of up to 24 added tracks. """
     
     to_add = [
@@ -73,7 +73,10 @@ def generate_added_track_embed(added: list[dict[str, Any]], is_playlist: bool=Fa
         } for result in added
     ]
 
-    embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue'} update: Added tracks")
+    title = f"Playlist update: Added {len(added)} track(s) {f'to {playlist_name}' if playlist_name else ''}" if is_playlist else\
+    f"Queue update: Added {len(added)} track(s)"
+
+    embed = _get_embed(title)
     _add_up_to_24(embed, to_add)
 
     return embed
@@ -89,12 +92,12 @@ def generate_skipped_tracks_embed(skipped: list[dict[str, Any]]) -> discord.Embe
         } for result in skipped
     ]
 
-    embed = _get_embed(f"Skipped {'tracks' if len(skipped) > 1 else 'track'}")
+    embed = _get_embed(f"Skipped {len(skipped)} tracks")
     _add_up_to_24(embed, to_add)
 
     return embed
 
-def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bool=False) -> discord.Embed:
+def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bool=False, playlist_name: str | None=None) -> discord.Embed:
     """ Generate an embed showing the removed tracks from a queue. """
 
     to_add = [
@@ -105,12 +108,15 @@ def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bo
         } for result in removed
     ]
     
-    embed = _get_embed(f"{'Queue' if not is_playlist else 'Playlist'} update: Removed tracks")
+    title = f"Playlist update: Removed {len(removed)} track(s) {f'from {playlist_name}' if playlist_name else ''}" if is_playlist else\
+    f"Queue update: Removed {len(removed)} track(s)"
+
+    embed = _get_embed(title)
     _add_up_to_24(embed, to_add)
 
     return embed
 
-def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]]) -> discord.Embed:
+def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]], playlist_name: str | None=None) -> discord.Embed:
     """ Generate an embed to show renamed tracks in a queue.
     
     `renamed` is a list of tuples with old track (`dict`) and new name (`str`). """
@@ -123,7 +129,7 @@ def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]]) -> discord.Em
         } for result, new_name in renamed
     ]
 
-    embed = _get_embed("Playlist update: Renamed tracks")
+    embed = _get_embed(f"Playlist update: Renamed {len(renamed)} track(s) in {playlist_name if playlist_name else ''}")
     _add_up_to_24(embed, to_add)
 
     return embed
