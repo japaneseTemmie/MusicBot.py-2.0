@@ -1,7 +1,7 @@
 """ Voice helper functions for discord.py bot """
 
 from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE
-from init.constants import GREET_TIMEOUT_SECONDS
+from init.constants import GREET_TIMEOUT_SECONDS, MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE, MAX_GUILD_CLEANUP_WAIT_TIME
 from bot import Bot, ShardedBot
 from helpers.lockhelpers import get_vc_lock
 from helpers.cachehelpers import invalidate_cache
@@ -27,7 +27,7 @@ async def greet_new_user_in_vc(guild_states: dict[str, Any], user: discord.Membe
         last_greet_time = guild_states[user.guild.id]["last_greet_time"].get(user.id, None)
 
         if (last_greet_time is not None and\
-            monotonic() - last_greet_time < 10) or not can_greet:
+            monotonic() - last_greet_time < GREET_TIMEOUT_SECONDS) or not can_greet:
             return
         
         guild_states[user.guild.id]["last_greet_time"][user.id] = monotonic()
@@ -117,8 +117,8 @@ async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, A
         await update_guild_state(guild_states, member, None, "voice_status")
         await set_voice_status(guild_states, member)
 
-    log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Waiting 10 seconds before cleaning up guild ID {member.guild.id}...")
-    await asyncio.sleep(10) # Sleepy time :3 maybe it's a network issue
+    log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Waiting {MAX_GUILD_CLEANUP_WAIT_TIME} seconds before cleaning up guild ID {member.guild.id}...")
+    await asyncio.sleep(MAX_GUILD_CLEANUP_WAIT_TIME) # Sleepy time :3 maybe it's a network issue
 
     if any(client.guild.id == member.guild.id for client in client.voice_clients): # Reconnected, all good
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Cleanup operation cancelled for guild ID {member.guild.id}")
@@ -200,7 +200,7 @@ async def handle_channel_move(
         await before_state.channel.edit(status=None)
 
     if after_state.channel.type == discord.ChannelType.stage_voice:
-        await text_channel.send("Disconnecting because I've been moved to an unsupported stage channel.")
+        await text_channel.send("I can't work in stage channels!")
 
         if voice_client.is_playing() or voice_client.is_paused():
             await update_guild_state(guild_states, member, True, "stop_flag")
@@ -209,15 +209,14 @@ async def handle_channel_move(
         return
 
     if len(voice_client.channel.members) < 2:
-        
         if voice_client.is_playing():
             voice_client.pause()
             elapsed_time = int(monotonic() - start_time)
             await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
 
-        await text_channel.send(f"Waiting **10** seconds for users in new channel **{voice_client.channel.name}**.")
+        await text_channel.send(f"Waiting **{MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE}** seconds for users in new channel **{voice_client.channel.name}**.")
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE)
 
         no_users_in_channel = await check_users_in_channel(guild_states, member)
         if no_users_in_channel:
