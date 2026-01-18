@@ -1163,7 +1163,7 @@ class PlaylistCog(commands.Cog):
     @app_commands.command(name="playlist-fetch-random-tracks", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to get tracks from's name.",
-        amount="The amount of random tracks to fetch, must be <= 25 (default 1)"
+        amount="The amount of random tracks to fetch. (default 1)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_FETCH_RANDOM_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only

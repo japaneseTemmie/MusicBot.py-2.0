@@ -380,15 +380,13 @@ async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, An
 
     return found if found else Error("Could not find given tracks.")
 
-async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int, max_limit: int=25) -> list[dict[str, Any]] | Error:
+async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int) -> list[dict[str, Any]] | Error:
     """ Return random amount of tracks from an interable `queue`. """
     
     if amount < 0:
         return Error(f"Amount cannot be less than **0**.")
     elif amount > len(queue):
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
-    elif amount > max_limit:
-        return Error(f"Given amount is higher than the maximum allowed limit. (**{max_limit}**)")
 
     return sample(queue, amount)
 
