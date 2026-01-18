@@ -1012,6 +1012,72 @@ class PlaylistCog(commands.Cog):
 
         await send_func("An unknown error occurred", ephemeral=True)
 
+    @app_commands.command(name="playlist-move", description="Merges a playlist with another one. See entry in /help for more info.")
+    @app_commands.describe(
+        playlist_name="The name of the playlist to merge.",
+        target_playlist_name="The name of the playlist to move contents to."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_MOVE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def move_playlist(self, interaction: Interaction, playlist_name: str, target_playlist_name: str):
+        if not await user_has_role(interaction) or\
+            not await user_has_role(interaction, True) or\
+            not await check_channel(self.guild_states, interaction):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+
+        if await is_playlist_locked(locked):
+            await interaction.followup.send("A playlist is currently locked, please wait.")
+            return
+        
+        playlist_name = await sanitize_name(playlist_name)
+        target_playlist_name = await sanitize_name(target_playlist_name)
+
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
+        await lock_playlist(interaction, content, locked, target_playlist_name)
+
+        result = await self.playlist.move(interaction, content, playlist_name, target_playlist_name)
+
+        await unlock_playlist(locked, content, playlist_name)
+        await unlock_playlist(locked, content, target_playlist_name)
+
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+        elif isinstance(result, tuple):
+            write_success = result[0]
+            moved = result[1]
+
+            if not isinstance(write_success, Error):
+                embed = generate_added_track_embed(moved, True, target_playlist_name)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_success.msg)
+
+    @move_playlist.error
+    async def handle_move_playlist_error(self, interaction: Interaction, error: Exception):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return        
+
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
+
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
+
     @app_commands.command(name="playlist-copy-tracks", description="Copies track(s) from a playlist to a new/existing one. See entry in /help for more info.")
     @app_commands.describe(
         playlist_name="The playlist to copy tracks from's name",
@@ -1021,7 +1087,7 @@ class PlaylistCog(commands.Cog):
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_COPY_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def copy_playlist_track(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
+    async def copy_playlist_tracks(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
             not await check_channel(self.guild_states, interaction):
@@ -1063,8 +1129,73 @@ class PlaylistCog(commands.Cog):
             else:
                 await interaction.followup.send(write_result.msg)
         
-    @copy_playlist_track.error
-    async def handle_copy_playlist_track_error(self, interaction: Interaction, error: Exception):
+    @copy_playlist_tracks.error
+    async def handle_copy_playlist_tracks_error(self, interaction: Interaction, error: Exception):
+        if isinstance(error, KeyError) or\
+            self.guild_states.get(interaction.guild.id, None) is None:
+            return
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
+            return        
+
+        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
+
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        await send_func("An unknown error occurred", ephemeral=True)
+
+    @app_commands.command(name="playlist-move-tracks", description="Merges tracks from a playlist with another one. See entry in /help for more info.")
+    @app_commands.describe(
+        playlist_name="The name of the playlist to move tracks from.",
+        target_playlist_name="The name of the playlist to move tracks to.",
+        track_names="A semicolon separated list of track names (or indices, if <by_index> is True) to move.",
+        by_index="Whether or not to move tracks by their indices."
+    )
+    @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_MOVE_TRACKS_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
+    @app_commands.guild_only
+    async def move_playlist_tracks(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
+        if not await user_has_role(interaction) or\
+            not await user_has_role(interaction, True) or\
+            not await check_channel(self.guild_states, interaction):
+            return
+        
+        await interaction.response.defer(thinking=True)
+
+        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+
+        if await is_playlist_locked(locked):
+            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            return
+        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            await interaction.followup.send(content.msg)
+            return
+        
+        await lock_playlist(interaction, content, locked, playlist_name)
+        await lock_playlist(interaction, content, locked, target_playlist_name)
+
+        result = await self.playlist.move_items(interaction, content, split(track_names), playlist_name, target_playlist_name, by_index)
+
+        await unlock_playlist(locked, content, playlist_name)
+        await unlock_playlist(locked, content, target_playlist_name)
+
+        if isinstance(result, Error):
+            await interaction.followup.send(result.msg)
+        elif isinstance(result, tuple):
+            write_result = result[0]
+            moved = result[1]
+
+            if not isinstance(write_result, Error):
+                embed = generate_added_track_embed(moved, True, target_playlist_name)
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(write_result.msg)
+
+    @move_playlist_tracks.error
+    async def handle_move_playlist_tracks_error(self, interaction: Interaction, error: Exception):
         if isinstance(error, KeyError) or\
             self.guild_states.get(interaction.guild.id, None) is None:
             return

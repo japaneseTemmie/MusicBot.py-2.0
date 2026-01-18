@@ -97,7 +97,7 @@ class PlaylistManager:
         if await name_exceeds_length(MAX_ITEM_NAME_LENGTH, playlist_name):
             return Error(f"Playlist name is too long! Must be <= **{MAX_ITEM_NAME_LENGTH}** characters.")
 
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if await playlist_exists(content, playlist_name):
             return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** already exists!")
@@ -127,7 +127,7 @@ class PlaylistManager:
         If successful, returns a boolean or Error if `contents_only` is `False` (always `True` if `write_to_file` is False), otherwise
         a tuple with a boolean or Error indicating write success [0] and removed tracks [1]. """
 
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await has_playlists(content):
             return Error("This guild has no saved playlists.")
@@ -168,14 +168,14 @@ class PlaylistManager:
             tracks_to_remove: list[str], 
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[dict[str, Any]], list[dict[str, Any]]] | Error:
+        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Removes given tracks from a playlist.
 
         If successful, returns a tuple with a boolean or Error 
         indicating write success [0] (always `True` if `write_to_file` is False),
         the list of removed tracks [1]. Error otherwise. """
         
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await has_playlists(content):
             return Error("This guild has no saved playlists.")
@@ -215,7 +215,7 @@ class PlaylistManager:
         If successful, returns a tuple with a boolean or Error indicating
         write success [0] (always `True` if `write_to_file` is False), the old track [1] and the new track [2]. Error otherwise."""
 
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await has_playlists(content):
             return Error("This guild has no saved playlists.")
@@ -254,7 +254,7 @@ class PlaylistManager:
         If successful, returns a tuple with a boolean or Error indicating
         write success [0] (always `True` if `write_to_file` is False), the repositioned track [1], old index [2], and new index [3]. Error otherwise. """
         
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await has_playlists(content):
             return Error("This guild has no saved playlists.")
@@ -388,7 +388,7 @@ class PlaylistManager:
         If successful, returns a tuple with a boolean or Error indicating
         write success [0] (always `True` if `write_to_file` is False), and a list containing the added tracks [1]. Error otherwise. """
 
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await playlist_exists(content, playlist_name):
             if await is_content_full(MAX_PLAYLIST_LIMIT, content):
@@ -406,8 +406,8 @@ class PlaylistManager:
                 'title': track['title'],
                 'uploader': track["uploader"],
                 'duration': track['duration'],
-                'webpage_url': track["webpage_url"],
-                'source_website': track["source_website"]
+                'webpage_url': track['webpage_url'],
+                'source_website': track['source_website']
             } for track in queue]
 
         added = await add_results_to_queue(interaction, to_add, playlist, MAX_PLAYLIST_TRACK_LIMIT)
@@ -434,20 +434,18 @@ class PlaylistManager:
 
         If successful, returns same types as `add_queue()`. With the addition of extraction Errors. """
 
-        # Avoid returning these errors when using add_queue() to not waste bandwidth
-        if await is_playlist_full(MAX_PLAYLIST_TRACK_LIMIT, content, playlist_name):
-            return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** has reached the maximum track limit of **{MAX_PLAYLIST_TRACK_LIMIT}**!\nCannot add more tracks.")
-        
-        if await is_content_full(MAX_PLAYLIST_LIMIT, content) and not await playlist_exists(content, playlist_name):
-            return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
+        if await playlist_exists(content, playlist_name):
+            if await is_playlist_full(MAX_PLAYLIST_TRACK_LIMIT, content, playlist_name):
+                return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** has reached the **{MAX_PLAYLIST_TRACK_LIMIT}** track limit!\nCannot add more tracks.")
+        else:
+            if await is_content_full(MAX_PLAYLIST_LIMIT, content):
+                return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
 
         provider = provider.value if provider else None
         found = await fetch_queries(guild_states, interaction, queries, allowed_query_types=allowed_query_types, provider=provider)
 
         if isinstance(found, list):
-            result = await self.add_queue(interaction, content, playlist_name, found, write_to_file)
-
-            return result
+            return await self.add_queue(interaction, content, playlist_name, found, write_to_file)
         else:
             return found
 
@@ -474,7 +472,7 @@ class PlaylistManager:
         If successful, returns a tuple with a boolean or Error indicating
         write success [0] (always `True` if `write_to_file` is False), old name [1], and new name [2]. Error otherwise. """
         
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
 
         if not await has_playlists(content):
             return Error("This guild has no saved playlists.")
@@ -488,8 +486,7 @@ class PlaylistManager:
         if new_playlist_name.lower().replace(" ", "") == orig_playlist_name.lower().replace(" ", ""):
             return Error(f"Cannot rename a playlist (**{orig_playlist_name[:MAX_ITEM_NAME_LENGTH]}**) to the same name (**{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**).")
 
-        playlists = content.items()
-        content = {new_playlist_name if key == orig_playlist_name else key: value for key, value in playlists}
+        content[new_playlist_name] = content.pop(orig_playlist_name)
 
         if write_to_file:
             success = await self.write(interaction, content, backup)
@@ -507,7 +504,7 @@ class PlaylistManager:
             new_track_names: list[str], 
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[tuple[dict, str]], list[dict[str, Any]]] | Error:
+        ) -> tuple[bool | Error, list[tuple[dict, str]]] | Error:
         """ Bulk edits track names to new given ones.
 
         if successful, returns a tuple with a boolean or Error indicating write success [0] (always `True` if `write_to_file` is False), a list of tuples with
@@ -519,7 +516,7 @@ class PlaylistManager:
         if not await playlist_exists(content, playlist_name):
             return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
         playlist = content[playlist_name]
 
         if await is_playlist_empty(playlist):
@@ -550,7 +547,7 @@ class PlaylistManager:
         if successful, returns a tuple with a boolean or Error indicating
         write success [0] (always `True` if `write_to_file` is False), added track [1], and its new index [2]. Error otherwise. """
         
-        backup = None if not ENABLE_FILE_BACKUPS else deepcopy(content)
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
         
         if not await playlist_exists(content, playlist_name):
             if await is_content_full(MAX_PLAYLIST_LIMIT, content):
@@ -621,3 +618,67 @@ class PlaylistManager:
             return to_add
         
         return await self.add_queue(interaction, content, target_playlist_name, to_add, write_to_file)
+
+    async def move(
+        self,
+        interaction: Interaction,
+        content: dict[str, list],
+        source_playlist_name: str,
+        target_playlist_name: str,
+        write_to_file: bool=True
+    ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        """ Merge a source playlist with another one. 
+        
+        Returns a tuple with write success status (always `True` if `write_to_file` is `True`) [0] and list of added tracks [1] if successful, otherwise Error. """
+
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
+
+        copy_result = await self.copy(interaction, content, source_playlist_name, target_playlist_name, False)
+        if isinstance(copy_result, Error):
+            return copy_result
+
+        delete_result = await self.delete(interaction, content, source_playlist_name, False, False)
+        if isinstance(delete_result, Error):
+            return Error(f"An error occurred while deleting playlist **{source_playlist_name}**: {delete_result.msg}")
+
+        _, copied = copy_result
+
+        if write_to_file:
+            success = await self.write(interaction, content, backup)
+        else:
+            success = True
+
+        return success, copied
+    
+    async def move_items(
+        self,
+        interaction: Interaction,
+        content: dict[str, list],
+        track_names: list[str],
+        source_playlist_name: str,
+        target_playlist_name: str,
+        by_index: bool=False,
+        write_to_file: bool=True
+    ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        """ Merge a playlist's tracks with another playlist. 
+        
+        Returns a tuple with write success status (always `True` if `write_to_file` is `True`) [0] and moved tracks [1] if successful, otherwise Error. """
+
+        backup = None if not ENABLE_FILE_BACKUPS or not write_to_file else deepcopy(content)
+
+        copy_items_result = await self.copy_items(interaction, content, track_names, source_playlist_name, target_playlist_name, by_index, False)
+        if isinstance(copy_items_result, Error):
+            return copy_items_result
+        
+        remove_result = await self.remove(interaction, content, source_playlist_name, track_names, by_index, False)
+        if isinstance(remove_result, Error):
+            return Error(f"An error occurred while removing tracks from playlist **{source_playlist_name}**: {remove_result.msg}")
+
+        _, copied = copy_items_result
+
+        if write_to_file:
+            success = await self.write(interaction, content, backup)
+        else:
+            success = True
+
+        return success, copied
