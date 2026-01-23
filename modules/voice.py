@@ -46,7 +46,7 @@ class VoiceCog(commands.Cog):
                 """ Bot has disconnected. Wait and then clean up. """
                 
                 await disconnect_routine(self.client, self.guild_states, member)
-            elif (before.channel is not None and after.channel is not None) and\
+            elif (before.channel is not None and after.channel is not None and before.channel != after.channel) and\
                 member.guild.id in self.guild_states:
                 """ Bot has been moved. Resume session in new channel. """
 
@@ -70,12 +70,17 @@ class VoiceCog(commands.Cog):
             await interaction.followup.send("Join a voice channel first.")
         elif channel.type == discord.ChannelType.stage_voice:
             await interaction.followup.send(f"I can't join channel **{channel.name}**! Stage channels scare me!")
-        elif (channel is not None and current_channel is not None) and channel == current_channel:
+        elif (channel is not None and current_channel is not None) and\
+            channel == current_channel:
             await interaction.followup.send("I'm already in your voice channel!")
         elif current_channel is not None:
             await interaction.followup.send(f"I'm already in **{current_channel.name}**!")
-        elif permissions is not None and (not permissions.connect or not permissions.speak):
+        elif permissions is not None and\
+            (not permissions.connect or not permissions.speak):
             await interaction.followup.send(f"I don't have permission to join your channel!")
+        elif (channel.user_limit > 0 and len(channel.members) >= channel.user_limit) and\
+            not permissions.move_members: # MOVE_MEMBERS allows the bot to bypass the limit, however, we can't always assume perms
+            await interaction.followup.send(f"I'm unable to join **{channel.name}**. Channel is full!")
         else:
             log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Requested to join channel ID {channel.id} in guild ID {channel.guild.id}")
 
