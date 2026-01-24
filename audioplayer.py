@@ -41,7 +41,7 @@ class AudioPlayer:
         ) -> dict[str, Any] | None:
         """ Submit a track to the voice client player. 
         
-        Return track or None if something went wrong while spawning an FFmpeg subprocess (not FFmpeg runtime error). """
+        Return track on success or None if something went wrong while spawning an FFmpeg subprocess (not FFmpeg runtime error). """
 
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
         old_title = str(track["title"])
@@ -58,7 +58,7 @@ class AudioPlayer:
 
                 if track is None or not await is_stream_url_alive(track["url"], self.client.stream_url_check_session):
                     log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
-                    raise ValueError("Unrecoverable stream.")
+                    raise ValueError(f"Unrecoverable stream from provider {track['source_website']}.")
                 
                 track["title"] = old_title
                 track["source_website"] = old_source_website

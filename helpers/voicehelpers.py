@@ -17,7 +17,9 @@ from time import monotonic
 
 # Connect behavior
 async def greet_new_user_in_vc(guild_states: dict[str, Any], user: discord.Member) -> None:
-    """ Say hi to `user` in the text channel the /join command was used in. """
+    """ Sends a welcome message mentioning member `user` in the text channel the voice session was initialized in. 
+    
+    Additionally, to prevent spamming and 429s, a timeout applied per-user ID everytime the function completes successfully. """
     
     if user.guild.id in guild_states:
         can_greet = guild_states[user.guild.id]["allow_greetings"]
@@ -57,6 +59,12 @@ async def cleanup_guilds(guild_states: dict[str, Any], clients: list[discord.Voi
 async def check_users_in_channel(guild_states: dict[str, Any], member: discord.Member | Interaction) -> bool:
     """ Check if there are any users in a voice channel and disconnects if not.
 
+    Disconnection from voice channel only occurs if certain conditions are met. In case they aren't, False is returned even if the channel only has the bot in it.
+
+    Special cases in which True is returned:
+    - Voice is locked globally.
+    - A disconnect event is already being handled for the guild.
+
     Returns True if none are left and the bot is disconnected, False otherwise. """
     
     if await get_vc_lock():
@@ -91,9 +99,9 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
     return False
 
 async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, Any], member: discord.Member | Interaction) -> None:
-    """ Function that runs every voice_client.disconnect() call.
+    """ Function that runs every `discord.VoiceClient.disconnect()` call given a functional gateway event processing loop.
      
-    Responsible for cleaning up the disconnected client and its guild data. """
+    Responsible for cleaning up the disconnected client, its guild data and cache associated with it. """
     
     voice_client = guild_states[member.guild.id]["voice_client"]
     can_update_status = guild_states[member.guild.id]["allow_voice_status_edit"]
@@ -223,13 +231,13 @@ async def handle_channel_move(
             await text_channel.send(f"Timeout exhausted, disconnected from channel **{voice_client.channel.name}**.")
             return
 
-    if voice_client.is_paused():
-        voice_client.resume()
-        start_time = int(monotonic() - elapsed_time)
-        await update_guild_state(guild_states, member, start_time, "start_time")
+        if voice_client.is_paused():
+            voice_client.resume()
+            start_time = int(monotonic() - elapsed_time)
+            await update_guild_state(guild_states, member, start_time, "start_time")
 
-        if can_update_status and current_status:
-            await set_voice_status(guild_states, member)
+            if can_update_status and current_status:
+                await set_voice_status(guild_states, member)
 
     await update_guild_states(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
 
