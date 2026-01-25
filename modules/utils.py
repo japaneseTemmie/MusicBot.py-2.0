@@ -1,5 +1,4 @@
-""" Utilities module for discord.py bot\n
-Includes a short class for help commands. """
+""" Utilities module for discord.py bot. """
 
 from settings import HELP, CAN_LOG, LOGGER
 from init.constants import COOLDOWNS
