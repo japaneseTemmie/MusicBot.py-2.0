@@ -1,7 +1,7 @@
 """ Voice helper functions for discord.py bot """
 
 from settings import PLAYLIST_LOCKS, PLAYLIST_FILE_CACHE, ROLE_LOCKS, ROLE_FILE_CACHE
-from init.constants import GREET_TIMEOUT_SECONDS, MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE, MAX_GUILD_CLEANUP_WAIT_TIME
+from init.constants import GREET_TIMEOUT_SECONDS, MAX_USER_WAIT_TIME_AFTER_CHANNEL_MOVE, MAX_GUILD_CLEANUP_WAIT_TIME
 from bot import Bot, ShardedBot
 from helpers.lockhelpers import get_vc_lock
 from helpers.cachehelpers import invalidate_cache
@@ -222,9 +222,9 @@ async def handle_channel_move(
             elapsed_time = int(monotonic() - start_time)
             await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
 
-        await text_channel.send(f"Waiting **{MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE}** seconds for users in new channel **{voice_client.channel.name}**.")
+        await text_channel.send(f"Waiting **{MAX_USER_WAIT_TIME_AFTER_CHANNEL_MOVE}** seconds for users in new channel **{voice_client.channel.name}**.")
 
-        await asyncio.sleep(MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE)
+        await asyncio.sleep(MAX_USER_WAIT_TIME_AFTER_CHANNEL_MOVE)
 
         no_users_in_channel = await check_users_in_channel(guild_states, member)
         if no_users_in_channel:

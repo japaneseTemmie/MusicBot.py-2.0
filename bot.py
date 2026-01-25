@@ -5,7 +5,7 @@ from settings import (
     ROLE_LOCKS, PLAYLIST_LOCKS, 
     LOGGER, CAN_LOG, CONFIG
 )
-from init.constants import MAX_IO_SYNC_WAIT_TIME, STREAM_VALIDATION_TIMEOUT
+from init.constants import MAX_IO_SYNC_WAIT_TIME, HTTP_CLIENT_SESSION_TIMEOUT
 from loader import ModuleLoader
 from helpers.lockhelpers import set_global_locks, get_file_lock, get_vc_lock
 from init.logutils import log, separator, log_to_discord_log
@@ -200,7 +200,7 @@ class Bot(commands.Bot):
     async def setup_client_session(self) -> None:
         """ Set up an aiohttp ClientSession """
 
-        self.client_http_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
+        self.client_http_session = ClientSession(timeout=ClientTimeout(HTTP_CLIENT_SESSION_TIMEOUT))
         log("Set up an aiohttp ClientSession.")
         separator()
 

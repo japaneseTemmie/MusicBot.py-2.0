@@ -3,9 +3,12 @@
 import discord
 from logging import INFO, DEBUG, ERROR, WARNING, CRITICAL
 
+# Config stuff
 VALID_LOG_LEVELS = {"normal": INFO, "verbose": DEBUG, "errors": ERROR, "warnings": WARNING, "critical": CRITICAL}
 VALID_ACTIVITY_TYPES = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching, "listening": discord.ActivityType.listening}
 VALID_STATUSES = {"online": discord.Status.online, "idle": discord.Status.idle, "do_not_disturb": discord.Status.do_not_disturb, "invisible": discord.Status.invisible}
+
+# Moderation stuff
 MAX_CHANNEL_NAME_LENGTH = 100
 MAX_TOPIC_LENGTH = 1024
 MAX_FORUM_TOPIC_LENGTH = 4096
@@ -15,21 +18,29 @@ MAX_STAGE_BITRATE = 64000
 MAX_USER_LIMIT = 99
 MAX_ANNOUNCEMENT_LENGTH_LIMIT = 2000
 MAX_PURGE_LIMIT = 500
-MAX_USER_WAIT_TIME_AFTER_CHANNEL_MODE = 10
+
+# Voice stuff
+MAX_USER_WAIT_TIME_AFTER_CHANNEL_MOVE = 10
 MAX_GUILD_CLEANUP_WAIT_TIME = 10
 GREET_TIMEOUT_SECONDS = 10
 PLAYBACK_END_GRACE_PERIOD = 1
-STREAM_VALIDATION_TIMEOUT = 3
 MAX_RETRY_COUNT = 3
 CRASH_RECOVERY_TIME_WINDOW = 10
 FFMPEG_RECONNECT_TIMEOUT_SECONDS = 10
 FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS = 7000000
+
+# HTTP ClientSession stuff
+HTTP_CLIENT_SESSION_TIMEOUT = 3
 IS_STREAM_URL_ALIVE_REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
 }
+
+# Bot config stuff
 MAX_IO_SYNC_WAIT_TIME = 20
 MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED = 2500
 MAX_FETCH_CALLS = 50
+
+# Filter stuff
 RAW_FILTER_TO_VISUAL_TEXT = {
     "uploader": "Author",
     "min_duration": "Minimum duration",
@@ -37,6 +48,8 @@ RAW_FILTER_TO_VISUAL_TEXT = {
     "source_website": "Website"
 }
 NEED_TIME_FORMATTING_TO_MINUTES_FILTERS = ["min_duration", "max_duration"]
+
+# Cooldowns
 COOLDOWNS = {
     "PING_COMMAND_COOLDOWN": 5.0,
     "HELP_COMMAND_COOLDOWN": 5.0,
