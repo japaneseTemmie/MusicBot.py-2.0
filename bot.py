@@ -27,7 +27,7 @@ class Bot(commands.Bot):
         self.setup_lock = asyncio.Lock()
         self.has_finished_on_ready = False
         self.is_sharded = False
-        self.stream_url_check_session = None
+        self.client_http_session = None
 
         self.loaded_cogs = []
         self.synced_commands = []
@@ -90,9 +90,9 @@ class Bot(commands.Bot):
 
         await super().close()
 
-        if self.stream_url_check_session is not None:
-            await self.stream_url_check_session.close()
-            log("Closed ClientSession for stream URL checks")
+        if self.client_http_session is not None:
+            await self.client_http_session.close()
+            log("Closed aiohttp ClientSession")
 
         separator()
         log(f"Bai bai :{'3' * randint(1, 10)}")
@@ -198,10 +198,10 @@ class Bot(commands.Bot):
         return self.synced_commands
 
     async def setup_client_session(self) -> None:
-        """ Set up an aiohttp ClientSession for stream URL checks """
+        """ Set up an aiohttp ClientSession """
 
-        self.stream_url_check_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
-        log("Set up a ClientSession for stream URL checks")
+        self.client_http_session = ClientSession(timeout=ClientTimeout(STREAM_VALIDATION_TIMEOUT))
+        log("Set up an aiohttp ClientSession.")
         separator()
 
     async def handle_filesystem_tasks(self) -> bool:
