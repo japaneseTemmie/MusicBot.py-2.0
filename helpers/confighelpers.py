@@ -97,6 +97,7 @@ def get_default_modules_config_data() -> dict[str, bool]:
             "enable_MusicCog": True,
             "enable_PlaylistCog": True,
             "enable_VoiceCog": True,
+            "enable_CatgirlDownloader": False,
             "enable_MyCog": False
         }
     }
