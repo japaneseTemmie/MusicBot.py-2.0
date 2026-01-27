@@ -4,13 +4,13 @@ from error import Error
 
 from asyncio import TimeoutError
 from aiohttp import ClientSession, ClientResponse
-from aiohttp.client_exceptions import ContentTypeError
+from aiohttp.client_exceptions import ContentTypeError, ClientError
 from typing import Any
 
 class ResponsePayload:
     """ Generic response payload. 
     
-    Contains response itself and requested result. """
+    Contains response itself (only for read-only metadata) and requested result. """
 
     def __init__(self, response: ClientResponse, result: Any):
         self.response = response
@@ -31,7 +31,7 @@ async def get_json_response(session: ClientSession, url: str, **kwargs) -> Respo
         return Error(f"Unable to process request due to unexpected MIME type.")
     except TimeoutError:
         return Error(f"Unable to process request due to timeout error.")
-    except Exception:
+    except ClientError:
         return Error(f"Unable to process request. Failed to decode response.")
 
 async def get_bytes_response(session: ClientSession, url: str, **kwargs) -> ResponsePayload | Error:
@@ -47,5 +47,5 @@ async def get_bytes_response(session: ClientSession, url: str, **kwargs) -> Resp
             return ResponsePayload(response, await response.content.read())
     except TimeoutError:
         return Error(f"Unable to process request due to timeout error.")
-    except Exception:
+    except ClientError:
         return Error(f"Unable to process request. Failed to read response.")

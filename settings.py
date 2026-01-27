@@ -77,6 +77,7 @@ ROLE_LOCKS = {}
 ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=600)
+NEKOS_MOE_CACHE = TTLCache(maxsize=8192, ttl=3600)
 
 # Global locks
 FILE_OPERATIONS_LOCKED = asyncio.Event()
