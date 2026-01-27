@@ -13,10 +13,39 @@ from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
 from io import BytesIO
+from typing import Any
 
 class CatgirlDownloader(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
+
+    async def _get_catgirl_image(self, image_id: str) -> discord.File | Error:
+        cache = get_cache(NEKOS_MOE_CACHE, image_id)
+
+        if cache is not None:
+            bytes_response_payload = cache
+        else:
+            bytes_response_payload = await get_bytes_response(self.client.client_http_session, NEKOS_MOE_IMAGE + f"/{image_id}", headers=NEKOS_MOE_REQUEST_HEADERS)
+            
+            if isinstance(bytes_response_payload, Error):
+                return bytes_response_payload
+            elif not bytes_response_payload.result:
+                return Error("Received empty image.")
+        
+            store_cache(bytes_response_payload, image_id, NEKOS_MOE_CACHE)
+
+        image_bytes = bytes_response_payload.result
+        content_type = bytes_response_payload.response.content_type or "image/jpeg"
+        image_extension = content_type.split("/")[-1]
+
+        return discord.File(BytesIO(image_bytes), f"{image_id}.{image_extension}")
+
+    async def _get_catgirl_image_metadata(self, url: str) -> dict[str, Any] | Error:
+        json_response_payload = await get_json_response(self.client.client_http_session, url, headers=NEKOS_MOE_REQUEST_HEADERS)
+        if isinstance(json_response_payload, Error):
+            return json_response_payload
+        
+        return json_response_payload.result
 
     @app_commands.command(name="get-catgirl", description="Shows a random, SFW-ONLY picture of a catgirl provided by nekos.moe")
     @app_commands.describe(
@@ -26,41 +55,20 @@ class CatgirlDownloader(commands.Cog):
     async def show_random_catgirl(self, interaction: Interaction, private: bool=True):
         await interaction.response.defer(ephemeral=private)
 
-        json_response_payload = await get_json_response(self.client.client_http_session, NEKOS_MOE_RANDOM_ENDPOINT + "?nsfw=false", headers=NEKOS_MOE_REQUEST_HEADERS)
-        if isinstance(json_response_payload, Error):
-            await interaction.followup.send(json_response_payload.msg)
+        data = await self._get_catgirl_image_metadata(NEKOS_MOE_RANDOM_ENDPOINT + "?nsfw=false")
+        if isinstance(data, Error):
+            await interaction.followup.send(data.msg)
             return
-        
-        data = json_response_payload.result
-        
+
         image_data = data["images"][0]
 
         image_id = image_data["id"]
         image_artist = image_data.get("artist") or "Unknown artist" # API specs says this is not guaranteed
 
-        cache = get_cache(NEKOS_MOE_CACHE, image_id)
-
-        if cache is not None:
-            bytes_response_payload = cache
-        else:
-            bytes_response_payload = await get_bytes_response(self.client.client_http_session, NEKOS_MOE_IMAGE + f"/{image_id}", headers=NEKOS_MOE_REQUEST_HEADERS)
-            if isinstance(bytes_response_payload, Error):
-                await interaction.followup.send(bytes_response_payload.msg)
-                return
-            
-            if bytes_response_payload.result:
-                store_cache(bytes_response_payload, image_id, NEKOS_MOE_CACHE)
-        
-        image_bytes = bytes_response_payload.result
-
-        if not image_bytes:
-            await interaction.followup.send("Received empty image.")
+        file = await self._get_catgirl_image(image_id)
+        if isinstance(file, Error):
+            await interaction.followup.send(file.msg)
             return
-        
-        content_type = bytes_response_payload.response.content_type or "image/jpeg"
-        image_extension = content_type.split("/")[-1]
-
-        file = discord.File(BytesIO(image_bytes), f"{image_id}.{image_extension}")
         
         await interaction.followup.send(f"Credit: **{image_artist}**", file=file)
 
