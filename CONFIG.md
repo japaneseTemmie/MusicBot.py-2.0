@@ -38,4 +38,5 @@ and reduce memory usage if unused.
 - `enable_MusicCog`: Enables users to run commands from the `music` module. Expects a boolean.
 - `enable_VoiceCog`: Enables users to run commands from the `voice` module. Expects a boolean.
 - `enable_PlaylistCog`: Enables users to run commands from the `playlist` module. Expects a boolean.
+- `enable_CatgirlDownloader`: Enables users to run commands from the `catgirl` module. Expects a boolean.
 - `enable_MyCog`: Enables users to run commands from the `example` module. Expects a boolean. (NOTE: This is never supposed to be enabled at all. Only used for module creation demonstration purposes)

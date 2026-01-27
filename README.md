@@ -42,6 +42,7 @@ an **extended** moderation module alongside other new features!
   - **SoundCloud** (song, search or sets*)
   - **Bandcamp** (song or albums*)
 - Guild and voice channel auto-cleanup functionality.
+- Random catgirl picture generator functionality :3 (opt-in)
 - Sharding support.
 - Multi-guild support.
 - Many configurable options.
