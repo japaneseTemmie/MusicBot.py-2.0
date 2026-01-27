@@ -19,7 +19,9 @@ class CatgirlDownloader(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
 
-    async def _get_catgirl_image(self, image_id: str) -> discord.File | Error:
+    async def _get_image(self, image_id: str) -> discord.File | Error:
+        """ Get an image from nekos.moe given an ID and return a discord.File object or Error on failure. """
+        
         cache = get_cache(NEKOS_MOE_CACHE, image_id)
 
         if cache is not None:
@@ -40,7 +42,9 @@ class CatgirlDownloader(commands.Cog):
 
         return discord.File(BytesIO(image_bytes), f"{image_id}.{image_extension}")
 
-    async def _get_catgirl_image_metadata(self, url: str) -> dict[str, Any] | Error:
+    async def _get_image_metadata(self, url: str) -> dict[str, Any] | Error:
+        """ Get image metadata from a valid nekos.moe API URL. """
+        
         json_response_payload = await get_json_response(self.client.client_http_session, url, headers=NEKOS_MOE_REQUEST_HEADERS)
         if isinstance(json_response_payload, Error):
             return json_response_payload
@@ -55,7 +59,7 @@ class CatgirlDownloader(commands.Cog):
     async def show_random_catgirl(self, interaction: Interaction, private: bool=True):
         await interaction.response.defer(ephemeral=private)
 
-        data = await self._get_catgirl_image_metadata(NEKOS_MOE_RANDOM_ENDPOINT + "?nsfw=false")
+        data = await self._get_image_metadata(NEKOS_MOE_RANDOM_ENDPOINT + "?nsfw=false")
         if isinstance(data, Error):
             await interaction.followup.send(data.msg)
             return
@@ -65,7 +69,7 @@ class CatgirlDownloader(commands.Cog):
         image_id = image_data["id"]
         image_artist = image_data.get("artist") or "Unknown artist" # API specs says this is not guaranteed
 
-        file = await self._get_catgirl_image(image_id)
+        file = await self._get_image(image_id)
         if isinstance(file, Error):
             await interaction.followup.send(file.msg)
             return
