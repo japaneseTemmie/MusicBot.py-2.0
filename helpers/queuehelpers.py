@@ -142,7 +142,11 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
 
     Returns a tuple with the track hashmap [0] and its index [1] or an Error object. """
 
-    track = track.lower().replace(" ", "")  
+    track = track.lower().replace(" ", "")
+
+    if not track:
+        return Error("Track name field cannot be empty.")
+
     if by_index:
         if not track.isdigit():
             return Error(f"**{track[:MAX_ITEM_NAME_LENGTH]}** is not an integer number!")
@@ -568,7 +572,7 @@ async def place_track_in_queue(queue: list, index: int | None, track: dict[str, 
         'source_website': track['source_website']
     }
 
-    if playlist_track in queue and await try_index(queue, index - 1, playlist_track):
+    if await try_index(queue, index - 1, playlist_track):
         return Error(f"Cannot place track (**{track['title'][:MAX_ITEM_NAME_LENGTH]}**) because it already exists at the specified index.")
     
     queue.insert(index - 1, playlist_track)
