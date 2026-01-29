@@ -144,7 +144,7 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
 
     track = track.lower().replace(" ", "")
 
-    if not track:
+    if track == "":
         return Error("Track name field cannot be empty.")
 
     if by_index:
@@ -372,9 +372,6 @@ async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, An
     
     found = []
     for track_name in track_names:
-        if not track_name:
-            return Error("Track name field cannot be empty.")
-
         track_info = await find_track(track_name, queue, by_index)
         
         if isinstance(track_info, Error):
@@ -413,9 +410,6 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
     to_remove = []
     
     for track in tracks:
-        if not track:
-            return Error("Track field cannot be empty.")
-    
         found_track = await find_track(track, queue, by_index)
 
         if isinstance(found_track, Error):
