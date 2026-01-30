@@ -43,14 +43,14 @@ def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
     Available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type`, `activity_state` """
     
     data = {
-        "status_type": correct_type(get_config_value(config, "status_type", ConfigCategory.ACTIVITY), (str, NoneType), None),
-        "activity_enabled": correct_type(get_config_value(config, "enable_activity", ConfigCategory.ACTIVITY), bool, False),
-        "activity_name": correct_type(get_config_value(config, "activity_name", ConfigCategory.ACTIVITY), str, "with the API"),
-        "activity_type": correct_value_in(get_config_value(config, "activity_type", ConfigCategory.ACTIVITY), VALID_ACTIVITY_TYPES, "playing")
+        "status_type": correct_type(get_config_value(config, "status_type", ConfigCategory.ACTIVITY.value), (str, NoneType), None),
+        "activity_enabled": correct_type(get_config_value(config, "enable_activity", ConfigCategory.ACTIVITY.value), bool, False),
+        "activity_name": correct_type(get_config_value(config, "activity_name", ConfigCategory.ACTIVITY.value), str, "with the API"),
+        "activity_type": correct_value_in(get_config_value(config, "activity_type", ConfigCategory.ACTIVITY.value), VALID_ACTIVITY_TYPES, "playing")
     }
 
     if data["activity_type"] in ("playing", "listening"):
-        data["activity_state"] = correct_type(get_config_value(config, "activity_state", ConfigCategory.ACTIVITY), (str, NoneType), None)
+        data["activity_state"] = correct_type(get_config_value(config, "activity_state", ConfigCategory.ACTIVITY.value), (str, NoneType), None)
     else:
         data["activity_state"] = None
     

@@ -1,5 +1,7 @@
 """ Embed helpers module for discord.py bot. """
 
+from webextractor import SourceWebsiteValue
+
 import discord
 from datetime import datetime
 from typing import Any
@@ -209,7 +211,7 @@ def generate_generic_track_embed(info: dict[str, Any], embed_title: str="Track i
 
     return embed
 
-def generate_extraction_progress_embed(current_item_name: str, total: int, current: int, website: str) -> discord.Embed:
+def generate_extraction_progress_embed(current_item_name: str, total: int, current: int, website: SourceWebsiteValue) -> discord.Embed:
     """ Generate an embed to show current extraction progress. """
     
     embed = _get_embed("Extraction progress")

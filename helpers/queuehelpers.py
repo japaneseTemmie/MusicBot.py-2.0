@@ -3,7 +3,7 @@
 from settings import MAX_ITEM_NAME_LENGTH
 from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS
 from error import Error
-from webextractor import SourceWebsite, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
+from webextractor import SourceWebsite, SourceWebsiteValue, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
 
@@ -316,7 +316,7 @@ async def clear_filters(filters: dict[str, Any], to_remove: dict[str, bool]) -> 
 
     return removed
 
-async def match_website_filter(filter_website: str, track_website: str) -> bool:
+async def match_website_filter(filter_website: SourceWebsiteValue, track_website: SourceWebsiteValue) -> bool:
     """ Return a match result between a website filter and a track website. 
     
     Match all query types that are part of a website. (e.g. `filter_website` SoundCloud can match SoundCloud Playlist and Search)"""
@@ -456,7 +456,7 @@ async def replace_track_in_queue(
         queue: list[dict[str, Any]],
         track: str, 
         new_track: str,
-        provider: str | None=None,
+        provider: SourceWebsiteValue | None=None,
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict[str, Any], dict[str, Any]] | Error:

@@ -15,9 +15,21 @@ from error import Error
 
 import re
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, date
 from yt_dlp import YoutubeDL
-from typing import Any
+from typing import Any, Literal
+
+SourceWebsiteValue = Literal[
+    "YouTube Playlist",
+    "YouTube",
+    "Newgrounds",
+    "SoundCloud Playlist",
+    "SoundCloud",
+    "Bandcamp Album",
+    "Bandcamp",
+    "YouTube search",
+    "SoundCloud search"
+]
 
 class SourceWebsite(Enum):
     YOUTUBE_PLAYLIST = "YouTube Playlist"
@@ -53,7 +65,7 @@ class QueryType:
     
     `search_string`: Search string passed to yt-dlp. Must only be filled if `is_url`=`False`. Otherwise, ValueError will be raised. """
 
-    def __init__(self, query: str, source_website: str | None, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
+    def __init__(self, query: str, source_website: SourceWebsiteValue | None, is_url: bool, regex: re.Pattern | None=None, search_string: str | None=None):
         self.query = query
         self.source_website = source_website
         self.is_url = is_url
@@ -90,7 +102,19 @@ BANDCAMP_DOMAINS = (SourceWebsite.BANDCAMP.value, SourceWebsite.BANDCAMP_PLAYLIS
 SOUNDCLOUD_DOMAINS = (SourceWebsite.SOUNDCLOUD.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_SEARCH.value)
 YOUTUBE_DOMAINS = (SourceWebsite.YOUTUBE.value, SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.YOUTUBE_SEARCH.value)
 
-def get_query_type(query: str, provider: str | None) -> QueryType:
+# To speed up seeking in large tracks (30+ minutes) we must put -ss before the -i flag in the ffmpeg command.
+# However, some CDNs do not like this and must be excluded from this list
+# Currently, SoundCloud is the only source that crashes ffmpeg if -ss is before the -i flag
+FAST_SEEK_SUPPORT_DOMAINS = (
+    SourceWebsite.BANDCAMP.value,
+    SourceWebsite.BANDCAMP_PLAYLIST.value,
+    SourceWebsite.YOUTUBE.value,
+    SourceWebsite.YOUTUBE_PLAYLIST.value,
+    SourceWebsite.YOUTUBE_SEARCH.value,
+    SourceWebsite.NEWGROUNDS.value
+)
+
+def get_query_type(query: str, provider: SourceWebsiteValue | None) -> QueryType:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. 
 
     `provider` is the optional search provider to use when queries don't match the supported regex patterns.
@@ -99,7 +123,7 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
 
     # Match URLs first.
     for regex, source_website in URL_PATTERNS:
-        if regex.match(query):
+        if regex.fullmatch(query):
             return QueryType(query, source_website, True, regex)
 
     # If no matches are found, match a search query. If not found, default to youtube.
@@ -109,8 +133,8 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
 
     return QueryType(query, provider_source_website, False, None, provider_search_string)
 
-def prettify_date(date: str) -> datetime:
-    """ Parse given `date` into a datetime object. Non-string `date` is assumed as a datetime object. """
+def prettify_date(date: str) -> date | str:
+    """ Parse given `date` into a date object when possible. Non-string `date` is assumed as a date object. """
     
     # Since different websites distribute content differently, we have to adapt to different date/duration formats
     if isinstance(date, str):
@@ -131,7 +155,7 @@ def prettify_duration(duration: str | float | int) -> str:
     else:
         return duration
 
-def prettify_info(info: dict[str, Any], source_website: str | None=None) -> dict[str, Any]:
+def prettify_info(info: dict[str, Any], source_website: SourceWebsiteValue | None=None) -> dict[str, Any]:
     """ Prettify the extracted info with cleaner values. """
     
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
@@ -149,7 +173,10 @@ def parse_info(info: dict[str, Any], query: str, query_type: QueryType) -> dict[
 
     # If it's a playlist, prettify each entry and return
     if query_type.source_website in PLAYLIST_WEBSITES and "entries" in info:
-        return [prettify_info(entry, query_type.source_website) for entry in info["entries"]]
+        if len(info["entries"]) == 0:
+            return Error(f"No results found for query `{query[:MAX_ITEM_NAME_LENGTH]}`.")
+        
+        return [prettify_info(entry, query_type.source_website) for entry in info["entries"] if entry is not None]
 
     # If it's a search, prettify the first entry and return
     if query_type.source_website in SEARCH_WEBSITES and "entries" in info:
@@ -184,7 +211,7 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
     except Exception as e:
         log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
-        return Error(f"An internal error occured while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`. Please try another source website.")
+        return Error(f"An internal error occurred while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`. Please try another source website.")
 
     if info is not None:
         prettified_info = parse_info(info, query, query_type)
@@ -193,4 +220,4 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
         
         return prettified_info
     
-    return Error(f"An error occured while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`.")
+    return Error(f"An error occurred while extracting `{query[:MAX_ITEM_NAME_LENGTH]}`.")

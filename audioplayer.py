@@ -15,10 +15,12 @@ import asyncio
 import discord
 from discord.interactions import Interaction
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from datetime import datetime
 from time import monotonic
 from copy import deepcopy
+
+PlayerStopReasonValue = Literal[1,2,3,4]
 
 class PlayerStopReason(Enum):
     STOP_FLAG = 1
@@ -48,7 +50,7 @@ class AudioPlayer:
         old_source_website = str(track["source_website"])
 
         position = max(0, min(position, format_to_seconds(track["duration"])))
-        ffmpeg_options = await get_ffmpeg_options(position)
+        ffmpeg_options = await get_ffmpeg_options(position, old_source_website)
 
         try:
             is_stream_valid = await is_stream_url_alive(track["url"], self.client.client_http_session)
@@ -110,7 +112,7 @@ class AudioPlayer:
             await update_guild_state(self.guild_states, interaction, f"Listening to '{track['title']}'", "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-    async def check_player_stop_flags(self, interaction: Interaction) -> int | None:
+    async def check_player_stop_flags(self, interaction: Interaction) -> PlayerStopReasonValue | None:
         """ Check some protection flags (`stop_flag`, `voice_client_locked`) and run some voice client checks.
          
         Returns a `PlayerStopReason` value if a check fails. """
@@ -152,7 +154,7 @@ class AudioPlayer:
         if not voice_client.is_connected() or\
             track is None:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_track() called with invalid parameters or conditions. Ignoring.")
-            return
+            return False
 
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
 

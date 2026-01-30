@@ -1,7 +1,15 @@
 """ Config helpers for discord.py bot """
 
-from typing import Any, Type
+from typing import Any, Type, Literal
 from enum import Enum
+
+ConfigCategoryValue = Literal[
+    "yt_dlp_options",
+    "other",
+    "limits",
+    "activity",
+    "modules"
+]
 
 class ConfigCategory(Enum):
     YT_DLP = "yt_dlp_options"
@@ -30,12 +38,12 @@ def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
     
     return default
 
-def get_config_value(config: dict[str, Any], name: str, category: ConfigCategory | None=None) -> Any:
+def get_config_value(config: dict[str, Any], name: str, category: ConfigCategoryValue | None=None) -> Any:
     """ Get a config value given name and category. 
     
     If category is not given, return matching category. """
 
-    location = config.get(category.value, {}) if category is not None else config
+    location = config.get(category, {}) if category is not None else config
     return location.get(name)
      
 # Defaults

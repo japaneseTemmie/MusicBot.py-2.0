@@ -2,7 +2,7 @@
 
 from settings import EXTRACTOR_SEMAPHORE
 from helpers.guildhelpers import update_query_extraction_state, update_guild_state
-from webextractor import fetch, get_query_type
+from webextractor import SourceWebsiteValue, fetch, get_query_type
 from error import Error
 
 import asyncio
@@ -18,7 +18,7 @@ async def fetch_query(
         extraction_state_max_length: int=1,
         query_name: str=None,
         allowed_query_types: tuple[str] | None=None,
-        provider: str | None=None
+        provider: SourceWebsiteValue | None=None
     ) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Extract a query from its website, catch any errors and return the result. """
     
@@ -52,7 +52,7 @@ async def fetch_queries(
         queries: list[str] | list[dict[str, Any]],
         query_names: list[str] | None=None,
         allowed_query_types: tuple[str]=None,
-        provider: str | None=None
+        provider: SourceWebsiteValue | None=None
     ) -> list[dict[str, Any]] | Error:
     """ Extract a list of queries and return the result. 
     

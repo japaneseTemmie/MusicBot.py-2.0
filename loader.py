@@ -73,7 +73,7 @@ class ModuleLoader:
         
         values = []
         for name in class_names:
-            config_value = correct_type(get_config_value(config, f"enable_{name}", ConfigCategory.MODULES), bool, False)
+            config_value = correct_type(get_config_value(config, f"enable_{name}", ConfigCategory.MODULES.value), bool, False)
 
             values.append((name, config_value))
 

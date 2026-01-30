@@ -7,6 +7,7 @@ from init.constants import (
     FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS,
     IS_STREAM_URL_ALIVE_REQUEST_HEADERS
 )
+from webextractor import SourceWebsiteValue, FAST_SEEK_SUPPORT_DOMAINS
 from init.logutils import log_to_discord_log, log
 from helpers.extractorhelpers import resolve_expired_url
 from helpers.guildhelpers import update_guild_state, update_guild_states
@@ -15,19 +16,26 @@ from helpers.timehelpers import format_to_minutes, format_to_seconds
 import discord
 from aiohttp import ClientSession
 from discord.interactions import Interaction
-from typing import Any, Awaitable
+from typing import Any, Awaitable, Callable
 from time import monotonic
 
 # FFmpeg options, stream validation and ffmpeg crash handler.
-async def get_ffmpeg_options(position: int) -> dict[str, str]:
+async def get_ffmpeg_options(position: int, source_website: SourceWebsiteValue | None=None) -> dict[str, str]:
     """ Return a hashmap containing ffmpeg `before_options` and `options` in their respective keys.
 
-    Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options`. """
+    Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options` or `before_options` if supported. """
     
-    return {
+    options = {
         "before_options": f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max {FFMPEG_RECONNECT_TIMEOUT_SECONDS} -rw_timeout {FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS}",
-        "options": f"-vn -ss {position}"
+        "options": f"-vn"
     }
+
+    if source_website not in FAST_SEEK_SUPPORT_DOMAINS:
+        options["options"] += f" -ss {position}"
+    else:
+        options["before_options"] += f" -ss {position}"
+
+    return options
 
 async def is_stream_url_alive(url: str, session: ClientSession) -> bool:
     """ Check if a stream URL is accessible asynchronously with timeout in seconds.
@@ -54,7 +62,7 @@ async def handle_player_crash(
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
         resume_time: int,
-        play_track_func: Awaitable
+        play_track_func: Callable[..., Awaitable]
     ) -> bool:
 
     """ Handles unexpected stream crashes by resolving the expired URL and spawning a new ffmpeg process.

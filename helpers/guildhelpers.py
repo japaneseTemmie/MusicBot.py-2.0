@@ -2,6 +2,7 @@
 
 from settings import CAN_LOG, LOGGER, PATH, ROLE_LOCKS, ROLE_FILE_CACHE
 from error import Error
+from webextractor import SourceWebsiteValue
 from helpers.iohelpers import read_file_json, write_file_json, ensure_paths
 from helpers.lockhelpers import check_file_lock
 from helpers.cachehelpers import get_cache, store_cache
@@ -151,7 +152,7 @@ async def update_query_extraction_state(
         progress_current: int, 
         progress_total: int,
         progress_item_name: str | None,
-        progress_source_website: str | None,
+        progress_source_website: SourceWebsiteValue | None,
     ) -> None:
     """ Update the current extraction state. """
     
