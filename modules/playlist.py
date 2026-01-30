@@ -6,7 +6,7 @@ from bot import Bot, ShardedBot
 from managers.playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
 from error import Error
-from webextractor import SourceWebsite
+from webextractor import SourceWebsite, SearchWebsiteID
 from init.logutils import log_to_discord_log
 from helpers.embedhelpers import (
     generate_added_track_embed, generate_queue_page_embed, generate_removed_tracks_embed,
@@ -711,8 +711,8 @@ class PlaylistCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_REPLACE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
-            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
-            app_commands.Choice(name="YouTube search", value="youtube")
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD_SEARCH.value, value=SearchWebsiteID.SOUNDCLOUD_SEARCH.value),
+            app_commands.Choice(name=SourceWebsite.YOUTUBE_SEARCH.value, value=SearchWebsiteID.YOUTUBE_SEARCH.value)
         ]
     )
     @app_commands.guild_only
@@ -740,6 +740,7 @@ class PlaylistCog(commands.Cog):
             return
         
         playlist_name = await sanitize_name(playlist_name)
+        provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
@@ -750,7 +751,7 @@ class PlaylistCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
-        result = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old_track_name, new_track_query, search_provider, by_index)
+        result = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old_track_name, new_track_query, provider, by_index)
         
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
@@ -866,8 +867,8 @@ class PlaylistCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_ADD_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
-            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
-            app_commands.Choice(name="YouTube search", value="youtube")
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD_SEARCH.value, value=SearchWebsiteID.SOUNDCLOUD_SEARCH.value),
+            app_commands.Choice(name=SourceWebsite.YOUTUBE_SEARCH.value, value=SearchWebsiteID.YOUTUBE_SEARCH.value)
         ]
     )
     @app_commands.guild_only
@@ -887,6 +888,7 @@ class PlaylistCog(commands.Cog):
             return
         
         playlist_name = await sanitize_name(playlist_name)
+        provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
@@ -907,7 +909,7 @@ class PlaylistCog(commands.Cog):
             SourceWebsite.NEWGROUNDS.value,
             SourceWebsite.BANDCAMP.value
         )
-        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types, search_provider)
+        result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types, provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)

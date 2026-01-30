@@ -28,7 +28,7 @@ from helpers.embedhelpers import (
     generate_queue_page_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
 )
 from error import Error
-from webextractor import SourceWebsite
+from webextractor import SourceWebsite, SearchWebsiteID
 from audioplayer import AudioPlayer
 from bot import Bot, ShardedBot
 
@@ -62,9 +62,10 @@ class MusicCog(commands.Cog):
         search_provider="[EXPERIMENTAL] The website to search for each search query on. URLs ignore this. (default YouTube)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["ADD_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
-    @app_commands.choices(search_provider=[
-            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
-            app_commands.Choice(name="YouTube search", value="youtube")
+    @app_commands.choices(
+        search_provider=[
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD_SEARCH.value, value=SearchWebsiteID.SOUNDCLOUD_SEARCH.value),
+            app_commands.Choice(name=SourceWebsite.YOUTUBE_SEARCH.value, value=SearchWebsiteID.YOUTUBE_SEARCH.value)
         ]
     )
     @app_commands.guild_only
@@ -100,7 +101,7 @@ class MusicCog(commands.Cog):
             SourceWebsite.BANDCAMP.value,
             SourceWebsite.NEWGROUNDS.value
         )
-        provider = search_provider.value if search_provider else None
+        provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
         found = await fetch_queries(self.guild_states, interaction, queries_split, allowed_query_types=allowed_query_types, provider=provider)
 
@@ -161,8 +162,8 @@ class MusicCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYNOW_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
-            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
-            app_commands.Choice(name="YouTube search", value="youtube")
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD_SEARCH.value, value=SearchWebsiteID.SOUNDCLOUD_SEARCH.value),
+            app_commands.Choice(name=SourceWebsite.YOUTUBE_SEARCH.value, value=SearchWebsiteID.YOUTUBE_SEARCH.value)
         ]
     )
     @app_commands.guild_only
@@ -200,7 +201,7 @@ class MusicCog(commands.Cog):
             SourceWebsite.BANDCAMP.value,
             SourceWebsite.NEWGROUNDS.value
         )
-        provider = search_provider.value if search_provider else None
+        provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
         extracted_track = await fetch_query(self.guild_states, interaction, query, allowed_query_types=allowed_query_types, provider=provider)
 
         await update_guild_state(self.guild_states, interaction, False, "is_extracting")
@@ -718,8 +719,8 @@ class MusicCog(commands.Cog):
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["REPLACE_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.choices(
         search_provider=[
-            app_commands.Choice(name="SoundCloud search", value="soundcloud"),
-            app_commands.Choice(name="YouTube search", value="youtube")
+            app_commands.Choice(name=SourceWebsite.SOUNDCLOUD_SEARCH.value, value=SearchWebsiteID.SOUNDCLOUD_SEARCH.value),
+            app_commands.Choice(name=SourceWebsite.YOUTUBE_SEARCH.value, value=SearchWebsiteID.YOUTUBE_SEARCH.value)
         ]
     )
     @app_commands.guild_only
@@ -736,10 +737,11 @@ class MusicCog(commands.Cog):
 
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
         queue = self.guild_states[interaction.guild.id]["queue"]
+        provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await replace_track_in_queue(self.guild_states, interaction, queue, old_track_name, new_track_query, by_index=by_index, provider=search_provider)
+        result = await replace_track_in_queue(self.guild_states, interaction, queue, old_track_name, new_track_query, by_index=by_index, provider=provider)
         if isinstance(result, Error):
             await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)

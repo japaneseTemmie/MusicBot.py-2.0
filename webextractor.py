@@ -30,6 +30,14 @@ class SourceWebsite(Enum):
     YOUTUBE_SEARCH = "YouTube search"
     SOUNDCLOUD_SEARCH = "SoundCloud search"
 
+class SearchWebsiteID(Enum):
+    SOUNDCLOUD_SEARCH = "soundcloud"
+    YOUTUBE_SEARCH = "youtube"
+
+class SearchString(Enum):
+    SOUNDCLOUD_SEARCH = "scsearch:"
+    YOUTUBE_SEARCH = "ytsearch:"
+
 class QueryType:
     """ QueryType class.
     
@@ -71,8 +79,8 @@ URL_PATTERNS = [
 # Hashmap of search providers
 # Key is the provider and the value is a tuple with yt-dlp search string [0] and 'source_website' string [1]
 SEARCH_PROVIDERS = {
-    "soundcloud": ("scsearch:", SourceWebsite.SOUNDCLOUD_SEARCH.value),
-    "youtube": ("ytsearch:", SourceWebsite.YOUTUBE_SEARCH.value)
+    SearchWebsiteID.SOUNDCLOUD_SEARCH.value: (SearchString.SOUNDCLOUD_SEARCH.value, SourceWebsite.SOUNDCLOUD_SEARCH.value),
+    SearchWebsiteID.YOUTUBE_SEARCH.value: (SearchString.YOUTUBE_SEARCH.value, SourceWebsite.YOUTUBE_SEARCH.value)
 }
 
 PLAYLIST_WEBSITES = (SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.SOUNDCLOUD_PLAYLIST.value, SourceWebsite.BANDCAMP_PLAYLIST.value)
@@ -95,7 +103,7 @@ def get_query_type(query: str, provider: str | None) -> QueryType:
             return QueryType(query, source_website, True, regex)
 
     # If no matches are found, match a search query. If not found, default to youtube.
-    provider_info = SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS["youtube"])
+    provider_info = SEARCH_PROVIDERS.get(provider, SEARCH_PROVIDERS[SearchWebsiteID.YOUTUBE_SEARCH.value])
     provider_search_string = provider_info[0]
     provider_source_website = provider_info[1]
 

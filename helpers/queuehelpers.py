@@ -9,7 +9,6 @@ from helpers.extractorhelpers import fetch_query
 
 import re
 from discord.interactions import Interaction
-from discord import app_commands
 from typing import Any
 from copy import deepcopy
 from random import randint, sample
@@ -457,7 +456,7 @@ async def replace_track_in_queue(
         queue: list[dict[str, Any]],
         track: str, 
         new_track: str,
-        provider: app_commands.Choice | None=None,
+        provider: str | None=None,
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict[str, Any], dict[str, Any]] | Error:
@@ -479,8 +478,6 @@ async def replace_track_in_queue(
         SourceWebsite.BANDCAMP.value,
         SourceWebsite.NEWGROUNDS.value
     )
-    provider = provider.value if provider else None
-
     extracted_track = await fetch_query(guild_states, interaction, new_track, allowed_query_types=allowed_query_types, provider=provider)
     if isinstance(extracted_track, Error):
         return extracted_track

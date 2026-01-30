@@ -17,7 +17,6 @@ from helpers.guildhelpers import read_guild_json, write_guild_json
 from error import Error
 from bot import Bot, ShardedBot
 
-from discord import app_commands
 from discord.interactions import Interaction
 from typing import Any
 from copy import deepcopy
@@ -206,7 +205,7 @@ class PlaylistManager:
             playlist_name: str,
             old: str,
             new: str,
-            provider: app_commands.Choice | None=None,
+            provider: str | None=None,
             by_index: bool=False,
             write_to_file: bool=True
         ) -> tuple[bool | Error, dict[str, Any], dict[str, Any]] | Error:
@@ -427,7 +426,7 @@ class PlaylistManager:
             playlist_name: str, 
             queries: list[str], 
             allowed_query_types: tuple[str], 
-            provider: app_commands.Choice | None=None,
+            provider: str | None=None,
             write_to_file: bool=True
         ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of queries to the given playlist.
@@ -441,7 +440,6 @@ class PlaylistManager:
             if await is_content_full(MAX_PLAYLIST_LIMIT, content):
                 return Error(f"Maximum playlist limit of **{MAX_PLAYLIST_LIMIT}** reached! Please delete a playlist to free a slot.")
 
-        provider = provider.value if provider else None
         found = await fetch_queries(guild_states, interaction, queries, allowed_query_types=allowed_query_types, provider=provider)
 
         if isinstance(found, list):
