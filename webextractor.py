@@ -123,7 +123,7 @@ def get_query_type(query: str, provider: SourceWebsiteValue | None) -> QueryType
 
     # Match URLs first.
     for regex, source_website in URL_PATTERNS:
-        if regex.fullmatch(query):
+        if regex.match(query):
             return QueryType(query, source_website, True, regex)
 
     # If no matches are found, match a search query. If not found, default to youtube.
