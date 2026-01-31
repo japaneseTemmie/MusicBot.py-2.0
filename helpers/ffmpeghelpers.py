@@ -30,10 +30,11 @@ async def get_ffmpeg_options(position: int, source_website: SourceWebsiteValue |
         "options": f"-vn"
     }
 
-    if source_website not in FAST_SEEK_SUPPORT_DOMAINS:
-        options["options"] += f" -ss {position}"
-    else:
-        options["before_options"] += f" -ss {position}"
+    if position > 0:
+        if source_website not in FAST_SEEK_SUPPORT_DOMAINS:
+            options["options"] += f" -ss {position}"
+        else:
+            options["before_options"] += f" -ss {position}"
 
     return options
 

@@ -1211,14 +1211,13 @@ class MusicCog(commands.Cog):
                 "elapsed_time"
             )
         
-        rewind_time = self.guild_states[interaction.guild.id]["elapsed_time"] - time_in_seconds
+        position = self.guild_states[interaction.guild.id]["elapsed_time"] - time_in_seconds
 
         await update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))        
-        await self.player.play_track(interaction, voice_client, current_track, rewind_time, "rewind")
+        await self.player.play_track(interaction, voice_client, current_track, position, "rewind")
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
-        await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_to_minutes(time_in_seconds)}**. Now at **{format_to_minutes(elapsed_time)}**")
+        await interaction.followup.send(f"Rewound track (**{current_track['title']}**) by **{format_to_minutes(time_in_seconds)}**. Now at **{format_to_minutes(position)}**")
 
     @rewind_track.error
     async def handle_rewind_track_error(self, interaction: Interaction, error: Exception):

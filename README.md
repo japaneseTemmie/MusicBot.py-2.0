@@ -268,6 +268,23 @@ To enable or modify the activity the bot displays in its profile,
 you can modify the `enable_activity`, `activity_name`, `activity_type`, `activity_state` (for `listening` and `playing` activity types only) and `status_type`
 values to set your own custom activity.
 
+To ensure YouTube extraction works consistently, a JavaScript runtime may be needed. Please see [yt-dlp's guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS) on how to set it up.
+
+TL;DR either:
+1. Install a JavaScript runtime through your package manager (Linux/macOS). If you choose this way, you shouldn't have to do anything else as yt-dlp will auto-detect the binary at the default installation directory.
+2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
+
+    ```json
+    "yt_dlp_options":
+      "js_runtimes": {
+        "{runtime_name}": {
+          "path": "{runtime_path}"
+        }
+      }
+    ```
+
+Replace the 2 variables with the appropriate values for your system.
+
 Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
 
 Notes
