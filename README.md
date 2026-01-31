@@ -264,44 +264,44 @@ Help for every command can be found using the **/help** command.
 # Extra Configuration (For experienced hosts)
 During the first run, the bot will create a `config.json` file in its own directory. It contains configuration data.
 
-To enable or modify the activity the bot displays in its profile,
-you can modify the `enable_activity`, `activity_name`, `activity_type`, `activity_state` (for `listening` and `playing` activity types only) and `status_type`
-values to set your own custom activity.
+- To enable or modify the activity the bot displays in its profile,
+  you can modify the `enable_activity`, `activity_name`, `activity_type`, `activity_state` (for `listening` and `playing` activity types only) and `status_type`
+  values to set your own custom activity.
 
-To ensure YouTube extraction works consistently, a JavaScript runtime may be needed. Please see [yt-dlp's guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS) on how to set it up.
+  Example activity config:
 
-TL;DR either:
-1. Install a JavaScript runtime through your package manager (Linux/macOS). If you choose this way, you shouldn't have to do anything else as yt-dlp will auto-detect the binary at the default installation directory.
-2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
+  ```json
+  {
+    "enable_activity": true,
+    "activity_name": "Amazing music",
+    "activity_type": "listening",
+    "activity_state": null,
+    "status_type": "online"
+  }
+  ```
 
-    ```json
-    "yt_dlp_options":
-      "js_runtimes": {
-        "{runtime_name}": {
-          "path": "{runtime_path}"
+- To ensure YouTube extraction works consistently, a JavaScript runtime may be needed. Please see [yt-dlp's guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS) on how to set it up.
+
+  TL;DR either:
+  1. Install a JavaScript runtime through your package manager (Linux/macOS). If you choose this way, you shouldn't have to do anything else as yt-dlp will auto-detect the binary at the default installation directory.
+  2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
+
+      ```json
+      "yt_dlp_options":
+        "js_runtimes": {
+          "{runtime_name}": {
+            "path": "{runtime_path}"
+          }
         }
-      }
-    ```
+      ```
 
-Replace the 2 variables with the appropriate values for your system.
+  Replace the 2 variables with the appropriate values for your system.
 
 Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
 
 Notes
 - Changing any value will require a restart to take effect. See [Troubleshooting](#troubleshooting) to see how to properly restart.
 - Config keys are automatically recreated at startup if missing.
-
-Example activity config:
-
-```json
-{
-  "enable_activity": true,
-  "activity_name": "Amazing music",
-  "activity_type": "listening",
-  "activity_state": null,
-  "status_type": "online"
-}
-```
 
 # Extending the bot (For devs)
 To add your own modules, simply create a new **.py** file in the `modules` directory. For access to config and runtime settings data as constants, import the `settings` and `init.constants` modules.
