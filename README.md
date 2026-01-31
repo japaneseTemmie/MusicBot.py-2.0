@@ -287,12 +287,13 @@ During the first run, the bot will create a `config.json` file in its own direct
   2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
 
       ```json
-      "yt_dlp_options":
+      "yt_dlp_options": {
         "js_runtimes": {
           "{runtime_name}": {
             "path": "{runtime_path}"
           }
         }
+      }
       ```
 
   Replace the 2 variables with the appropriate values for your system.
