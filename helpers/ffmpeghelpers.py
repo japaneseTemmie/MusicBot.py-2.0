@@ -63,7 +63,7 @@ async def handle_player_crash(
         current_track: dict[str, Any], 
         voice_client: discord.VoiceClient,
         resume_time: int,
-        play_track_func: Callable[..., Awaitable]
+        play_track_func: Callable[..., Awaitable[Any]]
     ) -> bool:
 
     """ Handles unexpected stream crashes by resolving the expired URL and spawning a new ffmpeg process.
