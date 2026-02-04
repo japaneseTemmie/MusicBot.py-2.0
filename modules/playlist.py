@@ -7,7 +7,7 @@ from managers.playlistmanager import PlaylistManager
 from audioplayer import AudioPlayer
 from error import Error
 from webextractor import SourceWebsite, SearchWebsiteID
-from init.logutils import log_to_discord_log
+from init.logutils import log, log_to_discord_log
 from helpers.embedhelpers import (
     generate_added_track_embed, generate_queue_page_embed, generate_removed_tracks_embed,
     generate_renamed_tracks_embed, generate_playlists_embed
@@ -27,6 +27,7 @@ from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
 from copy import deepcopy
+from typing import Callable, Awaitable, Any
 
 class PlaylistCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
@@ -35,6 +36,47 @@ class PlaylistCog(commands.Cog):
 
         self.playlist = PlaylistManager(self.client)
         self.player = AudioPlayer(self.client)
+
+    async def handle_error(
+            self, 
+            interaction: Interaction, 
+            error: Exception, 
+            unlock_playlists: bool=True, 
+            *callbacks: Callable[[], Awaitable[Any]]
+        ) -> None:
+        """ Handle unexpected exceptions that occur in commands. 
+        
+        `callbacks` may be a list of async functions to call before sending a message to the user. 
+        
+        By default this function unlocks all playlists after executing callbacks. """
+
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
+        if interaction.guild and interaction.guild.id not in self.guild_states:
+            """ This only gets triggered if the bot somehow cleaned up the guild state while
+            performing a task that's still not yet completed (like extracting something).
+             
+            Achievable by forcefully disconnecting the bot using the Discord UI while it's extracting something through the Discord client.
+            Is it something to worry about? Not really. The state is clean and no errors pile up. Normally, regular users can't force disconnect
+            the bot. Only through /leave (which is locked in that state). """
+            
+            return # Don't care just don't fill up the logs.
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await send_func(str(error), ephemeral=True)
+            return
+
+        for callback in callbacks:
+            try:
+                await callback()
+            except Exception as e:
+                log(f"Error in error handler callback: {e}")
+
+        if unlock_playlists:
+            await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
+
+        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+
+        await send_func("An unknown error occurred.", ephemeral=True)
 
     @app_commands.command(name="playlist-view", description="Shows the tracks of a playlist page.")
     @app_commands.describe(
@@ -92,20 +134,7 @@ class PlaylistCog(commands.Cog):
 
     @show_playlist.error
     async def handle_show_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-save-queue", description="Creates or updates a playlist with the current queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -170,20 +199,7 @@ class PlaylistCog(commands.Cog):
 
     @save_queue_in_playlist.error
     async def handle_save_queue_in_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-save-history", description="Creates or updates a playlist with the current history. See entry in /help for more info.")
     @app_commands.describe(
@@ -208,18 +224,18 @@ class PlaylistCog(commands.Cog):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
         
+        playlist_name = await sanitize_name(playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
             await interaction.followup.send(content.msg)
             return
         
-        await update_guild_state(self.guild_states, interaction, True, "is_reading_history")
         await lock_playlist(interaction, content, locked, playlist_name)
 
         result = await self.playlist.add_queue(interaction, content, playlist_name, history)
 
         await unlock_playlist(locked, content, playlist_name)
-        await update_guild_state(self.guild_states, interaction, False, "is_reading_history")
 
         if isinstance(result, Error):
             await interaction.followup.send(result.msg)
@@ -235,20 +251,7 @@ class PlaylistCog(commands.Cog):
 
     @save_history_in_playlist.error
     async def handle_save_history_in_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-save-current-track", description="Saves the current track to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -303,20 +306,7 @@ class PlaylistCog(commands.Cog):
 
     @save_current_track_in_playlist.error
     async def handle_save_current_in_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-select", description="Selects tracks in a playlist and adds them to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -387,22 +377,13 @@ class PlaylistCog(commands.Cog):
 
     @select_playlist.error
     async def handle_select_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting")),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        )
 
     @app_commands.command(name="playlist-create", description="Creates a new empty playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -444,20 +425,7 @@ class PlaylistCog(commands.Cog):
 
     @create_playlist.error
     async def handle_create_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-delete", description="Deletes a saved playlist or its contents. See entry in /help for more info.")
     @app_commands.describe(
@@ -510,20 +478,7 @@ class PlaylistCog(commands.Cog):
 
     @delete_playlist.error
     async def handle_delete_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-remove", description="Remove specified track(s) from a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -577,20 +532,7 @@ class PlaylistCog(commands.Cog):
 
     @remove_playlist_track.error
     async def handle_remove_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-reset", description="Deletes all playlists saved in the current guild. See entry in /help for more info.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_RESET_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
@@ -620,20 +562,7 @@ class PlaylistCog(commands.Cog):
 
     @delete_all_playlists.error
     async def handle_delete_all_playlists_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-rename", description="Renames a playlist to a new specified name. See entry in /help for more info.")
     @app_commands.describe(
@@ -685,20 +614,7 @@ class PlaylistCog(commands.Cog):
 
     @rename_playlist.error
     async def handle_rename_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-replace", description="Replaces a playlist track with a different one. See entry in /help for more info.")
     @app_commands.describe(
@@ -773,22 +689,13 @@ class PlaylistCog(commands.Cog):
 
     @replace_playlist_track.error
     async def handle_replace_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-            
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_state(self.guild_states, interaction, False, "is_extracting"),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        )
 
     @app_commands.command(name="playlist-reposition", description="Repositions a playlist track to a new index. See entry in /help for more info.")
     @app_commands.describe(
@@ -843,20 +750,7 @@ class PlaylistCog(commands.Cog):
 
     @reposition_playlist_track.error
     async def handle_reposition_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-add", description="Adds specified tracks to a playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -931,22 +825,13 @@ class PlaylistCog(commands.Cog):
 
     @add_playlist_track.error
     async def handle_add_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_state(self.guild_states, interaction, False, "is_extracting"),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        ) 
 
     @app_commands.command(name="playlist-copy", description="Copies a playlist to a new/existing one. See entry in /help for more info.")
     @app_commands.describe(
@@ -999,20 +884,7 @@ class PlaylistCog(commands.Cog):
 
     @copy_playlist.error
     async def handle_copy_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return        
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-move", description="Merges a playlist with another one. See entry in /help for more info.")
     @app_commands.describe(
@@ -1065,20 +937,7 @@ class PlaylistCog(commands.Cog):
 
     @move_playlist.error
     async def handle_move_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return        
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-copy-tracks", description="Copies track(s) from a playlist to a new/existing one. See entry in /help for more info.")
     @app_commands.describe(
@@ -1133,20 +992,7 @@ class PlaylistCog(commands.Cog):
         
     @copy_playlist_tracks.error
     async def handle_copy_playlist_tracks_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return        
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-move-tracks", description="Merges tracks from a playlist with another one. See entry in /help for more info.")
     @app_commands.describe(
@@ -1171,6 +1017,9 @@ class PlaylistCog(commands.Cog):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         
+        playlist_name = await sanitize_name(playlist_name)
+        target_playlist_name = await sanitize_name(target_playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
             await interaction.followup.send(content.msg)
@@ -1198,20 +1047,7 @@ class PlaylistCog(commands.Cog):
 
     @move_playlist_tracks.error
     async def handle_move_playlist_tracks_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return        
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-fetch-tracks", description="Adds tracks from a playlist to the queue. See entry in /help for more info.")
     @app_commands.describe(
@@ -1276,22 +1112,13 @@ class PlaylistCog(commands.Cog):
 
     @fetch_playlist_track.error
     async def handle_fetch_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting")),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        )
 
     @app_commands.command(name="playlist-fetch-random-tracks", description="Fetches random tracks from a specified playlist. See entry in /help for more info.")
     @app_commands.describe(
@@ -1368,22 +1195,13 @@ class PlaylistCog(commands.Cog):
 
     @choose_random_playlist_tracks.error
     async def handle_choose_random_playlist_tracks(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting")),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        )
 
     @app_commands.command(name="playlist-import", description="Imports a playlist from a supported website. See entry in /help for more info.")
     @app_commands.describe(
@@ -1445,22 +1263,13 @@ class PlaylistCog(commands.Cog):
 
     @add_playlist.error
     async def handle_add_playlist_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await update_guild_state(self.guild_states, interaction, False, "is_extracting")
-        await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(
+            interaction, 
+            error, 
+            True,
+            lambda: update_guild_state(self.guild_states, interaction, False, "is_extracting"),
+            lambda: update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+        )
 
     @app_commands.command(name="playlist-rename-tracks", description="Renames tracks to new names. See entry in /help for more info.")
     @app_commands.describe(
@@ -1516,20 +1325,7 @@ class PlaylistCog(commands.Cog):
 
     @rename_playlist_track.error
     async def handle_rename_playlist_track_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-
-        await unlock_all_playlists(self.guild_states[interaction.guild.id]["locked_playlists"])
-
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-get-saved", description="Shows saved playlists for this guild.")
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_GET_SAVED_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
@@ -1568,15 +1364,4 @@ class PlaylistCog(commands.Cog):
 
     @show_saved_playlists.error
     async def handle_show_saved_playlists_error(self, interaction: Interaction, error: Exception):
-        if isinstance(error, KeyError) or\
-            self.guild_states.get(interaction.guild.id, None) is None:
-            return
-        elif isinstance(error, app_commands.errors.CommandOnCooldown):
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        
-        log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-
-        await send_func("An unknown error occurred", ephemeral=True)
+        await self.handle_error(interaction, error, False)

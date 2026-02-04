@@ -103,7 +103,7 @@ SOUNDCLOUD_DOMAINS = (SourceWebsite.SOUNDCLOUD.value, SourceWebsite.SOUNDCLOUD_P
 YOUTUBE_DOMAINS = (SourceWebsite.YOUTUBE.value, SourceWebsite.YOUTUBE_PLAYLIST.value, SourceWebsite.YOUTUBE_SEARCH.value)
 
 # To speed up seeking in large tracks (30+ minutes) we must put -ss before the -i flag in the ffmpeg command.
-# However, some CDNs do not like this and must be excluded from this list
+# However, some CDNs (especially ones that primarily serve HLS streams) do not like this and must be excluded from this list
 # Currently, SoundCloud is the only source that crashes ffmpeg if -ss is before the -i flag
 FAST_SEEK_SUPPORT_DOMAINS = (
     SourceWebsite.BANDCAMP.value,
