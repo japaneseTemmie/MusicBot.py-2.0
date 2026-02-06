@@ -137,6 +137,8 @@ _*Support may depend on command._
 
 - Hardware requirements:
 
+  Theoretically, the bot can run on any sort of hardware configuration that boots a compatible OS. However, for best performance, here's the minimum/recommended requirements:
+
   - Minimum (personal use / few guilds):
 
       - A **100Mbps Download** / **10Mbps Upload** internet connection (_Ethernet preferred for lower latency_).
