@@ -1,6 +1,6 @@
 """ Audio player wrapper module for discord.py bot. """
 
-from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT
+from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT, OS_NAME
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
@@ -32,6 +32,36 @@ class AudioPlayer:
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
         self.guild_states = self.client.guild_states
+
+    async def handle_ffmpeg_spawn_error(self, interaction: Interaction, error: Exception, is_looping: bool) -> None:
+        """ Handle any playback error that occurs after spawning an FFmpeg process. """
+
+        play_next = True
+        if isinstance(error, OSError):
+            if OS_NAME == "posix":
+                from errno import EMFILE, ENFILE
+
+                if error.errno is not None and\
+                    error.errno in {EMFILE, ENFILE}:
+
+                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to spawn FFmpeg process. Too many open files! It is recommended to restart or raise your process limit.")
+                    log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+                    play_next = False
+            elif OS_NAME == "nt":
+                error_code = getattr(error, "winerror", None)
+                if error_code is not None and\
+                    error_code == 4:
+
+                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to spawn FFmpeg process. Too many open files! It is recommended to restart.")
+                    log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+                    play_next = False
+        
+        await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+        if is_looping:
+            await update_guild_state(self.guild_states, interaction, False, "is_looping")
+        
+        if play_next:
+            self.handle_playback_end(error, interaction)
 
     async def submit_track_to_player(
             self, 
@@ -69,11 +99,7 @@ class AudioPlayer:
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:
-            await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
-            if is_looping:
-                await update_guild_state(self.guild_states, interaction, False, "is_looping")
-            
-            self.handle_playback_end(e, interaction)
+            await self.handle_ffmpeg_spawn_error(interaction, e, is_looping)
             return None
         
         return track
