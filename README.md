@@ -324,8 +324,8 @@ Best practices:
 - If custom Cogs need other non-default permissions, make sure to enable them in [your application's Installation section](https://discord.com/developers/applications) and update role permissions for your bot.
 - To get a specific config value, use the `get_config_value()` function from `helpers.confighelpers`.
 - To reduce gateway event spam / load, some gateway intents are hardcoded to be disabled by default. Intents include:
-  - User presences [API reference](https://discord.com/developers/docs/events/gateway-events#presence-update)
-  - User Typing [API reference](https://discord.com/developers/docs/events/gateway-events#typing-start)
+  - User presences changes [API reference](https://discord.com/developers/docs/events/gateway-events#presence-update)
+  - User Typing (DMs and Guild) [API reference](https://discord.com/developers/docs/events/gateway-events#typing-start)
 
   Please keep this in mind.
 
