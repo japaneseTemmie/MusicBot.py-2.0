@@ -181,6 +181,8 @@ The project includes different versions based on how tested they are.
 - The `stable` branch is where changes from the `main` branch are shipped once they have gone through more testing.
 - `tags` or tagged releases ship less often and are usually the most stable. New releases are shipped once changes in `stable` have gone through more testing.
 
+The preferred release channel is `stable` or tagged releases for extra safety.
+
 ## Preparing the project directory
 - Unpack the chosen version of the source code to a directory of your choice. (Or, `git clone` it.)
 - Open a terminal in that directory.
