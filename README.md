@@ -21,6 +21,7 @@ an **extended** moderation module alongside other new features!
 - [Set up a Bot](#set-up-a-bot)
 - [Code setup](#code-setup)
 - [Requirements](#requirements)
+- [Choosing the right version](#choosing-the-right-version)
 - [Preparing the project directory](#preparing-the-project-directory)
 - [Automatic environment setup](#automatic-environment-setup)
 - [Manual environment setup](#manual-environment-setup)
@@ -173,8 +174,15 @@ _*Support may depend on command._
 
   - Storage is used for storing guild and config / logging data.
 
+## Choosing the right version
+The project includes different versions based on how tested they are.
+
+- `main` is the development branch where the newest fixes and changes are shipped. This is optimal but prone to breakages.
+- The `stable` branch is where changes from the `main` branch are shipped once they have gone through more testing.
+- `tags` or tagged releases ship less often and are usually the most stable. New releases are shipped once changes in `stable` have gone through more testing.
+
 ## Preparing the project directory
-- Unpack the source code to a directory of your choice. (Or, `git clone` it.)
+- Unpack the chosen version of the source code to a directory of your choice. (Or, `git clone` it.)
 - Open a terminal in that directory.
 
   - On Windows:
