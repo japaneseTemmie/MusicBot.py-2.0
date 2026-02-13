@@ -201,7 +201,7 @@ class Bot(commands.Bot):
         """ Set up an aiohttp ClientSession """
 
         self.client_http_session = ClientSession(timeout=ClientTimeout(HTTP_CLIENT_SESSION_TIMEOUT))
-        log("Set up an aiohttp ClientSession.")
+        log(f"Set up a generic aiohttp ClientSession with {HTTP_CLIENT_SESSION_TIMEOUT}s request timeout.")
         separator()
 
     async def handle_filesystem_tasks(self) -> bool:
