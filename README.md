@@ -295,7 +295,20 @@ During the first run, the bot will create a `config.json` file in its own direct
 - To ensure YouTube extraction works consistently, a JavaScript runtime may be needed. Please see [yt-dlp's guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS) on how to set it up.
 
   TL;DR either:
-  1. Install a JavaScript runtime through your package manager (Linux/macOS). If you choose this way, you shouldn't have to do anything else as yt-dlp will auto-detect the binary at the default installation directory.
+  1. Install a JavaScript runtime through your package manager (Linux/macOS). yt-dlp recommends _deno_ but other JavaScript runtimes are fine too. If you install deno, _no other action is required_. Otherwise, if you install node, bun, quickjs, etc. _you need to add the following flag_ in `yt_dlp_options`:
+
+      ```json
+      "yt_dlp_options": {
+        "js_runtimes": {
+          "{runtime_name}": {
+            "path": null
+          }
+        }
+      }
+      ```
+
+      Replace the variable with your chosen JavaScript runtime.
+
   2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
 
       ```json
@@ -308,7 +321,7 @@ During the first run, the bot will create a `config.json` file in its own direct
       }
       ```
 
-  Replace the 2 variables with the appropriate values for your system.
+      Replace the 2 variables with the appropriate values for your system.
 
 Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
 
