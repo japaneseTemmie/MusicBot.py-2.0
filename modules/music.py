@@ -1314,7 +1314,7 @@ class MusicCog(commands.Cog):
             return
         
         added = await add_filters(filters, {
-            "uploader": author,
+            "uploader": author.strip(),
             "min_duration": min_duration_in_seconds,
             "max_duration": max_duration_in_seconds,
             "source_website": website.value if website else None
@@ -1487,7 +1487,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, enable, "allow_greetings")
 
-        await interaction.followup.send("Settings updated!")
+        await interaction.followup.send("Settings updated for the current session!")
 
     @set_allow_greetings.error
     async def handle_set_allow_greetings_error(self, interaction: Interaction, error: Exception):
@@ -1525,7 +1525,7 @@ class MusicCog(commands.Cog):
 
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
-        await interaction.followup.send("Settings updated!")
+        await interaction.followup.send("Settings updated for the current session!")
 
     @set_allow_voice_status_edit.error
     async def handle_set_voice_status_edit_error(self, interaction: Interaction, error: Exception):
