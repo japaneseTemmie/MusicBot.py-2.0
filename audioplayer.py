@@ -1,6 +1,7 @@
 """ Audio player wrapper module for discord.py bot. """
 
 from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT, OS_NAME
+from init.constants import MAX_STREAM_REFRESH_RETRY_COUNT
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
@@ -37,24 +38,27 @@ class AudioPlayer:
         """ Handle any playback error that occurs after spawning an FFmpeg process. """
 
         play_next = True
+        message = f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to spawn FFmpeg process."
+
         if isinstance(error, OSError):
             if OS_NAME == "posix":
                 from errno import EMFILE, ENFILE
 
                 if error.errno is not None and\
                     error.errno in {EMFILE, ENFILE}:
-
-                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to spawn FFmpeg process. Too many open files! It is recommended to restart or raise your process limit.")
-                    log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+                    
                     play_next = False
+                    message += " Too many open files! It is recommended to restart or raise your process limit."
             elif OS_NAME == "nt":
-                error_code = getattr(error, "winerror", None)
-                if error_code is not None and\
-                    error_code == 4:
-
-                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to spawn FFmpeg process. Too many open files! It is recommended to restart.")
-                    log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
+                if error.winerror is not None and\
+                    error.winerror == 4:
+                    
                     play_next = False
+                    message += " Too many open files! It is recommended to restart."
+
+        log(message)
+        if not play_next: # handle_playback_end() will not be called, so log now.
+            log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
         
         await update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
         if is_looping:
@@ -62,6 +66,33 @@ class AudioPlayer:
         
         if play_next:
             self.handle_playback_end(error, interaction)
+
+    async def check_stream(self, interaction: Interaction, track: dict[str, Any], tries: int) -> dict[str, Any]:
+        """ Ping stream to ensure it is valid. 
+        
+        Raises ValueError if stream is invalid and retries have been exceeded. """
+
+        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
+        old_title = str(track["title"])
+        old_source_website = str(track["source_website"])
+
+        for i in range(tries):
+            if track is None:
+                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
+                raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
+
+            is_stream_alive = await is_stream_url_alive(track["url"], self.client.client_http_session)
+            if not is_stream_alive:
+                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Resolving expired URL in guild ID {interaction.guild.id}")
+                track = await resolve_expired_url(track["webpage_url"])
+            else:
+                track["title"] = old_title
+                track["source_website"] = old_source_website
+
+                return track
+        else:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
+            raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
 
     async def submit_track_to_player(
             self, 
@@ -75,25 +106,11 @@ class AudioPlayer:
         
         Return track on success or None if something went wrong while spawning an FFmpeg subprocess (not FFmpeg runtime error). """
 
-        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
-        old_title = str(track["title"])
-        old_source_website = str(track["source_website"])
-
         position = max(0, min(position, format_to_seconds(track["duration"])))
-        ffmpeg_options = await get_ffmpeg_options(position, old_source_website)
+        ffmpeg_options = await get_ffmpeg_options(position, track["source_website"])
 
         try:
-            is_stream_valid = await is_stream_url_alive(track["url"], self.client.client_http_session)
-            if not is_stream_valid: # This won't work anymore. Need a new stream. Slow, but required or else everything breaks :3
-                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving expired URL in guild ID {interaction.guild.id}")
-                track = await resolve_expired_url(track["webpage_url"])
-
-                if track is None or not await is_stream_url_alive(track["url"], self.client.client_http_session):
-                    log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
-                    raise ValueError(f"Unrecoverable stream from provider {track['source_website']}.")
-                
-                track["title"] = old_title
-                track["source_website"] = old_source_website
+            track = await self.check_stream(interaction, track, MAX_STREAM_REFRESH_RETRY_COUNT)
 
             source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
