@@ -72,14 +72,17 @@ class AudioPlayer:
         
         Raises ValueError if stream is invalid and retries have been exceeded. """
 
+        def _bail_out() -> None:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
+            raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
+
         # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
         old_title = str(track["title"])
         old_source_website = str(track["source_website"])
 
         for i in range(tries):
             if track is None:
-                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
-                raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
+                _bail_out()
 
             is_stream_alive = await is_stream_url_alive(track["url"], self.client.client_http_session)
             if not is_stream_alive:
@@ -91,8 +94,7 @@ class AudioPlayer:
 
                 return track
         else:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
-            raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
+            _bail_out()
 
     async def submit_track_to_player(
             self, 
