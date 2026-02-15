@@ -3,7 +3,7 @@
 from settings import CAN_LOG, LOGGER
 from init.constants import (
     PLAYBACK_END_GRACE_PERIOD, 
-    MAX_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW, 
+    MAX_RETRY_COUNT, MAX_STREAM_REFRESH_RETRY_COUNT, CRASH_RECOVERY_TIME_WINDOW,
     FFMPEG_RECONNECT_TIMEOUT_SECONDS, FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS,
     IS_STREAM_URL_ALIVE_REQUEST_HEADERS
 )
@@ -57,6 +57,35 @@ async def is_stream_url_alive(url: str, session: ClientSession) -> bool:
         log_to_discord_log(f"An error occured while validating stream URL {url}\nErr: {e}", "error", CAN_LOG, LOGGER)
         return False
 
+async def check_stream(interaction: Interaction, session: ClientSession, track: dict[str, Any], tries: int) -> dict[str, Any]:
+    """ Ping stream to ensure it is valid and return a track hashmap. 
+    
+    Raises ValueError if stream is invalid and tries have been exceeded. """
+
+    def _bail_out(attempt: int) -> None:
+        log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {attempt}) Re-fetched stream in guild ID {interaction.guild.id} is invalid after {attempt} attempt(s), raising error..")
+        raise ValueError(f"Unrecoverable stream from provider {old_source_website} after {attempt} attempt(s).")
+
+    # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
+    old_title = str(track["title"])
+    old_source_website = str(track["source_website"])
+
+    for i in range(tries):
+        if track is None:
+            _bail_out(i+1)
+
+        is_stream_alive = await is_stream_url_alive(track["url"], session)
+        if not is_stream_alive:
+            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Resolving expired URL in guild ID {interaction.guild.id}")
+            track = await resolve_expired_url(track["webpage_url"])
+        else:
+            track["title"] = old_title
+            track["source_website"] = old_source_website
+
+            return track
+    else:
+        _bail_out(i+1)
+
 async def handle_player_crash(
         interaction: Interaction,
         stream_url_checks_session: ClientSession,
@@ -71,19 +100,8 @@ async def handle_player_crash(
     Returns True for a successful recovery, False otherwise. """
 
     try:
-        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
-        old_title = str(current_track["title"])
-        old_source_website = str(current_track["source_website"])
-
-        log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving new stream URL for crash handler in guild ID {interaction.guild.id}")
-
-        new_track = await resolve_expired_url(current_track["webpage_url"])
-        if new_track is None or not await is_stream_url_alive(new_track["url"], stream_url_checks_session): # Validate new stream before passing it to play_track()
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Re-fetched stream in guild ID {interaction.guild.id} is invalid. Skipping..")
-            return False
-        
-        new_track["title"] = old_title
-        new_track["source_website"] = old_source_website
+        log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Resolving stream URL for crash handler in guild ID {interaction.guild.id}")
+        new_track = await check_stream(interaction, stream_url_checks_session, current_track, MAX_STREAM_REFRESH_RETRY_COUNT)
 
         await play_track_func(
             interaction, 

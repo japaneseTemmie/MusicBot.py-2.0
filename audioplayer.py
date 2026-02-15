@@ -6,7 +6,7 @@ from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.timehelpers import format_to_seconds
 from helpers.ffmpeghelpers import (
-    get_ffmpeg_options, is_stream_url_alive, resolve_expired_url, check_player_crash
+    get_ffmpeg_options, check_stream, check_player_crash
 )
 from helpers.guildhelpers import update_guild_state, update_guild_states
 from helpers.voicehelpers import set_voice_status, check_users_in_channel
@@ -67,42 +67,14 @@ class AudioPlayer:
         if play_next:
             self.handle_playback_end(error, interaction)
 
-    async def check_stream(self, interaction: Interaction, track: dict[str, Any], tries: int) -> dict[str, Any]:
-        """ Ping stream to ensure it is valid. 
-        
-        Raises ValueError if stream is invalid and retries have been exceeded. """
-
-        def _bail_out() -> None:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Re-fetched stream in guild ID {interaction.guild.id} is invalid, raising error..")
-            raise ValueError(f"Unrecoverable stream from provider {old_source_website}.")
-
-        # Keep a copy of the old title and source website and replace it when re-fetching a stream to match the custom playlist track name assigned by users.
-        old_title = str(track["title"])
-        old_source_website = str(track["source_website"])
-
-        for i in range(tries):
-            if track is None:
-                _bail_out()
-
-            is_stream_alive = await is_stream_url_alive(track["url"], self.client.client_http_session)
-            if not is_stream_alive:
-                log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] (Try {i+1}) Resolving expired URL in guild ID {interaction.guild.id}")
-                track = await resolve_expired_url(track["webpage_url"])
-            else:
-                track["title"] = old_title
-                track["source_website"] = old_source_website
-
-                return track
-        else:
-            _bail_out()
-
     async def submit_track_to_player(
             self, 
             interaction: Interaction,
             voice_client: discord.VoiceClient, 
             track: dict[str, Any], 
             position: int,
-            is_looping: bool
+            is_looping: bool,
+            do_stream_check: bool=True
         ) -> dict[str, Any] | None:
         """ Submit a track to the voice client player. 
         
@@ -112,7 +84,8 @@ class AudioPlayer:
         ffmpeg_options = await get_ffmpeg_options(position, track["source_website"])
 
         try:
-            track = await self.check_stream(interaction, track, MAX_STREAM_REFRESH_RETRY_COUNT)
+            if do_stream_check:
+                track = await check_stream(interaction, self.client.client_http_session, track, MAX_STREAM_REFRESH_RETRY_COUNT)
 
             source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
@@ -203,7 +176,7 @@ class AudioPlayer:
 
         is_looping = self.guild_states[interaction.guild.id]["is_looping"]
 
-        updated_track = await self.submit_track_to_player(interaction, voice_client, track, position, is_looping)
+        updated_track = await self.submit_track_to_player(interaction, voice_client, track, position, is_looping, state != "retry") # Crash handler already ensures stream is fine
         if updated_track is not None:
             await self.update_player_states(interaction, position, updated_track, state)
             return True
