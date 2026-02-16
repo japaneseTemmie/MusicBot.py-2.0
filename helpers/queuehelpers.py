@@ -485,7 +485,10 @@ async def replace_track_in_queue(
     if extracted_track["webpage_url"] == track_to_replace["webpage_url"]:
         return Error(f"Cannot replace a track (**{track_to_replace['title'][:MAX_ITEM_NAME_LENGTH]}**) with the same one.")
 
+    orig_track = extracted_track
+
     if is_playlist:
+        orig_track = deepcopy(extracted_track)
         extracted_track = {
             'title': extracted_track['title'],
             'uploader': extracted_track['uploader'],
@@ -497,7 +500,7 @@ async def replace_track_in_queue(
     removed_track = queue.pop(track_index)
     queue.insert(track_index, extracted_track)
 
-    return extracted_track, removed_track
+    return orig_track, removed_track
 
 async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any]], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict[str, Any], str]] | Error:
     """ Bulk rename tracks in a queue.
@@ -543,7 +546,7 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
 
     return renamed if renamed else Error(f"Could not find given tracks.")
 
-async def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any]) -> tuple[dict[str, Any], int] | Error:
+async def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any], is_playlist: bool=False) -> tuple[dict[str, Any], int] | Error:
     """ Place a track at a specified or last index in a queue.
 
     If `index` is `None`, the track will be placed at the last index of the queue.
@@ -555,20 +558,23 @@ async def place_track_in_queue(queue: list, index: int | None, track: dict[str, 
     elif index < 1 or index > len(queue):
         return Error(f"Given index (**{index}**) is out of bounds!")
     
-    playlist_track = {
-        'title': track['title'],
-        'uploader': track['uploader'],
-        'duration': track['duration'],
-        'webpage_url': track['webpage_url'],
-        'source_website': track['source_website']
-    }
+    orig_track = track
+    if is_playlist:
+        orig_track = deepcopy(track)
+        track = {
+            'title': track['title'],
+            'uploader': track['uploader'],
+            'duration': track['duration'],
+            'webpage_url': track['webpage_url'],
+            'source_website': track['source_website']
+        }
 
-    if await try_index(queue, index - 1, playlist_track):
+    if await try_index(queue, index - 1, track):
         return Error(f"Cannot place track (**{track['title'][:MAX_ITEM_NAME_LENGTH]}**) because it already exists at the specified index.")
     
-    queue.insert(index - 1, playlist_track)
+    queue.insert(index - 1, track)
 
-    return playlist_track, index
+    return orig_track, index
 
 async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
     """ Skip a specified amount of tracks in a queue. """

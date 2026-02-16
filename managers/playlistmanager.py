@@ -559,7 +559,7 @@ class PlaylistManager:
             
         playlist = content[playlist_name]
 
-        result = await place_track_in_queue(playlist, index, track)
+        result = await place_track_in_queue(playlist, index, track, True)
         if isinstance(result, Error):
             return result
 
