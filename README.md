@@ -144,7 +144,7 @@ _*Support may depend on command._
 
       - A **100Mbps Download** / **10Mbps Upload** internet connection (_Ethernet preferred for lower latency_).
 
-      - A **4 core** CPU running at ~3GHz.
+      - A **dual or quad-core** CPU running at ~3GHz.
 
       - **4 or 8** gigabytes of RAM.
 
@@ -158,7 +158,7 @@ _*Support may depend on command._
 
     - **32** or more gigabytes of RAM.
 
-    - **100GB+** of free solid state storage.
+    - **100** or more gigabytes of free solid state storage.
 
   NOTE: These are only _generic requirements_. Hardware should scale as per **guild count and usage**.
 
