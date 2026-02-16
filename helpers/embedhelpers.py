@@ -56,11 +56,12 @@ def _get_embed(title: str, colour: discord.Colour | None=None, timestamp: dateti
     )
 
 # Embed creator functions
-def generate_epoch_embed(join_time: str, elapsed_time: str) -> discord.Embed:
+def generate_epoch_embed(join_time: str, elapsed_time: str, starter_user: discord.User | discord.Member) -> discord.Embed:
     """ Generated an embed showing elapsed time since the very first track. """
     
     embed = _get_embed("Total elapsed time")
     embed.add_field(name=f"Since {join_time}", value=f"[ `{elapsed_time}` ]", inline=False)
+    embed.set_footer(text=f"Session started by {starter_user.name}", icon_url=starter_user.avatar.url if starter_user.avatar is not None else None)
 
     return embed
 

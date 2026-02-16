@@ -476,7 +476,7 @@ class MusicCog(commands.Cog):
             await update_guild_state(self.guild_states, interaction, None, "voice_status")
             await set_voice_status(self.guild_states, interaction)
 
-        self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
+        self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel, interaction.user)
 
         await interaction.followup.send(f"Stopped track **{current_track['title']}** and reset bot state.")
 
@@ -1231,6 +1231,7 @@ class MusicCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         first_track_start_date = self.guild_states[interaction.guild.id]["first_track_start_date"]
+        starter_user = self.guild_states[interaction.guild.id]["starter_user"]
 
         if not first_track_start_date:
             await interaction.followup.send("Play a track first.")
@@ -1239,7 +1240,7 @@ class MusicCog(commands.Cog):
         formatted_start_time = format_to_minutes(int(get_unix_timestamp() - first_track_start_date.timestamp()))
         formatted_join_time = first_track_start_date.strftime("%d/%m/%Y @ %H:%M:%S")
 
-        embed = generate_epoch_embed(formatted_join_time, formatted_start_time)
+        embed = generate_epoch_embed(formatted_join_time, formatted_start_time, starter_user)
 
         await interaction.followup.send(embed=embed)
 

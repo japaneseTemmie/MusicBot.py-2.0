@@ -86,7 +86,7 @@ class VoiceCog(commands.Cog):
 
             voice_client = await channel.connect(timeout=10)
             if voice_client.is_connected():
-                self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel)
+                self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel, interaction.user)
                 
                 log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
 

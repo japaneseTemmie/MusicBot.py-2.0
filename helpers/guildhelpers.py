@@ -183,8 +183,10 @@ async def update_guild_states(guild_states: dict[str, Any], interaction: Interac
             await update_guild_state(guild_states, interaction, value, state)
 
 # Function to reset states
-async def get_default_state(voice_client: discord.VoiceClient, current_text_channel: discord.TextChannel) -> dict[str, Any]:
-    """ Return a hashmap of default guild states where `voice_client` and `interaction_channel` are passed as function parameters. """
+async def get_default_state(voice_client: discord.VoiceClient, current_text_channel: discord.TextChannel, starter_user: discord.User | discord.Member) -> dict[str, Any]:
+    """ Return a hashmap of default guild states. 
+    
+    `voice_client`, `current_text_channel` and `starter_user` are contextual objects passed at runtime. """
     
     return {
         "voice_client": voice_client,
@@ -222,6 +224,7 @@ async def get_default_state(voice_client: discord.VoiceClient, current_text_chan
         "handling_disconnect_action": False,
         "handling_move_action": False,
         "interaction_channel": current_text_channel,
+        "starter_user": starter_user,
         "last_greet_time": {}
     }
 
