@@ -388,6 +388,8 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
   
   Then, try again.
 
+- If some sources return errors when extracting, it usually means your server's IP has been blacklisted and a new one is required. Rebooting the router that serves your server should be enough.
+
 - If you have an existing bot that's in over 2500 guilds, ensure the `use_sharding` key is set to `true` in `config.json`
 
   'Sharding' allows multiple instances of this bot to manage multiple guilds and is required by Discord after a bot reaches 2500 guilds.
