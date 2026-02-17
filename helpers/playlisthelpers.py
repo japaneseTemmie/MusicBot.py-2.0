@@ -44,14 +44,13 @@ async def has_playlists(content: dict[str, list]) -> bool:
 
     return len(content) > 0
 
-async def lock_playlist(interaction: Interaction, content: dict[str, list], locked: dict[str, bool], playlist_name: str) -> None:
-    """ Locks a playlist. """
+async def lock_playlist(content: dict[str, list], locked: dict[str, bool], playlist_name: str, force: bool=False) -> None:
+    """ Locks a playlist. 
+    
+    Normally, a playlist only gets locked if it actually exists. Unless `force` is `True`. """
 
     # Ensure the target playlist exists or a command that creates one is used.
-    if await playlist_exists(content, playlist_name) or\
-        interaction.command.name in (
-            "playlist-save-queue", "playlist-save-current-track", "playlist-import", "playlist-add", "playlist-create", "playlist-copy", "playlist-copy-tracks"
-        ):
+    if await playlist_exists(content, playlist_name) or force:
         locked[playlist_name] = True
 
 async def unlock_playlist(locked: dict[str, bool], content: dict[str, list], playlist_name: str) -> None:
