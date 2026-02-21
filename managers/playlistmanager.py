@@ -340,7 +340,8 @@ class PlaylistManager:
             playlist_name: str, 
             tracks: list[dict[str, Any]] | list[str], 
             treat_tracks_as_dicts: bool=False, 
-            by_index: bool=False
+            by_index: bool=False,
+            ignore_extraction_errors: bool=False
         ) -> list[dict[str, Any]] | Error:
         """ Adds requested queries from a given playlist to the queue.
 
@@ -359,7 +360,7 @@ class PlaylistManager:
             tracks_to_fetch = tracks
         
         query_names = [track["title"] for track in tracks_to_fetch]
-        found = await fetch_queries(guild_states, interaction, tracks_to_fetch, query_names)
+        found = await fetch_queries(guild_states, interaction, tracks_to_fetch, query_names, ignore_errors=ignore_extraction_errors)
 
         if isinstance(found, list):
             queue = guild_states[interaction.guild.id]["queue"]

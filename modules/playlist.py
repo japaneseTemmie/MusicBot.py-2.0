@@ -1175,7 +1175,7 @@ class PlaylistCog(commands.Cog):
         
         await update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
-        result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, random_tracks, True)
+        result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, random_tracks, True, ignore_extraction_errors=True)
 
         await update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         await update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
