@@ -92,7 +92,7 @@ async def fetch_queries(
             return extracted_query
         elif isinstance(extracted_query, list):
             found.extend(extracted_query)
-        else:
+        elif isinstance(extracted_query, dict):
             found.append(extracted_query)
     
     if can_extract:
