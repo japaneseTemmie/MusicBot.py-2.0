@@ -2,7 +2,7 @@
 An improved version of **MusicBot.py**, a multipurpose Discord bot. Now with **Application commands**, **multi-guild**, **multi-website** support and
 an **extended** moderation module alongside other new features!
 
-![Python](https://img.shields.io/badge/python-3.10%2B-yellow?logo=python&style=for-the-badge)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=yellow&style=for-the-badge)
 ![License](https://img.shields.io/github/license/japaneseTemmie/MusicBot.py-2.0?style=for-the-badge)
 ![Last Commit in main](https://img.shields.io/github/last-commit/japaneseTemmie/MusicBot.py-2.0/main?style=for-the-badge&logo=git&label=last%20commit%20in%20main)
 ![Last Commit in stable](https://img.shields.io/github/last-commit/japaneseTemmie/MusicBot.py-2.0/stable?style=for-the-badge&logo=git&label=last%20commit%20in%20stable)
