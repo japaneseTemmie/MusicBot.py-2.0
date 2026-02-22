@@ -185,19 +185,21 @@ class AudioPlayer:
 
     async def play_next(self, interaction: Interaction) -> None:
         """ Play the next track available in the queue. """
-        
+
         if interaction.guild.id not in self.guild_states:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with non-existent guild state. Ignoring.")
             return
 
-        voice_client = self.guild_states[interaction.guild.id]["voice_client"]
-        filters = self.guild_states[interaction.guild.id]["filters"]
-        queue = self.guild_states[interaction.guild.id]["queue"]
-        queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
-        is_looping = self.guild_states[interaction.guild.id]["is_looping"]
-        is_random = self.guild_states[interaction.guild.id]["is_random"]
-        track_to_loop = self.guild_states[interaction.guild.id]["track_to_loop"]
-        can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
+        state = self.guild_states[interaction.guild.id]
+
+        voice_client = state["voice_client"]
+        filters = state["filters"]
+        queue = state["queue"]
+        queue_to_loop = state["queue_to_loop"]
+        is_looping = state["is_looping"]
+        is_random = state["is_random"]
+        track_to_loop = state["track_to_loop"]
+        can_update_status = state["allow_voice_status_edit"]
         
         send_func = interaction.channel.send if interaction.is_expired() else interaction.followup.send
         play_success = False
