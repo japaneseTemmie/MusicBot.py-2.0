@@ -272,7 +272,7 @@ class PlaylistCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        current_track = deepcopy(self.guild_states[interaction.guild.id]["current_track"])
 
         if await is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
