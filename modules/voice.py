@@ -86,7 +86,7 @@ class VoiceCog(commands.Cog):
 
             voice_client = await channel.connect(timeout=10)
             if voice_client.is_connected():
-                self.guild_states[interaction.guild.id] = await get_default_state(voice_client, interaction.channel, interaction.user)
+                self.guild_states[interaction.guild.id] = get_default_state(voice_client, interaction.channel, interaction.user)
                 
                 log(f"[GUILDSTATE] Allocated space for guild ID {interaction.guild.id} in guild states.")
 
@@ -126,7 +126,7 @@ class VoiceCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if await is_playlist_locked(locked):
+        if is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
 
@@ -136,10 +136,10 @@ class VoiceCog(commands.Cog):
             log(f"[DISCONNECT][SHARD ID {interaction.guild.shard_id}] Requested to leave channel ID {voice_client.channel.id} in guild ID {interaction.guild.id}")
 
             if voice_client.is_playing() or voice_client.is_paused():
-                await update_guild_state(self.guild_states, interaction, True, "stop_flag")
+                update_guild_state(self.guild_states, interaction, True, "stop_flag")
                 voice_client.stop()
 
-            await update_guild_state(self.guild_states, interaction, True, "user_disconnect")
+            update_guild_state(self.guild_states, interaction, True, "user_disconnect")
 
             await voice_client.disconnect()
             log(f"[DISCONNECT][SHARD ID {interaction.guild.shard_id}] Left channel ID {voice_client.channel.id}")

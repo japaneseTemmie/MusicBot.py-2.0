@@ -14,7 +14,7 @@ from copy import deepcopy
 from random import randint, sample
 
 # Function to get a hashmap of queue pages to display
-async def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
+def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
     """ Create a hashmap of queue pages. Each page is 25 elements long. """
 
     pages = {}
@@ -26,7 +26,7 @@ async def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any
 
     return pages
 
-async def validate_page_number(total: int, page: int) -> bool | Error:
+def validate_page_number(total: int, page: int) -> bool | Error:
     """ Check if page number `page` is in a valid ranage [0, `total` - 1]. 
     
     Return an Error object or True. """
@@ -39,7 +39,7 @@ async def validate_page_number(total: int, page: int) -> bool | Error:
     return True
 
 # Functions to update the copied queue when /queueloop is enabled.
-async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict[str, Any], track: dict[str, Any]) -> None:
+def update_loop_queue_replace(guild_states: dict[str, Any], interaction: Interaction, old_track: dict[str, Any], track: dict[str, Any]) -> None:
     """ Update the queue to loop by replacing an old track with the new one.
 
     This function must be called after replacing an item from the queue and `is_looping_queue` state is active. """
@@ -56,7 +56,7 @@ async def update_loop_queue_replace(guild_states: dict[str, Any], interaction: I
             queue_to_loop.pop(loop_index)
             queue_to_loop.insert(loop_index, track)
 
-async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interaction, tracks_to_remove: list[dict[str, Any]]) -> None:
+def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interaction, tracks_to_remove: list[dict[str, Any]]) -> None:
     """ Update the queue to loop by removing items that are not in the queue.
 
     This function must be called after removing items from the queue and `is_looping_queue` state is active. """
@@ -70,7 +70,7 @@ async def update_loop_queue_remove(guild_states: dict[str, Any], interaction: In
                     queue_to_loop.pop(i)
                     break
 
-async def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
+def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
     """ Update the queue to loop with the latest extracted items from a queue.
 
     This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is active. """
@@ -121,14 +121,14 @@ async def check_queue_length(interaction: Interaction | None, max_limit: int, qu
     return True
 
 # Input sanitation & validation
-async def sanitize_name(name: str, default: str="Untitled") -> str:
+def sanitize_name(name: str, default: str="Untitled") -> str:
     """ Sanitize a playlist name by removing unwanted chars.
      
     Additionally, return a fixed name if the sanitized one is empty. """
     
     return name.replace("\\", "").strip() or default
 
-async def name_exceeds_length(limit: int, name: str) -> bool:
+def name_exceeds_length(limit: int, name: str) -> bool:
     """ Check if a name exceeds length `limit`.
 
     Return a boolean. """
@@ -136,7 +136,7 @@ async def name_exceeds_length(limit: int, name: str) -> bool:
     return len(name) > limit
 
 # Functions for finding items
-async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int] | Error:
+def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int] | Error:
     """ Find a track given its name or index (if `by_index` is True) in an iterable.
 
     Returns a tuple with the track hashmap [0] and its index [1] or an Error object. """
@@ -163,7 +163,7 @@ async def find_track(track: str, iterable: list[dict[str, Any]], by_index: bool=
         
     return Error(f"Could not find track **{track[:MAX_ITEM_NAME_LENGTH]}**.")
 
-async def get_previous_visual_track(current: dict[str, Any] | None, history: list[dict[str, Any]] | list) -> dict[str, Any] | Error:
+def get_previous_visual_track(current: dict[str, Any] | None, history: list[dict[str, Any]] | list) -> dict[str, Any] | Error:
     """ Return the previous track in a history of tracks based on the current track.
 
     Do not remove the returned track. """
@@ -179,7 +179,7 @@ async def get_previous_visual_track(current: dict[str, Any] | None, history: lis
     
     return history[length - 2] if current is not None else history[length - 1] # len - 1 = current, len - 2 = actual previous track
 
-async def get_next_visual_track(
+def get_next_visual_track(
         is_random: bool, 
         is_looping: bool, 
         track_to_loop: dict[str, Any] | None, 
@@ -198,7 +198,7 @@ async def get_next_visual_track(
     elif filters:
         return Error(
             f"Next track will be chosen according to these filters.\n"+
-            await get_active_filter_string(filters)
+            get_active_filter_string(filters)
         )
     elif queue:
         next_track = queue[0]
@@ -209,7 +209,7 @@ async def get_next_visual_track(
     
     return next_track
 
-async def get_next_track(
+def get_next_track(
         is_random: bool, 
         is_looping: bool, 
         track_to_loop: dict[str, Any] | None, 
@@ -230,7 +230,7 @@ async def get_next_track(
     if is_looping and track_to_loop:
         next_track = track_to_loop
     elif filters:
-        next_track = await find_next_filtered_track(queue, filters)
+        next_track = find_next_filtered_track(queue, filters)
     elif is_random:
         next_track = queue.pop(randint(0, len(queue) - 1))
     else:
@@ -238,7 +238,7 @@ async def get_next_track(
     
     return next_track
 
-async def try_index(iterable: list[Any], index: int, expected: Any=None) -> bool | Any:
+def try_index(iterable: list[Any], index: int, expected: Any=None) -> bool | Any:
     """ Test an index and see if it contains anything.
 
     If `expected` is given, return `True` if it matches `expected`, `False` otherwise. 
@@ -256,7 +256,7 @@ async def try_index(iterable: list[Any], index: int, expected: Any=None) -> bool
         return False
 
 # Playback filters
-async def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool]) -> str:
+def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool]) -> str:
     """ Return a string with added filters ready to be sent to the text channel. """
     
     string = str()
@@ -267,7 +267,7 @@ async def get_added_filter_string(filters: dict[str, Any], added: dict[str, bool
     
     return string
 
-async def get_removed_filter_string(removed: dict[str, bool]) -> str:
+def get_removed_filter_string(removed: dict[str, bool]) -> str:
     """ Return a string with removed filters ready to be sent to the text channel. """
     
     string = str()
@@ -278,7 +278,7 @@ async def get_removed_filter_string(removed: dict[str, bool]) -> str:
 
     return string
 
-async def get_active_filter_string(filters: dict[str, Any]) -> str:
+def get_active_filter_string(filters: dict[str, Any]) -> str:
     """ Return a string with active filters ready to be sent to the text channel. """
     
     string = str()
@@ -288,7 +288,7 @@ async def get_active_filter_string(filters: dict[str, Any]) -> str:
 
     return string
 
-async def add_filters(filters: dict[str, Any], to_add: dict[str, Any]) -> dict[str, bool]:
+def add_filters(filters: dict[str, Any], to_add: dict[str, Any]) -> dict[str, bool]:
     """ Get a filter hashmap based on given input. 
     
     Return a hashmap with k-v pairs where key is added filter and value is whether or not it's enabled. """
@@ -302,7 +302,7 @@ async def add_filters(filters: dict[str, Any], to_add: dict[str, Any]) -> dict[s
 
     return added
 
-async def clear_filters(filters: dict[str, Any], to_remove: dict[str, bool]) -> dict[str, bool]:
+def clear_filters(filters: dict[str, Any], to_remove: dict[str, bool]) -> dict[str, bool]:
     """ Remove given filters from `filters`. 
     
     Return a hashmap with k-v pairs where key is removed filter and value is whether or not it's disabled. """
@@ -316,7 +316,7 @@ async def clear_filters(filters: dict[str, Any], to_remove: dict[str, bool]) -> 
 
     return removed
 
-async def match_website_filter(filter_website: SourceWebsiteValue, track_website: SourceWebsiteValue) -> bool:
+def match_website_filter(filter_website: SourceWebsiteValue, track_website: SourceWebsiteValue) -> bool:
     """ Return a match result between a website filter and a track website. 
     
     Match all query types that are part of a website. (e.g. `filter_website` SoundCloud can match SoundCloud Playlist and Search)"""
@@ -331,7 +331,7 @@ async def match_website_filter(filter_website: SourceWebsiteValue, track_website
         case _:
             return filter_website == track_website
 
-async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
+def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     """ Match given filters to a track. 
     
     Possible matches are: Uploader, Duration and Website """
@@ -348,30 +348,30 @@ async def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     if filter_min_duration or filter_max_duration:
         matches.append(filter_min_duration <= track_duration <= filter_max_duration)
     if filter_website:
-        matches.append(await match_website_filter(filter_website, track_website))
+        matches.append(match_website_filter(filter_website, track_website))
 
     return all(matches)
 
-async def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
+def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
     """ Find the next track in a queue with the given filters. 
     
     Return the matching track or the next one if no filters match. """
     
     for i, track in enumerate(queue.copy()):
-        if await match_filters(track, filters):
+        if match_filters(track, filters):
             return queue.pop(i)
         
     return queue.pop(0)
 
 # Functions to get stuff from a queue.
-async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
+def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
     """ Get tracks from a queue based on their names (or indices, if `by_index` is `True`). 
     
     Returns a list of tracks or Error. """
     
     found = []
     for track_name in track_names:
-        track_info = await find_track(track_name, queue, by_index)
+        track_info = find_track(track_name, queue, by_index)
         
         if isinstance(track_info, Error):
             return track_info
@@ -380,7 +380,7 @@ async def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, An
 
     return found if found else Error("Could not find given tracks.")
 
-async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int) -> list[dict[str, Any]] | Error:
+def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int) -> list[dict[str, Any]] | Error:
     """ Return random amount of tracks from an interable `queue`. """
     
     if amount < 0:
@@ -392,7 +392,7 @@ async def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int)
 
 # Apply playlist tracks' title and source website to tracks
 # Has no effect on titles if users did not modify them.
-async def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list[dict[str, Any]]) -> None:
+def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list[dict[str, Any]]) -> None:
     """ Replace a track's 'title' and 'source_website' keys' values with values from the playlist. """
     
     for track, playlist_track in zip(tracks, playlist):
@@ -400,7 +400,7 @@ async def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist
         track["source_website"] = playlist_track["source_website"]
 
 # Functions to modify a queue
-async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
+def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
     """ Remove given tracks from queue.
      
     Return removed tracks or Error. """
@@ -409,7 +409,7 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
     to_remove = []
     
     for track in tracks:
-        found_track = await find_track(track, queue, by_index)
+        found_track = find_track(track, queue, by_index)
 
         if isinstance(found_track, Error):
             return found_track
@@ -428,7 +428,7 @@ async def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]]
 
     return removed if removed else Error("Could not find given tracks.")
 
-async def reposition_track_in_queue(track: str, index: int, queue: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int, int] | Error:
+def reposition_track_in_queue(track: str, index: int, queue: list[dict[str, Any]], by_index: bool=False) -> tuple[dict[str, Any], int, int] | Error:
     """ Reposition a track to a new index in a queue.
     
     Return a tuple with found track [0], old 1-based index [1], and new 1-based index [2] or Error. """
@@ -436,7 +436,7 @@ async def reposition_track_in_queue(track: str, index: int, queue: list[dict[str
     if index < 1 or index > len(queue):
         return Error(f"Given new index (**{index}**) is out of bounds!")
 
-    found_track = await find_track(track, queue, by_index)
+    found_track = find_track(track, queue, by_index)
     if isinstance(found_track, Error):
         return found_track
     
@@ -464,7 +464,7 @@ async def replace_track_in_queue(
     
     Return a tuple with new track [0] and old one [1] or Error. """
     
-    found_track = await find_track(track, queue, by_index)
+    found_track = find_track(track, queue, by_index)
     if isinstance(found_track, Error):
         return found_track
     
@@ -502,7 +502,7 @@ async def replace_track_in_queue(
 
     return orig_track, removed_track
 
-async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any]], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict[str, Any], str]] | Error:
+def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any]], names: list[str], new_names: list[str], by_index: bool=False) -> list[tuple[dict[str, Any], str]] | Error:
     """ Bulk rename tracks in a queue.
      
     Return a list with a tuple with track object [0] and new name [1] or Error. """
@@ -525,7 +525,7 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
         elif len(new_name) > max_name_length:
             return Error(f"Name **{new_name[:max_name_length]}** is too long! Must be <= **{max_name_length}** characters.")
 
-        found_track = await find_track(track, queue, by_index)
+        found_track = find_track(track, queue, by_index)
 
         if isinstance(found_track, Error):
             return found_track
@@ -546,7 +546,7 @@ async def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any
 
     return renamed if renamed else Error(f"Could not find given tracks.")
 
-async def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any], is_playlist: bool=False) -> tuple[dict[str, Any], int] | Error:
+def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any], is_playlist: bool=False) -> tuple[dict[str, Any], int] | Error:
     """ Place a track at a specified or last index in a queue.
 
     If `index` is `None`, the track will be placed at the last index of the queue.
@@ -569,14 +569,14 @@ async def place_track_in_queue(queue: list, index: int | None, track: dict[str, 
             'source_website': track['source_website']
         }
 
-    if await try_index(queue, index - 1, track):
+    if try_index(queue, index - 1, track):
         return Error(f"Cannot place track (**{track['title'][:MAX_ITEM_NAME_LENGTH]}**) because it already exists at the specified index.")
     
     queue.insert(index - 1, track)
 
     return orig_track, index
 
-async def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
+def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
     """ Skip a specified amount of tracks in a queue. """
     
     if amount < 0:

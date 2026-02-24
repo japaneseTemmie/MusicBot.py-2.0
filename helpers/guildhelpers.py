@@ -31,7 +31,7 @@ async def read_guild_json(
     if isinstance(locked_error, Error):
         return locked_error
     
-    file_lock = await ensure_lock(interaction, file_locks)
+    file_lock = ensure_lock(interaction, file_locks)
 
     async with file_lock:
         content = get_cache(cache, interaction.guild.id)
@@ -73,7 +73,7 @@ async def write_guild_json(
     if isinstance(locked_error, Error):
         return locked_error
     
-    file_lock = await ensure_lock(interaction, file_locks)
+    file_lock = ensure_lock(interaction, file_locks)
 
     async with file_lock:
         path = join(PATH, "guild_data", str(interaction.guild.id))
@@ -135,7 +135,7 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     return False
 
 # Function to add a file lock for a specific guild id if it doesn't exist
-async def ensure_lock(interaction: Interaction, locks: dict) -> asyncio.Lock:
+def ensure_lock(interaction: Interaction, locks: dict) -> asyncio.Lock:
     """ Adds an `asyncio.Lock` object to a guild if not present.
      
     Returns the created lock. """
@@ -146,7 +146,7 @@ async def ensure_lock(interaction: Interaction, locks: dict) -> asyncio.Lock:
     return locks[interaction.guild.id]
 
 # Functions for updating guild states
-async def update_query_extraction_state(
+def update_query_extraction_state(
         guild_states: dict[str, Any], 
         interaction: Interaction, 
         progress_current: int, 
@@ -157,14 +157,14 @@ async def update_query_extraction_state(
     """ Update the current extraction state. """
     
     if interaction.guild.id in guild_states:
-        await update_guild_states(
+        update_guild_states(
             guild_states, 
             interaction, 
             (progress_current, progress_total, progress_item_name, progress_source_website), 
             ("progress_current", "progress_total", "progress_item_name", "progress_source_website")
         )
 
-async def update_guild_state(guild_states: dict[str, Any], interaction: Interaction, value: Any, state: str) -> None:
+def update_guild_state(guild_states: dict[str, Any], interaction: Interaction, value: Any, state: str) -> None:
     """ Update guild `state` with a new `value`. """
     
     if interaction.guild.id in guild_states:
@@ -175,15 +175,15 @@ async def update_guild_state(guild_states: dict[str, Any], interaction: Interact
             
         guild_state[state] = value
 
-async def update_guild_states(guild_states: dict[str, Any], interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
+def update_guild_states(guild_states: dict[str, Any], interaction: Interaction, values: tuple[Any], states: tuple[str]) -> None:
     """ Bulk update guild `states` with `values`. """
     
     if interaction.guild.id in guild_states:        
         for state, value in zip(states, values):
-            await update_guild_state(guild_states, interaction, value, state)
+            update_guild_state(guild_states, interaction, value, state)
 
 # Function to reset states
-async def get_default_state(voice_client: discord.VoiceClient, current_text_channel: discord.TextChannel, starter_user: discord.User | discord.Member) -> dict[str, Any]:
+def get_default_state(voice_client: discord.VoiceClient, current_text_channel: discord.TextChannel, starter_user: discord.User | discord.Member) -> dict[str, Any]:
     """ Return a hashmap of default guild states. 
     
     `voice_client`, `current_text_channel` and `starter_user` are contextual objects passed at runtime. """

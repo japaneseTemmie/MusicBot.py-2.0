@@ -49,7 +49,7 @@ class Bot(commands.Bot):
             return
 
         async with self.setup_lock:
-            await set_global_locks(True, True)
+            set_global_locks(True, True)
 
             log(f"Logged in as {self.user.name}")
             separator()
@@ -67,7 +67,7 @@ class Bot(commands.Bot):
 
             self.has_finished_on_ready = True
 
-            await set_global_locks(False, False)
+            set_global_locks(False, False)
 
     async def on_shard_ready(self, shard_id: int) -> None:
         log(f"Shard {shard_id} is ready.")
@@ -80,10 +80,10 @@ class Bot(commands.Bot):
         log("Attempting a cleanup..")
         separator()
 
-        await set_global_locks(True, True)
+        set_global_locks(True, True)
 
-        log(f"File operations locked permanently: {await get_file_lock()}")
-        log(f"Voice state permanently locked: {await get_vc_lock()}")
+        log(f"File operations locked permanently: {get_file_lock()}")
+        log(f"Voice state permanently locked: {get_vc_lock()}")
         separator()
         
         await self.wait_for_read_write_sync()

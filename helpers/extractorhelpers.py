@@ -32,7 +32,7 @@ async def fetch_query(
     if allowed_query_types is not None and query_type.source_website not in allowed_query_types:
         return Error(f"Query type **{query_type.source_website}** not supported for this command!")
 
-    await update_query_extraction_state(
+    update_query_extraction_state(
         guild_states, 
         interaction, 
         extraction_state_amount, 
@@ -69,7 +69,7 @@ async def fetch_queries(
         queries_length != len(query_names):
         query_names = None
 
-    await update_guild_state(guild_states, interaction, True, "can_extract")
+    update_guild_state(guild_states, interaction, True, "can_extract")
     can_extract = guild_states[interaction.guild.id]["can_extract"]
 
     for i, query in enumerate(queries):
@@ -88,7 +88,7 @@ async def fetch_queries(
 
         if isinstance(extracted_query, Error) and not ignore_errors:
             if can_extract:
-                await update_guild_state(guild_states, interaction, False, "can_extract")
+                update_guild_state(guild_states, interaction, False, "can_extract")
             
             return extracted_query
         elif isinstance(extracted_query, list):
@@ -97,7 +97,7 @@ async def fetch_queries(
             found.append(extracted_query)
     
     if can_extract:
-        await update_guild_state(guild_states, interaction, False, "can_extract")
+        update_guild_state(guild_states, interaction, False, "can_extract")
     
     if not found:
         return Error("Could not extract any track.")

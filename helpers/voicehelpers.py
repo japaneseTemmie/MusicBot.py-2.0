@@ -41,7 +41,7 @@ async def greet_new_user_in_vc(guild_states: dict[str, Any], user: discord.Membe
         await text_channel.send(f"{welcome_text}\n{listening_text}")
 
 # Disconnect behavior
-async def cleanup_guilds(guild_states: dict[str, Any], clients: list[discord.VoiceClient]) -> None:
+def cleanup_guilds(guild_states: dict[str, Any], clients: list[discord.VoiceClient]) -> None:
     """ Clean up any inactive guild's data. Called at the end of `disconnect_routine()` """
     
     active_guild_ids = [client.guild.id for client in clients]
@@ -67,7 +67,7 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
 
     Returns True if none are left and the bot is disconnected, False otherwise. """
     
-    if await get_vc_lock():
+    if get_vc_lock():
         return True # bot is disconnected
 
     voice_client = guild_states[member.guild.id]["voice_client"]
@@ -84,13 +84,13 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
     if voice_client.is_connected() and\
         not voice_client.is_playing() and\
         not is_extracting and\
-        not await is_playlist_locked(locked_playlists):
+        not is_playlist_locked(locked_playlists):
 
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
 
-        await update_guild_state(guild_states, member, True, "user_disconnect")
+        update_guild_state(guild_states, member, True, "user_disconnect")
         if voice_client.is_paused():
-            await update_guild_state(guild_states, member, True, "stop_flag")
+            update_guild_state(guild_states, member, True, "stop_flag")
 
         await voice_client.disconnect() # rest is handled by disconnect_routine() (hopefully)
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Left channel ID {voice_client.channel.id}")
@@ -115,14 +115,14 @@ async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, A
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a disconnect action for guild ID {member.guild.id}. Ignoring.")
         return
 
-    await update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
+    update_guild_states(guild_states, member, (True, True), ("pending_cleanup", "handling_disconnect_action"))
 
     if handling_extraction_process:
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Stopping extraction process for guild ID {member.guild.id} to allow cleaning up voice and guild data.")
-        await update_guild_state(guild_states, member, False, "can_extract")
+        update_guild_state(guild_states, member, False, "can_extract")
 
     if can_update_status and user_initiated_disconnect: # Prevents status from getting reset on network disconnects
-        await update_guild_state(guild_states, member, None, "voice_status")
+        update_guild_state(guild_states, member, None, "voice_status")
         await set_voice_status(guild_states, member)
 
     log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Waiting {MAX_GUILD_CLEANUP_WAIT_TIME} seconds before cleaning up guild ID {member.guild.id}...")
@@ -131,7 +131,7 @@ async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, A
     if any(client.guild.id == member.guild.id for client in client.voice_clients): # Reconnected, all good
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Cleanup operation cancelled for guild ID {member.guild.id}")
 
-        await update_guild_states(guild_states, member, (False, False), ("pending_cleanup", "handling_disconnect_action"))
+        update_guild_states(guild_states, member, (False, False), ("pending_cleanup", "handling_disconnect_action"))
         return
     
     """ Assumes the bot is disconnected before calling this function, which should be the case since disconnect_routine() gets triggered when there's a voice state update
@@ -140,7 +140,7 @@ async def disconnect_routine(client: Bot | ShardedBot, guild_states: dict[str, A
 
     """ Use this function instead of a simple 'del guild_states[member.guild.id]' so we catch
     any leftover guilds that were not properly cleaned up. """
-    await cleanup_guilds(guild_states, client.voice_clients)
+    cleanup_guilds(guild_states, client.voice_clients)
 
 async def close_voice_clients(guild_states: dict[str, Any], client: Bot | ShardedBot) -> None:
     """ Close any leftover voice clients connections and clean up their channel status. """
@@ -155,16 +155,16 @@ async def close_voice_clients(guild_states: dict[str, Any], client: Bot | Sharde
         
         if handling_extraction_process:
             log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Stopping extraction process for guild ID {voice_client.guild.id} to allow cleaning up voice and guild data.")
-            await update_guild_state(guild_states, voice_client, False, "can_extract")
+            update_guild_state(guild_states, voice_client, False, "can_extract")
 
         if voice_client.is_playing() or voice_client.is_paused():
-            await update_guild_state(guild_states, voice_client, True, "stop_flag")
+            update_guild_state(guild_states, voice_client, True, "stop_flag")
             voice_client.stop()
 
             log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Stopped playback in channel ID {voice_client.channel.id}")
 
         if can_edit_status:
-            await update_guild_state(guild_states, voice_client, None, "voice_status")
+            update_guild_state(guild_states, voice_client, None, "voice_status")
             await set_voice_status(guild_states, voice_client)
 
             log(f"[GUILDSTATE][SHARD ID {voice_client.guild.shard_id}] Cleared voice channel status for channel ID {voice_client.channel.id}")
@@ -202,7 +202,7 @@ async def handle_channel_move(
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Already handling a move action for channel ID {after_state.channel.id}")
         return
 
-    await update_guild_states(guild_states, member, (True, True), ("handling_move_action", "voice_client_locked"))
+    update_guild_states(guild_states, member, (True, True), ("handling_move_action", "voice_client_locked"))
 
     if can_update_status and current_status:
         await before_state.channel.edit(status=None)
@@ -211,7 +211,7 @@ async def handle_channel_move(
         await text_channel.send("I can't work in stage channels!")
 
         if voice_client.is_playing() or voice_client.is_paused():
-            await update_guild_state(guild_states, member, True, "stop_flag")
+            update_guild_state(guild_states, member, True, "stop_flag")
 
         await voice_client.disconnect()
         return
@@ -220,7 +220,7 @@ async def handle_channel_move(
         if voice_client.is_playing():
             voice_client.pause()
             elapsed_time = int(monotonic() - start_time)
-            await update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
+            update_guild_state(guild_states, member, elapsed_time, "elapsed_time")
 
         await text_channel.send(f"Waiting **{MAX_USER_WAIT_TIME_AFTER_CHANNEL_MOVE}** seconds for users in new channel **{voice_client.channel.name}**.")
 
@@ -234,12 +234,12 @@ async def handle_channel_move(
         if voice_client.is_paused():
             voice_client.resume()
             start_time = int(monotonic() - elapsed_time)
-            await update_guild_state(guild_states, member, start_time, "start_time")
+            update_guild_state(guild_states, member, start_time, "start_time")
 
             if can_update_status and current_status:
                 await set_voice_status(guild_states, member)
 
-    await update_guild_states(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
+    update_guild_states(guild_states, member, (False, False), ("voice_client_locked", "handling_move_action"))
 
     await text_channel.send(f"Resumed session in **{voice_client.channel.name}**.")
 

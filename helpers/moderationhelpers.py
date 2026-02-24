@@ -13,11 +13,11 @@ async def get_banned_users(guild: discord.Guild) -> list[discord.User] | list:
 
     return members
 
-async def get_role(roles: list[discord.Role], role: str, get_by_id: bool=False) -> discord.Role | None:
+def get_role(roles: list[discord.Role], role: str, get_by_id: bool=False) -> discord.Role | None:
     return discord.utils.get(roles, name=role) if not get_by_id and not role.isdigit() else\
     discord.utils.get(roles, id=int(role))
 
-async def get_user_to_unban(banned_users: list[discord.User], member: str | int) -> discord.User:
+def get_user_to_unban(banned_users: list[discord.User], member: str | int) -> discord.User:
     """ Match a given user's name or ID to users in a ban entry list and return the object. """
     
     member_obj = None
@@ -35,7 +35,7 @@ async def get_user_to_unban(banned_users: list[discord.User], member: str | int)
 
     return member_obj
 
-async def remove_markdown_or_mentions(text: str, markdown: bool, mentions: bool) -> str:
+def remove_markdown_or_mentions(text: str, markdown: bool, mentions: bool) -> str:
     """ Remove Discord's markdown and mention formatting. """
     
     clean_text = text
@@ -47,7 +47,7 @@ async def remove_markdown_or_mentions(text: str, markdown: bool, mentions: bool)
 
     return clean_text
 
-async def get_purge_check(user: discord.Member | None, word: str | None) -> Callable:
+def get_purge_check(user: discord.Member | None, word: str | None) -> Callable:
     """ Return a check for the purge function, allowing to filter
     which messages to delete. """
     

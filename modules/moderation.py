@@ -84,7 +84,7 @@ class ModerationCog(commands.Cog):
         channel = interaction.channel if channel is None else channel
         after = datetime.now(timezone.utc) - timedelta(days=13, hours=50)
 
-        deleted_messages = await channel.purge(limit=amount, check=await get_purge_check(user, word), after=after)
+        deleted_messages = await channel.purge(limit=amount, check=get_purge_check(user, word), after=after)
         deleted_message_amount = len(deleted_messages)
 
         if deleted_message_amount < 1:
@@ -186,7 +186,7 @@ class ModerationCog(commands.Cog):
             await interaction.response.send_message("Ban entries are empty.", ephemeral=True)
             return
 
-        member_to_unban = await get_user_to_unban(banned_users, member.strip())
+        member_to_unban = get_user_to_unban(banned_users, member.strip())
         if member_to_unban is None:
             await interaction.response.send_message(f"Could not find member **{member}** in ban entries.", ephemeral=True)
             return
@@ -710,7 +710,7 @@ class ModerationCog(commands.Cog):
             return
         
         if no_markdown or no_mentions:
-            message = await remove_markdown_or_mentions(message, no_markdown, no_mentions)
+            message = remove_markdown_or_mentions(message, no_markdown, no_mentions)
 
         await channel.send(message)
         await interaction.response.send_message(f"Message announced in channel **{channel.name}**.", ephemeral=True)

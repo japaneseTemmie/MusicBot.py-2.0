@@ -20,7 +20,7 @@ from typing import Any, Awaitable, Callable
 from time import monotonic
 
 # FFmpeg options, stream validation and ffmpeg crash handler.
-async def get_ffmpeg_options(position: int, source_website: SourceWebsiteValue | None=None) -> dict[str, str]:
+def get_ffmpeg_options(position: int, source_website: SourceWebsiteValue | None=None) -> dict[str, str]:
     """ Return a hashmap containing ffmpeg `before_options` and `options` in their respective keys.
 
     Additionally, seek position may be passed as function parameter `position`, which will be added after the `-ss` flag in `options` or `before_options` if supported. """
@@ -116,7 +116,7 @@ async def handle_player_crash(
         log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
         return False
 
-async def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
+def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
     """ Check if a track has ended early with a grace period to avoid false positives. """
     
     current_time = int(monotonic() - start_time)
@@ -125,7 +125,7 @@ async def track_ended_early(track: dict[str, Any], start_time: int) -> bool:
     
     return current_time < expected_elapsed_time
 
-async def recovery_count_over_limit(recovery_count: int, last_recovery_time: float) -> bool:
+def recovery_count_over_limit(recovery_count: int, last_recovery_time: float) -> bool:
     """ Check if recovery count is over the limit in a time window and return True if so. Otherwise False. """
     
     current_time = monotonic()
@@ -137,7 +137,7 @@ async def recovery_count_over_limit(recovery_count: int, last_recovery_time: flo
 
     return False
 
-async def get_approximate_resume_time(current_time: int, track_duration_in_seconds: int) -> int:
+def get_approximate_resume_time(current_time: int, track_duration_in_seconds: int) -> int:
     """ Given a crash time and the total duration, return the approximate resume time. """
     
     return max(0, int(current_time - (track_duration_in_seconds - current_time) * 0.1))
@@ -161,12 +161,12 @@ async def check_player_crash(
     recovery_success = False
 
     if current_track is not None and not user_forced:
-        if await track_ended_early(current_track, start_time) and not\
-            await recovery_count_over_limit(crash_recovery_count, last_recovery_time):
+        if track_ended_early(current_track, start_time) and not\
+            recovery_count_over_limit(crash_recovery_count, last_recovery_time):
             
-            await update_guild_state(guild_states, interaction, True, "voice_client_locked")
+            update_guild_state(guild_states, interaction, True, "voice_client_locked")
 
-            approximate_resume_time = await get_approximate_resume_time(int(monotonic() - start_time), format_to_seconds(current_track["duration"]))
+            approximate_resume_time = get_approximate_resume_time(int(monotonic() - start_time), format_to_seconds(current_track["duration"]))
             await interaction.channel.send(
                 f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream.\nAttempting to recover.."
             )
@@ -180,12 +180,12 @@ async def check_player_crash(
                 play_track_func
             )
 
-            await update_guild_state(guild_states, interaction, False, "voice_client_locked")
+            update_guild_state(guild_states, interaction, False, "voice_client_locked")
 
             if recovery_success:
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Recovered player crash in guild ID {interaction.guild.id}")
 
-                await update_guild_states(guild_states, interaction, (crash_recovery_count + 1, monotonic()), ("crash_recovery_count", "last_recovery_time"))
+                update_guild_states(guild_states, interaction, (crash_recovery_count + 1, monotonic()), ("crash_recovery_count", "last_recovery_time"))
 
                 await interaction.channel.send(f"Successfully recovered playback.\nNow playing at **{format_to_minutes(approximate_resume_time)}**.")
                 return recovery_success
@@ -195,6 +195,6 @@ async def check_player_crash(
                 await interaction.channel.send(f"Failed to recover.\nSkipping..")
 
     if user_forced:
-        await update_guild_state(guild_states, interaction, False, "user_interrupted_playback")
+        update_guild_state(guild_states, interaction, False, "user_interrupted_playback")
 
     return recovery_success

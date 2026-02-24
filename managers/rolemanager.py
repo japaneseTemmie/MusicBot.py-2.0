@@ -83,7 +83,7 @@ class RoleManager:
             return Error(f"Default **{role_to_look_for}** role has not been set for this guild yet!")
         
         role_id = content[role_to_look_for]
-        role_obj = await get_role(interaction.guild.roles, role_id, True)
+        role_obj = get_role(interaction.guild.roles, role_id, True)
         
         if role_obj is None:
             return Error(f"Role (ID **{role_id}**) not found in guild!")

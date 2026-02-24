@@ -37,17 +37,17 @@ async def check_file_lock(reply_to_interaction: bool=False, interaction: Interac
         
     return True
 
-async def get_vc_lock() -> bool:
+def get_vc_lock() -> bool:
     """ Return the raw value of the voice lock state """
 
     return VOICE_OPERATIONS_LOCKED.is_set()
 
-async def get_file_lock() -> bool:
+def get_file_lock() -> bool:
     """ Return the raw value of the file lock state """
 
     return FILE_OPERATIONS_LOCKED.is_set()
 
-async def set_global_locks(voice: bool | None=None, file_ops: bool | None=None) -> None:
+def set_global_locks(voice: bool | None=None, file_ops: bool | None=None) -> None:
     """ Set voice or file global locks depending on given flags. 
     
     A value of `None` will not modify the current lock state. """
