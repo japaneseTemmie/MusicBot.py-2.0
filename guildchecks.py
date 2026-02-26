@@ -8,7 +8,7 @@ from helpers.iohelpers import make_path
 import asyncio
 import discord
 from os.path import join, isdir, exists
-from os import listdir
+from os import scandir
 from shutil import rmtree
 
  # I/O for guild_data
@@ -73,15 +73,22 @@ def is_in_guild(guild_id: int, guild_ids: set[int]) -> bool:
 def find_guilds_to_delete(user: str, guild_ids: set[int]) -> list[str]:
     """ Find guilds that aren't in the bot's known list and schedule them for deletion. """
     
-    path = join(PATH, "guild_data")
-    folders = listdir(path)
+    folders = []
     to_delete = []
+    path = join(PATH, "guild_data")
 
-    for guild_id in folders:
-        if guild_id.isdigit() and not is_in_guild(int(guild_id), guild_ids):
-            log(f"{user} is not in guild ID {guild_id}, will be scheduled for removal.")
+    try:
+        with scandir(path) as iterator:
+            folders = list(iterator)
+    except Exception as e:
+        log(f"Unable to iterate over {path} due to error, skipping guild cleanup.\nErr: {e}")
+        return to_delete
 
-            full_file_path = join(path, guild_id)
+    for entry in folders:
+        if entry.is_dir() and entry.name.isdigit() and not is_in_guild(int(entry.name), guild_ids):
+            log(f"{user} is not in guild ID {entry.name}, will be scheduled for removal.")
+
+            full_file_path = join(path, entry.name)
             to_delete.append(full_file_path)
 
     return to_delete
