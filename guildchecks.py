@@ -7,13 +7,17 @@ from helpers.iohelpers import make_path
 
 import asyncio
 import discord
-from os.path import join, exists
+from os.path import join, isdir
 from os import scandir
 from shutil import rmtree
 
  # I/O for guild_data
 def delete_guild_tree(path: str) -> bool:
-    """ Delete a guild data directory. """
+    """ Delete a guild data directory. 
+    
+    Path is not validated. 
+    
+    Return value indicates success. """
     
     try:
         rmtree(path)
@@ -25,7 +29,9 @@ def delete_guild_tree(path: str) -> bool:
     return True
 
 def delete_guild_dirs(to_delete: list[str]) -> bool:
-    """ Delete guild data directories from a list of guild IDs. """
+    """ Delete given guild data directories. 
+
+    Return value indicates success. """
     
     success = True
     for path in to_delete:
@@ -38,7 +44,7 @@ def delete_guild_dirs(to_delete: list[str]) -> bool:
 def ensure_guild_data_path(guild_data_path: str) -> bool:
     """ Ensures the given guild data path exists. """
     
-    if not exists(guild_data_path):
+    if not isdir(guild_data_path):
         result = make_path(guild_data_path, can_log=CAN_LOG, logger=LOGGER)
         if not result:
             return False
