@@ -7,7 +7,7 @@ from helpers.iohelpers import make_path
 
 import asyncio
 import discord
-from os.path import join, isdir, exists
+from os.path import join, exists
 from os import scandir
 from shutil import rmtree
 
@@ -16,10 +16,8 @@ def delete_guild_tree(path: str) -> bool:
     """ Delete a guild data directory. """
     
     try:
-        if isdir(path):
-            rmtree(path)
-
-            log(f"Removed tree {path}")
+        rmtree(path)
+        log(f"Removed tree {path}")
     except (OSError, PermissionError, FileNotFoundError) as e:
         log(f"An error occurred while deleting {path}\nErr: {e}")
         return False
