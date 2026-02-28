@@ -39,7 +39,7 @@ from random import randint, shuffle
 from discord import app_commands
 from discord.interactions import Interaction
 from discord.ext import commands
-from typing import Callable, Awaitable, Any
+from typing import Callable
 
 class MusicCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
