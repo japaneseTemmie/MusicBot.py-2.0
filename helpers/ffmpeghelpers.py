@@ -167,8 +167,10 @@ async def check_player_crash(
             update_guild_state(guild_states, interaction, True, "voice_client_locked")
 
             approximate_resume_time = get_approximate_resume_time(int(monotonic() - start_time), format_to_seconds(current_track["duration"]))
+            resume_time_in_mins = format_to_minutes(approximate_resume_time)
+
             await interaction.channel.send(
-                f"Looks like the playback crashed at **{format_to_minutes(approximate_resume_time)}** due to a faulty stream.\nAttempting to recover.."
+                f"Looks like the playback crashed at **{resume_time_in_mins}** due to a faulty stream.\nAttempting to recover.."
             )
 
             recovery_success = await handle_player_crash(
@@ -187,7 +189,7 @@ async def check_player_crash(
 
                 update_guild_states(guild_states, interaction, (crash_recovery_count + 1, monotonic()), ("crash_recovery_count", "last_recovery_time"))
 
-                await interaction.channel.send(f"Successfully recovered playback.\nNow playing at **{format_to_minutes(approximate_resume_time)}**.")
+                await interaction.channel.send(f"Successfully recovered playback.\nNow playing at **{resume_time_in_mins}**.")
                 return recovery_success
             else:
                 log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Failed to recover player crash in guild ID {interaction.guild.id}")
