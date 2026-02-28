@@ -1,11 +1,11 @@
 """ Setup script for discord.py bot. """
 
-from os.path import dirname, exists, join
 from os import name
 from subprocess import Popen, SubprocessError, PIPE
 from sys import exit as sysexit, version_info, prefix, base_prefix, executable
-from time import sleep
+from os.path import dirname, isfile, isdir, join
 from init.logutils import log, separator
+from time import sleep
 
 PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
@@ -16,18 +16,32 @@ cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
 cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
-def check_python_ver() -> None:
+# Checks
+def check_python_ver() -> bool:
     if version_info < (3, 10):
         log(f"Python 3.10+ is required for this project.", "runner")
-        sleep(2)
+        return False
+    
+    return True
 
-        sysexit(1)
-
-def is_in_venv() -> None:
+def is_in_venv() -> bool:
     if prefix != base_prefix:
         log("This script cannot be executed inside a venv.", "runner")
-        sysexit(1)
+        return False
+    
+    return True
 
+def check_requirements() -> bool:
+    if not isfile(join(PATH, "requirements.txt")):
+        log("requirements.txt file not found.", "runner")
+        return False
+    
+    return True
+
+def venv_exists() -> bool:
+    return isdir(VENV_PATH) and isfile(VENV_PYTHON) and isfile(VENV_PIP)
+
+# Wrapper for Popen
 def run(command: list[str], sep_process: bool=False) -> int:
     """ Run a command. """
 
@@ -75,14 +89,7 @@ def handle_return_code(code: int, command: str) -> None:
         log(f"Running command '{command}' failed. Exiting...", "runner")
         sysexit(1)
 
-def venv_exists() -> bool:
-    return exists(VENV_PATH) and exists(VENV_PYTHON) and exists(VENV_PIP)
-
-def check_requirements() -> None:
-    if not exists(join(PATH, "requirements.txt")):
-        log("requirements.txt file not found.", "runner")
-        sysexit(1)
-
+# Installer functions
 def install_venv() -> None:
     code = run(cmd_install_venv)
     handle_return_code(code, " ".join(cmd_install_venv))
@@ -91,10 +98,12 @@ def install_dependencies() -> None:
     code = run(cmd_install_deps)
     handle_return_code(code, " ".join(cmd_install_deps))
 
+# Main
 def main() -> None:
-    check_python_ver()
-    is_in_venv()
-    check_requirements()
+    checks = [check_python_ver(), is_in_venv(), check_requirements()]
+    if not all(checks):
+        log("Failure exit", "runner")
+        sysexit(1)
 
     log(f"Verifying venv installation in {VENV_PATH}", "runner")
     sleep(0.5)
