@@ -60,7 +60,9 @@ class MusicCog(commands.Cog):
     async def handle_error(self, interaction: Interaction, error: Exception, *callbacks: Callable[[], None]) -> None:
         """ Handle unexpected exceptions that occur in commands. 
         
-        `callbacks` may be a list of async functions to call before sending a message to the user. """
+        `callbacks` may be a list of synchronous functions to call before sending a message to the user. 
+        
+        Callbacks only get executed if there's a valid guild state present in guild states and if the error is not `CommandOnCooldown` """
 
         send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
