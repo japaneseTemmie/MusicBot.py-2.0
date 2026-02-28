@@ -3,14 +3,14 @@
 from settings import CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
 
-def add_zeroes(parts: list[str], length_limit: int):
+def _add_zeroes(parts: list[str], length_limit: int):
     missing = length_limit - len(parts)
     
     for _ in range(missing):
         parts.insert(0, "00")
 
 def format_to_minutes(seconds: int) -> str | None:
-    """ Format `seconds` into a HH:MM:SS string. Returns None if `seconds` is None. """
+    """ Format `seconds` into a HH:MM:SS string. Return None if `seconds` is None. """
     
     if seconds is None:
         return None
@@ -22,7 +22,9 @@ def format_to_minutes(seconds: int) -> str | None:
     return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
 
 def format_to_seconds(minutes_str: str) -> int | None:
-    """ Format a HH:MM:SS `minutes_str` into seconds. Returns None if `minutes_str` is None. """
+    """ Format a HH:MM:SS `minutes_str` into seconds. 
+    
+    Return None if `minutes_str` is None or string contains invalid parts. """
     
     try:
         if minutes_str is None:
@@ -31,7 +33,7 @@ def format_to_seconds(minutes_str: str) -> int | None:
         parts = minutes_str.split(":")
         
         if len(parts) < 3:
-            add_zeroes(parts, 3)
+            _add_zeroes(parts, 3)
         
         for i, part in enumerate(parts):
             if int(part) < 0 or (int(part) > 59 and i > 0):
@@ -46,7 +48,9 @@ def format_to_seconds(minutes_str: str) -> int | None:
         return None
 
 def format_to_seconds_extended(minutes_str: str) -> int | None:
-    """ Format a DD:HH:MM:SS `minutes_str` into seconds. Returns None if `minutes_str` is None. """
+    """ Format a DD:HH:MM:SS `minutes_str` into seconds.
+    
+    Return None if `minutes_str` is None or the string contains invalid parts. """
     
     if minutes_str is None:
         return None
@@ -55,7 +59,7 @@ def format_to_seconds_extended(minutes_str: str) -> int | None:
         parts = minutes_str.split(":")
         
         if len(parts) < 4:
-            add_zeroes(parts, 4)
+            _add_zeroes(parts, 4)
 
         for i, part in enumerate(parts):
             if (i < 1 and int(part) > 28) or\
