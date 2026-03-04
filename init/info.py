@@ -79,6 +79,7 @@ def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> 
     
     if output is None:
         log(f"FF{ff_type} not found!")
+        log("Please visit the project's GitHub repository for detailed installation instructions.")
         
         if os == "posix":
             log(f"If you're running a Debian/Ubuntu based Linux distro, install the full binary set with 'sudo apt install ffmpeg'.\nOtherwise, check your distro's repositories or compile it from source.")
