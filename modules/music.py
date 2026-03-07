@@ -376,19 +376,22 @@ class MusicCog(commands.Cog):
             return
         
         await interaction.response.defer(thinking=True)
-        
+
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         start_time = self.guild_states[interaction.guild.id]["start_time"]
 
         if voice_client.is_paused():
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("I'm already paused!")
             return
 
-        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
         voice_client.pause()
+
         update_guild_state(self.guild_states, interaction, int(monotonic() - start_time), "elapsed_time")
 
         if can_update_status:
@@ -419,18 +422,21 @@ class MusicCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
         elapsed_time = self.guild_states[interaction.guild.id]["elapsed_time"]
         
         if not voice_client.is_paused():
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("I'm not paused!")
             return
 
-        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
         voice_client.resume()
+
         update_guild_state(self.guild_states, interaction, int(monotonic() - elapsed_time), "start_time")
 
         if can_update_status:
@@ -464,16 +470,21 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
 
         if is_playlist_locked(locked):
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
 
-        update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
+        update_guild_state(self.guild_states, interaction, True, "stop_flag")
+
         voice_client.stop()
 
         if can_update_status:
@@ -644,11 +655,11 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
+        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
-
-        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
         result = await replace_track_in_queue(self.guild_states, interaction, queue, old_track_name, new_track_query, by_index=by_index, provider=provider)
         if isinstance(result, Error):
