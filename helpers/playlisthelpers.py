@@ -53,13 +53,11 @@ def lock_playlist(content: dict[str, list], locked: dict[str, bool], playlist_na
     if playlist_exists(content, playlist_name) or force:
         locked[playlist_name] = True
 
-def unlock_playlist(locked: dict[str, bool], content: dict[str, list], playlist_name: str) -> None:
+def unlock_playlist(locked: dict[str, bool], playlist_name: str) -> None:
     """ Unlocks a playlist. """
 
     if playlist_name in locked:
         locked[playlist_name] = False
-    
-    cleanup_locked_playlists(content, locked)
 
 def unlock_all_playlists(locked: dict[str, bool]) -> None:
     """ Unlocks every locked playlist. """
