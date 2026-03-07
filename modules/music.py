@@ -985,21 +985,27 @@ class MusicCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
         # We may want to keep this as a fallback in case the 'current_track' state is not clean. (unlikely but possible)
         if not voice_client.is_playing() and\
             not voice_client.is_paused():
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("No track is currently playing!")
             return
 
         position_in_seconds = format_to_seconds(position.strip())
         if position_in_seconds is None:
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            
             await interaction.followup.send("Invalid time format.\nBe sure to format it to **HH:MM:SS**.\nAdditionally, **MM** and **SS** must not be > **59**.")
             return
         
-        update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
+        update_guild_state(self.guild_states, interaction, True, "stop_flag")
         await self.player.play_track(interaction, voice_client, current_track, position_in_seconds, "seek")
         update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
@@ -1028,16 +1034,22 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
 
         if not voice_client.is_playing() and\
             not voice_client.is_paused():
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("No track is currently playing!")
             return
 
         time_in_seconds = format_to_seconds(time.strip())
         if not time_in_seconds:
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
@@ -1052,7 +1064,7 @@ class MusicCog(commands.Cog):
         
         position = self.guild_states[interaction.guild.id]["elapsed_time"] - time_in_seconds
 
-        update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))        
+        update_guild_state(self.guild_states, interaction, True, "stop_flag")        
         await self.player.play_track(interaction, voice_client, current_track, position, "rewind")
         update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
@@ -1081,16 +1093,22 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
 
         if not voice_client.is_playing() and\
             not voice_client.is_paused():
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("No track is currently playing!")
             return
 
         time_in_seconds = format_to_seconds(time.strip())
         if not time_in_seconds:
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+
             await interaction.followup.send("Invalid time format. Be sure to format it to **HH:MM:SS**.\n**MM** and **SS** must not be > **59**.")
             return
         
@@ -1105,7 +1123,7 @@ class MusicCog(commands.Cog):
 
         position = self.guild_states[interaction.guild.id]["elapsed_time"] + time_in_seconds
 
-        update_guild_states(self.guild_states, interaction, (True, True), ("voice_client_locked", "stop_flag"))
+        update_guild_state(self.guild_states, interaction, True, "stop_flag")
         await self.player.play_track(interaction, voice_client, current_track, position, "forward")
         update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
