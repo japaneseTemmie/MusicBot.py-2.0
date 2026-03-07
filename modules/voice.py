@@ -125,8 +125,12 @@ class VoiceCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         if is_playlist_locked(locked):
+            update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
+            
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
 
