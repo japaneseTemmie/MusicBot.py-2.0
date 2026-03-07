@@ -111,17 +111,18 @@ class MusicCog(commands.Cog):
             return
 
         await interaction.response.defer(thinking=True)
-        
+
+        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         is_looping_queue = self.guild_states[interaction.guild.id]["is_looping_queue"]
 
         is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
         if not is_queue_length_ok:
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             return
         queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(queries))
-
-        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
 
         allowed_query_types = (
             SourceWebsite.YOUTUBE.value, 
@@ -150,13 +151,13 @@ class MusicCog(commands.Cog):
             if is_looping_queue:
                 update_loop_queue_add(self.guild_states, interaction)
 
-            update_guild_state(self.guild_states, interaction, False, "is_modifying")
-
             if not voice_client.is_playing() and\
                 not voice_client.is_paused():
                 await self.player.play_next(interaction)
             
             embed = generate_added_track_embed(added)
+
+            update_guild_state(self.guild_states, interaction, False, "is_modifying")
 
             await interaction.followup.send(embed=embed)
 
@@ -192,6 +193,8 @@ class MusicCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
@@ -203,11 +206,10 @@ class MusicCog(commands.Cog):
 
             if not is_queue_length_ok or\
                 not is_queue_not_being_modified:
+                update_guild_state(self.guild_states, interaction, False, "is_extracting")
                 return
-
+            
             update_guild_state(self.guild_states, interaction, True, "is_modifying")
-
-        update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         allowed_query_types = (
             SourceWebsite.YOUTUBE.value, 
