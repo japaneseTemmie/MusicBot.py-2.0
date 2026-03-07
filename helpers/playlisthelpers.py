@@ -44,20 +44,18 @@ def has_playlists(content: dict[str, list]) -> bool:
 
     return len(content) > 0
 
-def lock_playlist(content: dict[str, list], locked: dict[str, bool], playlist_name: str, force: bool=False) -> None:
+def lock_playlist(locked: dict[str, bool], playlist_name: str) -> None:
     """ Locks a playlist. 
     
     Normally, a playlist only gets locked if it actually exists. Unless `force` is `True`. """
 
     # Ensure the target playlist exists or a command that creates one is used.
-    if playlist_exists(content, playlist_name) or force:
-        locked[playlist_name] = True
+    locked[playlist_name] = True
 
 def unlock_playlist(locked: dict[str, bool], playlist_name: str) -> None:
     """ Unlocks a playlist. """
 
-    if playlist_name in locked:
-        locked[playlist_name] = False
+    locked[playlist_name] = False
 
 def unlock_all_playlists(locked: dict[str, bool]) -> None:
     """ Unlocks every locked playlist. """

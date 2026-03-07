@@ -102,22 +102,26 @@ class PlaylistCog(commands.Cog):
             return
 
         playlist_name = sanitize_name(playlist_name)
-        
+
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
 
         playlist = await self.playlist.get_playlist(content, playlist_name)
-        
-        unlock_playlist(locked, playlist_name)
-        cleanup_locked_playlists(content, locked)
-        
         if isinstance(playlist, Error):
+            unlock_playlist(locked, playlist_name)
+            cleanup_locked_playlists(content, locked)
+
             await interaction.followup.send(playlist.msg)
             return
+
+        unlock_playlist(locked, playlist_name)
+        cleanup_locked_playlists(content, locked)
 
         playlist_pages = get_pages(playlist)
         total_pages = len(playlist_pages)
@@ -165,17 +169,20 @@ class PlaylistCog(commands.Cog):
 
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name, True)
-
         queue = deepcopy(self.guild_states[interaction.guild.id]["queue"])
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         if not queue and not current_track:
             unlock_playlist(locked, playlist_name)
+            cleanup_locked_playlists(content, locked)
 
             await interaction.followup.send("Queue is empty. Nothing to add.")
             return
@@ -228,16 +235,18 @@ class PlaylistCog(commands.Cog):
         if is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
-        
+
         playlist_name = sanitize_name(playlist_name)
+
+        lock_playlist(locked, playlist_name)
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name, True)
-
         result = await self.playlist.add_queue(interaction, content, playlist_name, history)
 
         unlock_playlist(locked, playlist_name)
@@ -282,16 +291,18 @@ class PlaylistCog(commands.Cog):
         if is_playlist_locked(locked):
             await interaction.followup.send("A playlist is currently locked, please wait.")
             return
-        
+
         playlist_name = sanitize_name(playlist_name)
+
+        lock_playlist(locked, playlist_name)
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name, True)
-
         result = await self.playlist.place(interaction, content, playlist_name, current_track, index)
         
         unlock_playlist(locked, playlist_name)
@@ -341,32 +352,38 @@ class PlaylistCog(commands.Cog):
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
 
-        if clear_current_queue:
-            queue.clear()
-            queue_to_loop.clear()
-
-        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
-        if not is_queue_length_ok:
-            return
-
         if is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        
+
         playlist_name = sanitize_name(playlist_name)
+
+        lock_playlist(locked, playlist_name)
+        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
+        if not is_queue_length_ok:
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
+            return
         
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+        if clear_current_queue:
+            queue.clear()
+            queue_to_loop.clear()
 
         result = await self.playlist.select(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, range_start, range_end, random_order)
         
         update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
         
@@ -407,18 +424,21 @@ class PlaylistCog(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+        
         if is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name, True)
 
         result = await self.playlist.create(interaction, content, playlist_name)
 
@@ -459,13 +479,15 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-
         result = await self.playlist.delete(interaction, content, playlist_name, erase_contents_only)
         
         unlock_playlist(locked, playlist_name)
@@ -515,12 +537,14 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
 
         track_names_split = split(track_names)
         result = await self.playlist.remove(interaction, content, playlist_name, track_names_split, by_index)
@@ -600,16 +624,21 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         new_playlist_name = sanitize_name(new_playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        lock_playlist(locked, new_playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            unlock_playlist(locked, new_playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-
         result = await self.playlist.rename(interaction, content, playlist_name, new_playlist_name)
         
         unlock_playlist(locked, playlist_name)
+        unlock_playlist(locked, new_playlist_name)
         cleanup_locked_playlists(content, locked)
 
         if isinstance(result, Error):
@@ -672,18 +701,22 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
+        lock_playlist(locked, playlist_name)
+        update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_state(self.guild_states, interaction, False, "is_extracting")
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-        update_guild_state(self.guild_states, interaction, True, "is_extracting")
-
         result = await self.playlist.replace(self.guild_states, interaction, content, playlist_name, old_track_name, new_track_query, provider, by_index)
         
         update_guild_state(self.guild_states, interaction, False, "is_extracting")
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
 
@@ -736,12 +769,14 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
 
         result = await self.playlist.reposition(interaction, content, playlist_name, track_name, new_index, by_index)
         
@@ -799,14 +834,17 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
+        lock_playlist(locked, playlist_name)
+        update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_state(self.guild_states, interaction, False, "is_extracting")
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name, True)
-        update_guild_state(self.guild_states, interaction, True, "is_extracting")
-
         queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(queries))
 
         allowed_query_types = (
@@ -821,6 +859,7 @@ class PlaylistCog(commands.Cog):
 
         update_guild_state(self.guild_states, interaction, False, "is_extracting")
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
 
@@ -872,13 +911,16 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        lock_playlist(locked, target_playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            unlock_playlist(locked, target_playlist_name)
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
-        lock_playlist(content, locked, target_playlist_name, True)
         
         result = await self.playlist.copy(interaction, content, playlist_name, target_playlist_name)
 
@@ -926,13 +968,16 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        lock_playlist(locked, target_playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            unlock_playlist(locked, target_playlist_name)
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
-        lock_playlist(content, locked, target_playlist_name, True)
 
         result = await self.playlist.move(interaction, content, playlist_name, target_playlist_name)
 
@@ -981,14 +1026,17 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
+
+        lock_playlist(locked, playlist_name)
+        lock_playlist(locked, target_playlist_name)
         
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            unlock_playlist(locked, target_playlist_name)
+        
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
-        lock_playlist(content, locked, target_playlist_name, True)
         
         result = await self.playlist.copy_items(interaction, content, split(track_names), playlist_name, target_playlist_name, by_index)
         
@@ -1038,13 +1086,16 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        lock_playlist(locked, target_playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            unlock_playlist(locked, target_playlist_name)
+            
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name)
-        lock_playlist(content, locked, target_playlist_name, True)
 
         result = await self.playlist.move_items(interaction, content, split(track_names), playlist_name, target_playlist_name, by_index)
 
@@ -1091,29 +1142,35 @@ class PlaylistCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(track_names))
-        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
-        if not is_queue_length_ok:
-            return
-
         if is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
-        
+
         playlist_name = sanitize_name(playlist_name)
 
-        content = await self.playlist.read(interaction)
-        if isinstance(content, Error):
-            await interaction.followup.send(content.msg)
+        lock_playlist(locked, playlist_name)
+        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))    
+
+        queries_split = await check_input_length(interaction, MAX_QUERY_LIMIT, split(track_names))
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue)
+        if not is_queue_length_ok:
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
             return
         
-        lock_playlist(content, locked, playlist_name)
-        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))        
+        content = await self.playlist.read(interaction)
+        if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
 
+            await interaction.followup.send(content.msg)
+            return
+            
         result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, queries_split, by_index=by_index)
 
         update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
 
@@ -1161,27 +1218,34 @@ class PlaylistCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         queue = self.guild_states[interaction.guild.id]["queue"]
 
-        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue) 
-        if not is_queue_length_ok:
-            return
-
         if is_playlist_locked(locked):
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
+
+        is_queue_length_ok = await check_queue_length(interaction, MAX_QUEUE_TRACK_LIMIT, queue) 
+        if not is_queue_length_ok:
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
+            return
+        
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-
         playlist = await self.playlist.get_playlist(content, playlist_name)
         if isinstance(playlist, Error):
             unlock_playlist(locked, playlist_name)
             cleanup_locked_playlists(content, locked)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
 
             await interaction.followup.send(playlist.msg)
             return
@@ -1190,16 +1254,16 @@ class PlaylistCog(commands.Cog):
         if isinstance(random_tracks, Error):
             unlock_playlist(locked, playlist_name)
             cleanup_locked_playlists(content, locked)
+            update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
 
             await interaction.followup.send(random_tracks.msg)
             return
         
-        update_guild_states(self.guild_states, interaction, (True, True), ("is_modifying", "is_extracting"))
-
         result = await self.playlist.fetch(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, random_tracks, True, ignore_extraction_errors=True)
 
         update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "is_extracting"))
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
 
@@ -1249,13 +1313,16 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+        update_guild_state(self.guild_states, interaction, True, "is_extracting")
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+            update_guild_state(self.guild_states, interaction, False, "is_extracting")
+
             await interaction.followup.send(content.msg)
             return
-        
-        lock_playlist(content, locked, playlist_name, True)
-        update_guild_state(self.guild_states, interaction, True, "is_extracting")
 
         allowed_query_types = (
             SourceWebsite.YOUTUBE_PLAYLIST.value,
@@ -1266,6 +1333,7 @@ class PlaylistCog(commands.Cog):
 
         update_guild_state(self.guild_states, interaction, False, "is_extracting")
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
+
         unlock_playlist(locked, playlist_name)
         cleanup_locked_playlists(content, locked)
 
@@ -1318,13 +1386,15 @@ class PlaylistCog(commands.Cog):
         
         playlist_name = sanitize_name(playlist_name)
 
+        lock_playlist(locked, playlist_name)
+
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
+            unlock_playlist(locked, playlist_name)
+
             await interaction.followup.send(content.msg)
             return
         
-        lock_playlist(content, locked, playlist_name)
-
         old_track_names_split = split(old_track_names)
         new_track_names_split = split(new_track_names)
         result = await self.playlist.rename_item(interaction, content, playlist_name, old_track_names_split, new_track_names_split, by_index)
