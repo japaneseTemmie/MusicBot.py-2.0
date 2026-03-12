@@ -137,25 +137,12 @@ _*Support may depend on command._
 
   Theoretically, the bot can run on any sort of hardware configuration that boots a compatible OS. However, for best performance, here's the minimum/recommended requirements:
 
-  - Minimum (personal use / few guilds):
-
-      - A **100Mbps Download** / **10Mbps Upload** internet connection (_Ethernet preferred for lower latency_).
-
-      - A **dual or quad-core** CPU running at ~3GHz.
-
-      - **4 or 8** gigabytes of RAM.
-
-      - **15GB** of free storage. 
-
-  - Recommended (many guilds):
-
-    - **1Gbps+ Download** / **700Mbps+ Upload** internet connection through Ethernet.
-
-    - A **desktop high-end** or **entry level server-grade** CPU with 8+ performance cores running at 4GHz+.
-
-    - **32** or more gigabytes of RAM.
-
-    - **100** or more gigabytes of free solid state storage.
+  |     Requirement     |                     Minimum (personal use / few guilds)                             |                       Recommended (many guilds)                     |
+  |---------------------| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+  | Internet connection | **100Mbps Download** / **10Mbps Upload** (_Ethernet preferred for lower latency_).  | **1Gbps+ Download** / **700Mbps+ Upload** through Ethernet.         |
+  |         CPU         | **dual or quad-core** CPU running at ~3GHz.                                         | **desktop high-end** or **entry-level server grade** CPU with 8+ performance cores running at 4GHz+.                     |
+  |       Memory        | **4 or 8** gigabytes of RAM.                                                        | **32** or more gigabytes of RAM.                                    |
+  |       Storage       | **15GB** of free storage.                                                           | **100** or more gigabytes of free solid state storage.              |
 
   NOTE: These are only _generic requirements_. Hardware should scale as per **guild count and usage**.
 
