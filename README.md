@@ -27,6 +27,7 @@ an **extended** moderation module alongside other new features!
 
 # Key features
 - Full application commands support for a more user-friendly interface.
+- Improved and advanced queue manipulation.
 - Improved playlist capabilities, with multi-playlist support and full control over them.
 - Improved help command, with command-specific entries.
 - Enhanced role-based command access system.
