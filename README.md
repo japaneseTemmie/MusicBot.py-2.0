@@ -59,6 +59,8 @@ _*Support may depend on command._
   python3 start.py
   ```
 
+  Make sure your bot has all the required permissions set up! (Take a peek at [the permission table](#set-up-a-bot))
+
 # Full Bot Setup Guide
 - If you already have a bot, this section can be skipped. Ensure the needed permissions and intents are enabled and visit [Troubleshooting](#troubleshooting) section if your bot is in more than 2500 guilds.
 
@@ -194,15 +196,19 @@ The preferred release channel is `stable` or tagged releases for extra safety.
 
   `echo "TOKEN={your_discord_bot_token}" > .env` (UNIX-like)
 
+  (if you don't want to have your token to end up in ~/.bash_history, open up `nano` and paste it in there)
+
   `echo TOKEN={your_discord_bot_token} > .env` (Windows)
 
 - Replace `{your_discord_bot_token}` with your bot's token.
 
-  Example file output:
+- Verify the file contents.
   
-  ```dotenv
-  TOKEN=1a2b3c4d5e6f7g
-  ```
+    Example file output:
+    
+    ```dotenv
+    TOKEN=1a2b3c4d5e6f7g8hi9j10k11l12m13n14o15p16
+    ```
 
 # Automatic environment setup
 - Prepare and run automatically using the helper script:
@@ -302,7 +308,7 @@ During the first run, the bot will create a `config.json` file in its own direct
       }
       ```
 
-      Replace the variable with your chosen JavaScript runtime.
+      Replace the variable with your chosen JavaScript runtime's name.
 
   2. If your repositories provide a version of the chosen runtime that's too old to meet yt-dlp's requirements, download a precompiled binary and set the following flag in `yt_dlp_options`:
 
