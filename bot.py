@@ -18,7 +18,7 @@ from discord.app_commands import AppCommand
 from time import monotonic
 from random import randint
 
-class Bot(commands.Bot):
+class BotMixin:
     """ Custom bot object with special methods for modularity and safer cleanups. """
     
     def __init__(self, command_prefix: str, **options) -> None:
@@ -266,9 +266,13 @@ class Bot(commands.Bot):
         log("done")
         separator()
 
-class ShardedBot(commands.AutoShardedBot, Bot):
-    """ `Bot` class with sharding. """
+class Bot(BotMixin, commands.Bot):
+    def __init__(self, command_prefix: str, **options):
+        super().__init__(command_prefix, **options)
 
+class ShardedBot(BotMixin, commands.AutoShardedBot):
+    """ `Bot` class with sharding. """
+    
     def __init__(self, command_prefix: str, **options):
         super().__init__(command_prefix, **options)
         self.is_sharded = True
