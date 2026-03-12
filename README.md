@@ -210,7 +210,7 @@ The preferred release channel is `stable` or tagged releases for extra safety.
     TOKEN=1a2b3c4d5e6f7g8hi9j10k11l12m13n14o15p16
     ```
 
-# Automatic environment setup
+## Automatic environment setup
 - Prepare and run automatically using the helper script:
 
   `python3 start.py` (UNIX-like)
@@ -223,7 +223,7 @@ The preferred release channel is `stable` or tagged releases for extra safety.
 
   - Once it outputs '`Ready`', it will start listening for events and commands.
 
-# Manual environment setup
+## Manual environment setup
 If the automatic setup doesn't work, it may be worth manually setting it up:
 
 - Create a Python virtual environment (_venv_):
