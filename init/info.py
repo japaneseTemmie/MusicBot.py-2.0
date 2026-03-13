@@ -1,4 +1,4 @@
-""" Info helper functions for discord.py bot """
+""" OS info helper functions for discord.py bot """
 
 from init.constants import VALID_ACTIVITY_TYPES, VALID_STATUSES
 from init.logutils import log, separator

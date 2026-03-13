@@ -1,7 +1,4 @@
-""" Playlist manager module for discord.py bot.
-
-Includes a few methods for managing playlists
-and fetching tracks from them. """
+""" Playlist manager module for discord.py bot. """
 
 from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, MAX_PLAYLIST_LIMIT, MAX_PLAYLIST_TRACK_LIMIT, MAX_ITEM_NAME_LENGTH
 from helpers.playlisthelpers import (

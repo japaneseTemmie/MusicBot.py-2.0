@@ -1,4 +1,4 @@
-""" Config helper module for discord.py bot """
+""" Config interface for discord.py bot """
 
 from helpers.iohelpers import read_file_json, write_file_json
 from helpers.confighelpers import get_default_config_data

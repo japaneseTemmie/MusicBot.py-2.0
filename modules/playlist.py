@@ -1,4 +1,6 @@
-""" Playlist module for discord.py bot. """
+""" Playlist module for discord.py bot. 
+
+Handles commands for interacting with low-level file components. """
 
 from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT, MAX_PLAYLIST_LIMIT
 from init.constants import COOLDOWNS

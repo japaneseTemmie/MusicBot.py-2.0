@@ -1,4 +1,4 @@
-""" Role manager helper module for discord.py bot """
+""" Role manager module for discord.py bot """
 
 from settings import ENABLE_FILE_BACKUPS, ROLE_LOCKS, ROLE_FILE_CACHE
 from helpers.guildhelpers import read_guild_json, write_guild_json

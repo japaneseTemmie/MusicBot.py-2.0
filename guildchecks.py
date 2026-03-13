@@ -1,4 +1,4 @@
-""" Guild helper functions for discord.py bot """
+""" Helper functions to check guild data integrity for discord.py bot """
 
 from settings import PATH, CAN_LOG, LOGGER, CAN_AUTO_DELETE_GUILD_DATA
 from init.constants import MAX_GUILD_COUNT_BEFORE_SHARDING_REQUIRED

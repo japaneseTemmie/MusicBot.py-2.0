@@ -1,6 +1,4 @@
-""" Loader module for discord.py bot.
-
-Helper module to dynamically load all modules found in a specified directory. """
+""" ModuleLoader module for discord.py bot. """
 
 from settings import CAN_LOG, LOGGER
 from init.logutils import log, log_to_discord_log

@@ -1,4 +1,4 @@
-""" Bot subclass setup module for discord.py bot """
+""" Bot class definition module for discord.py bot """
 
 from settings import (
     ACTIVITY_DATA, ACTIVITY, STATUS,

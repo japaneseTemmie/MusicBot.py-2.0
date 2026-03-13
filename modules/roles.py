@@ -1,6 +1,6 @@
 """ Role module for discord.py bot.
 
-Includes a class with methods to manage music and playlist permissions. """
+Handles commands to manage music and playlist permissions. """
 
 from settings import CAN_LOG, LOGGER
 from init.constants import COOLDOWNS
