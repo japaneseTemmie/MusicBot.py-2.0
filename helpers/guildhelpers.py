@@ -11,7 +11,7 @@ from init.logutils import log
 import asyncio
 import discord
 from discord.interactions import Interaction
-from typing import Any
+from typing import Any, Literal
 from os.path import join
 
 async def read_guild_json(
@@ -62,7 +62,7 @@ async def write_guild_json(
         on_general_file_lock_msg: str,
         on_write_error_msg: str,
         backup: dict | None=None
-    ) -> bool | Error:
+    ) -> Literal[True] | Error:
     """ Safely write the modified content to a guild file.
 
     Cache new content if written successfully.

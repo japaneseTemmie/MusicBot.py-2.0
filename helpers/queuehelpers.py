@@ -9,7 +9,7 @@ from helpers.extractorhelpers import fetch_query
 
 import re
 from discord.interactions import Interaction
-from typing import Any
+from typing import Any, Literal
 from copy import deepcopy
 from random import randint, sample
 
@@ -26,7 +26,7 @@ def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
 
     return pages
 
-def validate_page_number(total: int, page: int) -> bool | Error:
+def validate_page_number(total: int, page: int) -> Literal[True] | Error:
     """ Check if page number `page` is in a valid ranage [0, `total` - 1]. 
     
     Return an Error object or True. """

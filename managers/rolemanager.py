@@ -7,6 +7,7 @@ from error import Error
 
 import discord
 from discord.interactions import Interaction
+from typing import Literal
 from copy import deepcopy
 
 class RoleManager:
@@ -27,7 +28,7 @@ class RoleManager:
             "Failed to read role contents."
         )
         
-    async def write(self, interaction: Interaction, content: dict[str, str], backup: dict[str, str] | None=None) -> bool | Error:
+    async def write(self, interaction: Interaction, content: dict[str, str], backup: dict[str, str] | None=None) -> Literal[True] | Error:
         """ Write the modified content to `roles.json`.
          
         Returns True or Error. """
@@ -51,7 +52,7 @@ class RoleManager:
             playlist: bool, 
             overwrite: bool, 
             write_to_file: bool=True
-        ) -> tuple[bool | Error, str, discord.Role] | Error:
+        ) -> tuple[Literal[True] | Error, str, discord.Role] | Error:
         """ Set a music or playlist role.
         
         If successful, return a tuple with a boolean or Error object write success value [0] (always `True` if `write_to_file` is False), 
@@ -90,7 +91,7 @@ class RoleManager:
 
         return role_to_look_for, role_obj
     
-    async def remove_role(self, interaction: Interaction, content: dict[str, str], playlist: bool, write_to_file: bool=True) -> tuple[bool | Error, str] | Error:
+    async def remove_role(self, interaction: Interaction, content: dict[str, str], playlist: bool, write_to_file: bool=True) -> tuple[Literal[True] | Error, str] | Error:
         """ Remove a music or playlist role from the role structure.
          
         If successful, return a tuple with a boolean or Error object write success value [0] (always `True` if `write_to_file` is False) 
@@ -113,7 +114,7 @@ class RoleManager:
         
         return success, role_to_delete
     
-    async def reset(self, interaction: Interaction) -> bool | Error:
+    async def reset(self, interaction: Interaction) -> Literal[True] | Error:
         """ Reset role structure.
          
         Returns True or Error. """

@@ -16,7 +16,7 @@ from error import Error
 from bot import Bot, ShardedBot
 
 from discord.interactions import Interaction
-from typing import Any
+from typing import Any, Literal
 from copy import deepcopy
 from random import shuffle
 
@@ -40,7 +40,7 @@ class PlaylistManager:
             "Failed to read playlist contents."
         )
 
-    async def write(self, interaction: Interaction, content: dict[str, list], backup: dict[str, list]=None) -> bool | Error:
+    async def write(self, interaction: Interaction, content: dict[str, list], backup: dict[str, list]=None) -> Literal[True] | Error:
         """ Safely write the modified content of a playlist function to the guild's `playlists.json` file.
 
         Cache new content if written successfully.
@@ -86,7 +86,7 @@ class PlaylistManager:
 
         return [key for key in content.keys()]
 
-    async def create(self, interaction: Interaction, content: dict[str, list], playlist_name: str, write_to_file: bool=True) -> bool | Error:
+    async def create(self, interaction: Interaction, content: dict[str, list], playlist_name: str, write_to_file: bool=True) -> Literal[True] | Error:
         """ Create a playlist with the given name.
 
         If successful, returns a boolean, otherwise, Error (always `True` if `write_to_file` is `False`). """
@@ -118,7 +118,7 @@ class PlaylistManager:
             playlist_name: str, 
             contents_only: bool,
             write_to_file: bool=True
-        ) -> bool | Error | tuple[bool | Error, list[dict[str, Any]]]:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Literal[True] | Error:
         """ Deletes a playlist.
 
         If successful, returns a boolean or Error if `contents_only` is `False` (always `True` if `write_to_file` is `False`), otherwise
@@ -165,7 +165,7 @@ class PlaylistManager:
             tracks_to_remove: list[str], 
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Removes given tracks from a playlist.
 
         If successful, returns a tuple with a boolean or Error 
@@ -206,7 +206,7 @@ class PlaylistManager:
             provider: SourceWebsiteValue | None=None,
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, dict[str, Any], dict[str, Any]] | Error:
+        ) -> tuple[Literal[True] | Error, dict[str, Any], dict[str, Any]] | Error:
         """ Replaces a playlist track with an extracted track from a given query.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -245,7 +245,7 @@ class PlaylistManager:
             index: int, 
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, dict[str, Any], int, int] | Error:
+        ) -> tuple[Literal[True] | Error, dict[str, Any], int, int] | Error:
         """ Repositions a playlist track from its current index to the given index.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -380,7 +380,7 @@ class PlaylistManager:
             playlist_name: str, 
             queue: list[dict[str, Any]],
             write_to_file=True
-        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of extracted queries to a playlist.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -427,7 +427,7 @@ class PlaylistManager:
             allowed_query_types: tuple[str], 
             provider: SourceWebsiteValue | None=None,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of queries to the given playlist.
 
         If successful, returns same types as `add_queue()`. With the addition of extraction Errors. """
@@ -446,7 +446,7 @@ class PlaylistManager:
         else:
             return found
 
-    async def delete_all(self, interaction: Interaction, locked: dict[str, bool]) -> bool | Error:
+    async def delete_all(self, interaction: Interaction, locked: dict[str, bool]) -> Literal[True] | Error:
         """ Deletes every playlist saved in the current guild.
 
         Returns a boolean or Error. """
@@ -463,7 +463,7 @@ class PlaylistManager:
             orig_playlist_name: str, 
             new_playlist_name: str,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, str, str] | Error:
+        ) -> tuple[Literal[True] | Error, str, str] | Error:
         """ Renames a playlist to a new given name.
 
         If successful, returns a tuple with a boolean or Error indicating
@@ -501,7 +501,7 @@ class PlaylistManager:
             new_track_names: list[str], 
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[tuple[dict, str]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[tuple[dict, str]]] | Error:
         """ Bulk edits track names to new given ones.
 
         if successful, returns a tuple with a boolean or Error indicating write success [0] (always `True` if `write_to_file` is `False`), a list of tuples with
@@ -538,7 +538,7 @@ class PlaylistManager:
             track: dict[str, Any], 
             index: int | None,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, dict[str, Any], int] | Error:
+        ) -> tuple[Literal[True] | Error, dict[str, Any], int] | Error:
         """ Place a track at a specific index or append it (index=`None`).
 
         if successful, returns a tuple with a boolean or Error indicating
@@ -575,7 +575,7 @@ class PlaylistManager:
             source_playlist_name: str, 
             target_playlist_name: str,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Copy a playlist into another one. 
         
         If successful, return a tuple with write status [0] (always `True` if `write_to_file` is `False`) and added tracks [1]. Error object otherwise. """
@@ -598,7 +598,7 @@ class PlaylistManager:
             target_playlist_name: str,
             by_index: bool=False,
             write_to_file: bool=True
-        ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+        ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Copy a playlist's tracks into another one. 
         
         If successful, return a tuple with write status [0] (always `True` if `write_to_file` is `False`) and added tracks [1]. Error object otherwise. """
@@ -623,7 +623,7 @@ class PlaylistManager:
         source_playlist_name: str,
         target_playlist_name: str,
         write_to_file: bool=True
-    ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+    ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Merge a source playlist with another one. 
         
         Returns a tuple with write success status (always `True` if `write_to_file` is `False`) [0] and list of added tracks [1] if successful, otherwise Error. """
@@ -656,7 +656,7 @@ class PlaylistManager:
         target_playlist_name: str,
         by_index: bool=False,
         write_to_file: bool=True
-    ) -> tuple[bool | Error, list[dict[str, Any]]] | Error:
+    ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Merge a playlist's tracks with another playlist. 
         
         Returns a tuple with write success status (always `True` if `write_to_file` is `False`) [0] and moved tracks [1] if successful, otherwise Error. """
