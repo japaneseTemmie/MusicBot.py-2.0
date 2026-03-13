@@ -309,7 +309,9 @@ During the first run, the bot will create a `config.json` file in its own direct
       }
       ```
 
-      Replace the 2 variables with the appropriate values for your system.
+      Replace the 2 variables with the appropriate values for your system. 
+      
+      Note that `path` is the path to the runtime _program binary_, not the _directory_. Therefore, an example path would look like: `~/.node/bin/node`
 
 Documentation for every configuration key can be found [here](./CONFIG.md). Modify values at your own risk.
 
