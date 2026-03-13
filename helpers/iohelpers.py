@@ -7,10 +7,8 @@ from json import load, dump
 from os import makedirs, replace
 from os.path import exists, join
 
-def read_file_bytes(file_path: str, buf_size: int=-1, can_log: bool=False, logger: Logger | None=None) -> bytes | None:
+def read_file_bytes(file_path: str, can_log: bool=False, logger: Logger | None=None) -> bytes | None:
     """ Open and read a file as bytes.
-    
-    Optionally, read up to n bytes using the `buf_size` argument. 
 
     Return bytes or None on failure.
      
@@ -18,9 +16,27 @@ def read_file_bytes(file_path: str, buf_size: int=-1, can_log: bool=False, logge
 
     try:
         with open(file_path, "rb") as f:
-            return f.read(buf_size)
+            return f.read()
     except Exception as e:
         log(f"An error occurred while reading file {file_path} as bytes\nErr: {e}")
+        log_to_discord_log(e, can_log=can_log, logger=logger)
+
+        return None
+
+def read_file_text(file_path: str, encoding: str="utf-8", can_log: bool=False, logger: Logger | None=None) -> str | None:
+    """ Open a file and return its contents as text.
+
+    Optionally, specify a different encoding string using the `encoding` argument.
+
+    Return file contents as string or None on failure.
+    
+    Must be sent to a thread if working with an asyncio loop. """
+    
+    try:
+        with open(file_path, encoding=encoding) as f:
+            return f.read()
+    except Exception as e:
+        log(f"An error occurred while opening {file_path} as string.\nErr: {e}")
         log_to_discord_log(e, can_log=can_log, logger=logger)
 
         return None
@@ -39,26 +55,6 @@ def read_file_json(file_path: str, encoding: str="utf-8", can_log: bool=False, l
             return load(f)
     except Exception as e:
         log(f"An error occurred while opening file {file_path} as JSON\nErr: {e}")
-        log_to_discord_log(e, can_log=can_log, logger=logger)
-
-        return None
-
-def read_file_text(file_path: str, buf_size: int=-1, encoding: str="utf-8", can_log: bool=False, logger: Logger | None=None) -> str | None:
-    """ Open a file and return its contents as text.
-    
-    Optionally, read up to n characters using the `buf_size` argument.
-
-    Optionally, specify a different encoding string using the `encoding` argument.
-
-    Return file contents as string or None on failure.
-    
-    Must be sent to a thread if working with an asyncio loop. """
-    
-    try:
-        with open(file_path, encoding=encoding) as f:
-            return f.read(buf_size)
-    except Exception as e:
-        log(f"An error occurred while opening {file_path} as string.\nErr: {e}")
         log_to_discord_log(e, can_log=can_log, logger=logger)
 
         return None
@@ -84,29 +80,6 @@ def write_file_bytes(file_path: str, content: bytes, can_log: bool=False, logger
 
         return False
 
-def write_file_json(file_path: str, content: dict, encoding: str="utf-8", can_log: bool=False, logger: Logger | None=None) -> bool:
-    """ Open and write content to a file as JSON.
-
-    Optionally, specify a different encoding string using the `encoding` argument. 
-    
-    Return a success boolean value.
-     
-    Must be sent to a thread if working with an asyncio loop. """
-    
-    try:
-        tmp_dest_path = file_path + "tmp"
-
-        with open(tmp_dest_path, "w", encoding=encoding) as f:
-            dump(content, f, indent=4)
-        
-        replace(tmp_dest_path, file_path)
-        return True
-    except Exception as e:
-        log(f"An error occurred while writing to {file_path} as JSON\nErr: {e}")
-        log_to_discord_log(e, can_log=can_log, logger=logger)
-
-        return False
-
 def write_file_text(file_path: str, content: str, encoding: str="utf-8", can_log: bool=False, logger: Logger | None=None) -> bool:
     """ Open and write content to a file as string.
 
@@ -126,6 +99,29 @@ def write_file_text(file_path: str, content: str, encoding: str="utf-8", can_log
         return True
     except Exception as e:
         log(f"An error occurred while writing to {file_path} as string.\nErr: {e}")
+        log_to_discord_log(e, can_log=can_log, logger=logger)
+
+        return False
+
+def write_file_json(file_path: str, content: dict, encoding: str="utf-8", can_log: bool=False, logger: Logger | None=None) -> bool:
+    """ Open and write content to a file as JSON.
+
+    Optionally, specify a different encoding string using the `encoding` argument. 
+    
+    Return a success boolean value.
+     
+    Must be sent to a thread if working with an asyncio loop. """
+    
+    try:
+        tmp_dest_path = file_path + "tmp"
+
+        with open(tmp_dest_path, "w", encoding=encoding) as f:
+            dump(content, f, indent=4)
+        
+        replace(tmp_dest_path, file_path)
+        return True
+    except Exception as e:
+        log(f"An error occurred while writing to {file_path} as JSON\nErr: {e}")
         log_to_discord_log(e, can_log=can_log, logger=logger)
 
         return False
