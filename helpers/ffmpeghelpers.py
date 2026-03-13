@@ -27,7 +27,7 @@ def get_ffmpeg_options(position: int, source_website: SourceWebsiteValue | None=
     
     options = {
         "before_options": f"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max {FFMPEG_RECONNECT_TIMEOUT_SECONDS} -rw_timeout {FFMPEG_READ_WRITE_TIMEOUT_MICROSECONDS}",
-        "options": f"-vn"
+        "options": f"-vn -threads 1"
     }
 
     if position > 0:
