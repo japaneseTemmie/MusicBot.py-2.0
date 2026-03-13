@@ -38,9 +38,9 @@ def get_os() -> tuple[str, str, str | None]:
     return os, name, kernel
 
 def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
-    """ Get bot metadata to send to the Discord API. 
+    """ Get bot activity metadata to send to the Discord API based on given configuration. 
     
-    Available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type`, `activity_state` """
+    Return value has the following available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type` and `activity_state`. """
     
     data = {
         "status_type": correct_type(get_config_value(config, "status_type", ConfigCategory.ACTIVITY.value), (str, NoneType), None),
@@ -57,7 +57,9 @@ def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
     return data
 
 def get_activity(data: dict[str, Any]) -> discord.Activity | None:
-    """ Return a bot activity, if enabled. """
+    """ Return a bot activity, if enabled. 
+    
+    `data` must be retreived using the `get_activity_data()` function first. """
     
     if data["activity_enabled"]:
         return discord.Activity(
@@ -69,13 +71,19 @@ def get_activity(data: dict[str, Any]) -> discord.Activity | None:
     return None
 
 def get_status(status_type: str | None) -> discord.Status:
-    """ Return a discord Status based on `status_type`. """
+    """ Return a discord Status based on `status_type`. 
+    
+    If `status_type` None, a random one will be chosen. Otherwise, if invalid, `discord.Status.online` is returned. """
     
     return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if status_type is None else\
     VALID_STATUSES.get(status_type, discord.Status.online)
 
 def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> bool:
-    """ Print information on how to install ffmpeg if not found. """
+    """ Check output from which() and assess whether or not ffmpeg is installed. 
+    
+    Additionally, print information on how to install ffmpeg if not found. 
+    
+    Return a success value. """
     
     if output is None:
         log(f"FF{ff_type} not found!")
