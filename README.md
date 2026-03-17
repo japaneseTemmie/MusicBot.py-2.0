@@ -179,15 +179,23 @@ The preferred release channel is `stable` or tagged releases for extra safety.
 
     `Bash`/`Zsh` is preferred. `Fish` might break some commands.
 
-- Create a `.env` file with the following contents by running:
+- Create a `.env` file for storing secrets.
 
-  `echo "TOKEN={your_discord_bot_token}" > .env` (UNIX-like)
+  - On a UNIX-like system, run `nano .env`. This will open the `nano` TUI text editor with the `.env` file.
 
-  (if you don't want to have your token to end up in ~/.bash_history, open up `nano` and paste it in there)
+  - On a Windows system, create a file named `.env` in the directory, then open it with any text editor.
 
-  `echo TOKEN={your_discord_bot_token} > .env` (Windows)
+  Add the following contents:
 
-- Replace `{your_discord_bot_token}` with your bot's token.
+  ```dotenv
+  TOKEN={bot_token}
+  ```
+
+  Replace `{bot_token}` with your bot's token copied earlier.
+
+  Save the file.
+
+  - If you're on a UNIX-like system and using `nano`, press `CTRL + S` to save the file and `CTRL + X` to exit the editor and go back to the command line.
 
 - Verify the file contents.
   
