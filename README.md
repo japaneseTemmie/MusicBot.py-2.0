@@ -23,6 +23,9 @@ an **extended** moderation module alongside other new features!
 - [Extra configuration](#extra-configuration-for-experienced-hosts)
 - [Extending the Bot](#extending-the-bot-for-devs)
 - [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+  - [Code contribution](#code-contribution)
+  - [Bug reports](#bug-reports)
 - [Licensing](#licensing)
 
 # Key features
@@ -43,6 +46,7 @@ an **extended** moderation module alongside other new features!
 - Multi-guild support.
 - Many configurable options.
 - Extendable with custom modules.
+- Light on dependencies.
 - Easily self-hostable.
 
 _*Support may depend on command._
@@ -391,6 +395,18 @@ Note: The bot will load any class that inherits from `commands.Cog`, independent
 - If you have an existing bot that's in over 2500 guilds, ensure the `use_sharding` key is set to `true` in `config.json`
 
   'Sharding' allows multiple instances of this bot to manage multiple guilds and is required by Discord after a bot reaches 2500 guilds.
+
+# Contributing
+
+## Code contribution
+To contribute code, fork the project, clone the fork, make your changes and submit a pull request.
+
+Familiarize yourself with the architecture of the codebase before starting to make changes.
+
+Before committing changes, ensure your fork has a .gitignore file and **_that there's a .env entry in it_** to exclude the .env file containing **your bot's token**. Check with `git status` or by using an IDE with GitHub integration.
+
+## Bug reports
+To contribute bug reports, you can easily submit one thanks to the dedicated GitHub issue template.
 
 # Licensing
 This project is licensed under MIT. See [LICENSE](./LICENSE) for more information.
