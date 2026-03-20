@@ -11,7 +11,7 @@ from os.path import join, isdir
 from os import scandir
 from shutil import rmtree
 
- # I/O for guild_data
+# I/O for guild_data
 def delete_guild_tree(path: str) -> bool:
     """ Delete a guild data directory. 
     
