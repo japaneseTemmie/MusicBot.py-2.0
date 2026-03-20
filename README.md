@@ -186,19 +186,17 @@ The preferred release channel is `stable` or tagged releases for extra safety.
 
   - On a Windows system, create a file named `.env` in the directory, then open it with any text editor.
 
-  Add the following contents:
+  Add the following contents, replacing `{bot_token}` with the bot token copied earlier:
 
   ```dotenv
   TOKEN={bot_token}
   ```
 
-  Replace `{bot_token}` with your bot's token copied earlier.
-
   Save the file.
 
   - If you're on a UNIX-like system and using `nano`, press `CTRL + S` to save the file and `CTRL + X` to exit the editor and go back to the command line.
 
-- Verify the file contents.
+- Verify the `.env` file contents.
   
     Example file output:
     
