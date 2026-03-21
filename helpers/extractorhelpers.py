@@ -52,8 +52,7 @@ async def fetch_queries(
         queries: list[str] | list[dict[str, Any]],
         query_names: list[str] | None=None,
         allowed_query_types: tuple[str]=None,
-        provider: SourceWebsiteValue | None=None,
-        ignore_errors: bool=False
+        provider: SourceWebsiteValue | None=None
     ) -> list[dict[str, Any]] | Error:
     """ Extract a list of queries and return the result. 
     
@@ -86,7 +85,7 @@ async def fetch_queries(
             provider=provider
         )
 
-        if isinstance(extracted_query, Error) and not ignore_errors:
+        if isinstance(extracted_query, Error):
             if can_extract:
                 update_guild_state(guild_states, interaction, False, "can_extract")
             

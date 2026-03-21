@@ -539,7 +539,7 @@ class MusicCog(commands.Cog):
     @app_commands.describe(
         track_name="Name (or index, in case <by_index> is True) of the track to select.",
         by_index="Select track by its index. (default False)",
-        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (defaut False)"
+        keep_current_track="Keeps the current playing track (if any) by re-inserting it at the start of the queue. (default False)"
     )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["SELECT_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only

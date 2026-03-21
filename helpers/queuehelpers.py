@@ -383,18 +383,16 @@ def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], b
 def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int) -> list[dict[str, Any]] | Error:
     """ Return random amount of tracks from an interable `queue`. """
     
-    if amount < 0:
-        return Error(f"Amount cannot be less than **0**.")
+    if amount <= 0:
+        return Error(f"Amount cannot be less than or equal to **0**.")
     elif amount > len(queue):
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
 
     return sample(queue, amount)
 
-# Apply playlist tracks' title and source website to tracks
-# Has no effect on titles if users did not modify them.
 def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list[dict[str, Any]]) -> None:
-    """ Replace a track's 'title' and 'source_website' keys' values with values from the playlist. """
-    
+    """ Replace a track's 'title' and 'source_website' keys' values with values from matching playlist tracks. """
+
     for track, playlist_track in zip(tracks, playlist):
         track["title"] = playlist_track["title"]
         track["source_website"] = playlist_track["source_website"]
