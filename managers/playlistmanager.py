@@ -3,7 +3,7 @@
 from settings import ENABLE_FILE_BACKUPS, PLAYLIST_FILE_CACHE, PLAYLIST_LOCKS, MAX_PLAYLIST_LIMIT, MAX_PLAYLIST_TRACK_LIMIT, MAX_ITEM_NAME_LENGTH
 from helpers.playlisthelpers import (
     has_playlists, playlist_exists, is_playlist_empty, is_content_full,
-    is_playlist_full, cleanup_locked_playlists
+    is_playlist_full
 )
 from helpers.queuehelpers import (
     remove_track_from_queue, reposition_track_in_queue, replace_track_in_queue, rename_tracks_in_queue, replace_data_with_playlist_data,
@@ -445,13 +445,12 @@ class PlaylistManager:
         else:
             return found
 
-    async def delete_all(self, interaction: Interaction, locked: dict[str, bool]) -> Literal[True] | Error:
+    async def delete_all(self, interaction: Interaction) -> Literal[True] | Error:
         """ Deletes every playlist saved in the current guild.
 
         Returns a boolean or Error. """
         
         success = await self.write(interaction, {})
-        cleanup_locked_playlists({}, locked)
 
         return success
 

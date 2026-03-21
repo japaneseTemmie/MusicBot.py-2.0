@@ -8,7 +8,6 @@ from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
 from helpers.voicehelpers import check_users_in_channel, greet_new_user_in_vc, disconnect_routine, handle_channel_move
 from helpers.guildhelpers import user_has_role, get_default_state, check_guild_state, update_guild_state, check_channel
-from helpers.playlisthelpers import is_playlist_locked
 from helpers.lockhelpers import check_vc_lock
 
 import discord
@@ -127,8 +126,8 @@ class VoiceCog(commands.Cog):
 
         update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
 
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if is_playlist_locked(locked):
+        locked_playlists = self.guild_states[interaction.guild.id]["locked_playlists"]
+        if locked_playlists:
             update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
             
             await interaction.followup.send(f"A playlist is currently locked, please wait.")

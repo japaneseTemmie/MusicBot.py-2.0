@@ -43,33 +43,3 @@ def has_playlists(content: dict[str, list]) -> bool:
     Returns a boolean. """
 
     return len(content) > 0
-
-def lock_playlist(locked: dict[str, bool], playlist_name: str) -> None:
-    """ Locks a playlist. """
-
-    locked[playlist_name] = True
-
-def unlock_playlist(locked: dict[str, bool], playlist_name: str) -> None:
-    """ Unlocks a playlist. """
-
-    locked[playlist_name] = False
-
-def unlock_all_playlists(locked: dict[str, bool]) -> None:
-    """ Unlocks every locked playlist. """
-    
-    locked.clear()
-
-def is_playlist_locked(locked: dict[str, bool]) -> bool:
-    """ Checks if any playlist is locked in 'locked' parameter.
-
-    Returns a boolean. """
-    
-    return any(locked.values())
-
-def cleanup_locked_playlists(content: dict[str, list], locked: dict[str, bool]) -> None:
-    """ Cleans up leftover playlists in `locked`. """
-
-    to_remove = [key for key in locked if key not in content]
-        
-    for key in to_remove:
-        del locked[key]

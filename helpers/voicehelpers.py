@@ -5,7 +5,6 @@ from init.constants import GREET_TIMEOUT_SECONDS, MAX_USER_WAIT_TIME_AFTER_CHANN
 from bot import Bot, ShardedBot
 from helpers.lockhelpers import get_vc_lock
 from helpers.cachehelpers import invalidate_cache
-from helpers.playlisthelpers import is_playlist_locked
 from helpers.guildhelpers import update_guild_state, update_guild_states
 from init.logutils import log, separator
 
@@ -84,7 +83,7 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
     if voice_client.is_connected() and\
         not voice_client.is_playing() and\
         not is_extracting and\
-        not is_playlist_locked(locked_playlists):
+        not locked_playlists:
 
         log(f"[GUILDSTATE][SHARD ID {member.guild.shard_id}] Disconnecting from channel ID {voice_client.channel.id} because no users are left in it and all conditions are met.")
 

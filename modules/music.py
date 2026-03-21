@@ -22,7 +22,6 @@ from helpers.voicehelpers import (
     set_voice_status, close_voice_clients, check_users_in_channel
 )
 from helpers.extractorhelpers import fetch_query, fetch_queries, add_results_to_queue
-from helpers.playlisthelpers import is_playlist_locked
 from helpers.embedhelpers import (
     generate_added_track_embed, generate_current_track_embed, generate_epoch_embed, generate_extraction_progress_embed, generate_generic_track_embed,
     generate_queue_page_embed, generate_removed_tracks_embed, generate_skipped_tracks_embed,
@@ -470,14 +469,14 @@ class MusicCog(commands.Cog):
 
         await interaction.response.defer(thinking=True)
 
-        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
+        locked_playlists = self.guild_states[interaction.guild.id]["locked_playlists"]
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         current_track = self.guild_states[interaction.guild.id]["current_track"]
         can_update_status = self.guild_states[interaction.guild.id]["allow_voice_status_edit"]
 
-        if is_playlist_locked(locked):
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
+        if locked_playlists:
             update_guild_state(self.guild_states, interaction, False, "voice_client_locked")
 
             await interaction.followup.send("A playlist is currently locked, please wait.")
