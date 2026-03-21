@@ -167,6 +167,8 @@ class AudioPlayer:
         
         A track must be a dict containing a `url` key that points to a valid stream readable by ffmpeg and track metadata such as `title`, `duration`, etc.. 
         
+        This function does _NOT_ lock the voice client before submitting the track to the player.
+
         Return a boolean indicating success. """
         
         if not voice_client.is_connected() or\
@@ -184,7 +186,9 @@ class AudioPlayer:
         return False
 
     async def play_next(self, interaction: Interaction) -> None:
-        """ Play the next track available in the queue. """
+        """ Play the next track available in the queue. 
+        
+        This function locks the voice client before calling `play_track()`. Meaning that callers don't have to do it. """
 
         if interaction.guild.id not in self.guild_states:
             log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] play_next() called with non-existent guild state. Ignoring.")
