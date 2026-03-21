@@ -208,10 +208,12 @@ class AudioPlayer:
         if stop_reason is not None:
             return
 
+        update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
         if not queue and not\
             is_looping and not\
             queue_to_loop:
-            update_guild_states(self.guild_states, interaction, (None, 0, 0), ("current_track", "start_time", "elapsed_time"))
+            update_guild_states(self.guild_states, interaction, (None, 0, 0, False), ("current_track", "start_time", "elapsed_time", "voice_client_locked"))
             
             if can_update_status:
                 update_guild_state(self.guild_states, interaction, None, "voice_status")
@@ -229,7 +231,6 @@ class AudioPlayer:
         track = get_next_track(is_random, is_looping, track_to_loop, filters, queue)
 
         try:
-            update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
             play_success = await self.play_track(interaction, voice_client, track)
         finally:
             update_guild_states(self.guild_states, interaction, (False, 0, 0), ("voice_client_locked", "crash_recovery_count", "last_recovery_time"))
