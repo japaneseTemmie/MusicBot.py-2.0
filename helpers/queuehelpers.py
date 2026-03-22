@@ -1,7 +1,7 @@
 """ Queue helper functions for discord.py bot """
 
 from settings import MAX_ITEM_NAME_LENGTH
-from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS
+from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS, MAX_SKIP_AMOUNT
 from error import Error
 from webextractor import SourceWebsite, SourceWebsiteValue, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
@@ -13,18 +13,11 @@ from typing import Any, Literal
 from copy import deepcopy
 from random import randint, sample
 
-# Function to get a hashmap of queue pages to display
-def get_pages(queue: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
-    """ Create a hashmap of queue pages. Each page is 25 elements long. """
+# Function to get a list of queue pages to display
+def get_pages(queue: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """ Create a list of queue pages. Each page is 25 elements long. """
 
-    pages = {}
-    max_page = 0
-
-    for i in range(0, len(queue), 25):
-        pages[max_page] = queue[i:i + 25]
-        max_page += 1
-
-    return pages
+    return [queue[i:i+25] for i in range(0, len(queue), 25)]
 
 def validate_page_number(total: int, page: int) -> Literal[True] | Error:
     """ Check if page number `page` is in a valid ranage [0, `total` - 1]. 
@@ -336,7 +329,6 @@ def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     
     Possible matches are: Uploader, Duration and Website """
     
-    matches = []
     track_uploader, track_duration, track_website = track.get("uploader"), format_to_seconds(track.get("duration")), track.get("source_website")
     
     filter_uploader = filters.get("uploader")
@@ -344,13 +336,18 @@ def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
     filter_website = filters.get("source_website")
     
     if filter_uploader:
-        matches.append(filter_uploader.lower().replace(" ", "") == track_uploader.lower().replace(" ", ""))
+        if filter_uploader.lower().replace(" ", "") != track_uploader.lower().replace(" ", ""):
+            return False
+    
     if filter_min_duration or filter_max_duration:
-        matches.append(filter_min_duration <= track_duration <= filter_max_duration)
-    if filter_website:
-        matches.append(match_website_filter(filter_website, track_website))
+        if not filter_min_duration <= track_duration <= filter_max_duration:
+            return False
+        
+    if filter_website:    
+        if not match_website_filter(filter_website, track_website):
+            return False
 
-    return all(matches)
+    return True
 
 def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
     """ Find the next track in a queue with the given filters. 
@@ -398,7 +395,7 @@ def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list
         track["source_website"] = playlist_track["source_website"]
 
 # Functions to modify a queue
-def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
+def remove_tracks_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
     """ Remove given tracks from queue.
      
     Return removed tracks or Error. """
@@ -420,8 +417,8 @@ def remove_track_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_i
         to_remove.append(track_index)
         removed.append(track_to_remove)
 
-    sotred_indices = sorted(to_remove, reverse=True)
-    for index in sotred_indices:
+    sorted_indices = sorted(to_remove, reverse=True)
+    for index in sorted_indices:
         queue.pop(index)
 
     return removed if removed else Error("Could not find given tracks.")
@@ -575,14 +572,16 @@ def place_track_in_queue(queue: list, index: int | None, track: dict[str, Any], 
     return orig_track, index
 
 def skip_tracks_in_queue(queue: list[dict[str, Any]], current_track: dict[str, Any], is_looping: bool, amount: int=1) -> list[dict[str, Any]] | Error:
-    """ Skip a specified amount of tracks in a queue. """
+    """ Skip a specified amount of tracks in a queue. 
+    
+    This function directly modifies the queue. """
     
     if amount < 0:
         return Error("Amount cannot be less than **0**.")
-    elif amount > 1 and amount > len(queue) + 1: # +1 because we have to account for the current track
+    elif amount > 1 and amount > len(queue) + 1: # + 1 because we have to account for the current track
         return Error(f"Given amount (**{amount}**) is higher than the queue's length!")
-    elif amount > 25:
-        return Error("Amount can only be less than **25**.")
+    elif amount > MAX_SKIP_AMOUNT:
+        return Error(f"Amount can only be less than **{MAX_SKIP_AMOUNT}**.")
 
     skipped = []
     if amount > 1 and not is_looping:

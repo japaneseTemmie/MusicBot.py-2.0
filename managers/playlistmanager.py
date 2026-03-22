@@ -6,7 +6,7 @@ from helpers.playlisthelpers import (
     is_playlist_full
 )
 from helpers.queuehelpers import (
-    remove_track_from_queue, reposition_track_in_queue, replace_track_in_queue, rename_tracks_in_queue, replace_data_with_playlist_data,
+    remove_tracks_from_queue, reposition_track_in_queue, replace_track_in_queue, rename_tracks_in_queue, replace_data_with_playlist_data,
     update_loop_queue_add, get_tracks_from_queue, place_track_in_queue, name_exceeds_length
 )
 from helpers.extractorhelpers import fetch_queries, add_results_to_queue
@@ -184,7 +184,7 @@ class PlaylistManager:
         if is_playlist_empty(playlist):
             return Error(f"Playlist **{playlist_name[:MAX_ITEM_NAME_LENGTH]}** is empty. Cannot remove tracks.")
 
-        found = remove_track_from_queue(tracks_to_remove, playlist, by_index)
+        found = remove_tracks_from_queue(tracks_to_remove, playlist, by_index)
         if isinstance(found, Error):
             return found
         

@@ -15,7 +15,7 @@ from discord.ext import commands
 from io import BytesIO
 from typing import Any
 
-class CatgirlDownloader(commands.Cog):
+class CatgirlDownloaderCog(commands.Cog):
     def __init__(self, client: Bot | ShardedBot):
         self.client = client
 

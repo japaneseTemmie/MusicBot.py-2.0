@@ -14,7 +14,7 @@ from helpers.queuehelpers import (
     check_input_length, check_queue_length,
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
-    find_track, replace_track_in_queue, reposition_track_in_queue, remove_track_from_queue, skip_tracks_in_queue,
+    find_track, replace_track_in_queue, reposition_track_in_queue, remove_tracks_from_queue, skip_tracks_in_queue,
     get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string,
     validate_page_number
 )
@@ -870,7 +870,7 @@ class MusicCog(commands.Cog):
         update_guild_state(self.guild_states, interaction, True, "is_modifying")
 
         track_names_split = split(track_names)
-        result = remove_track_from_queue(track_names_split, queue, by_index)
+        result = remove_tracks_from_queue(track_names_split, queue, by_index)
         
         if isinstance(result, Error):
             update_guild_state(self.guild_states, interaction, False, "is_modifying")
