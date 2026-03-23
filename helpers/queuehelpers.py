@@ -387,12 +387,19 @@ def get_random_tracks_from_queue(queue: list[dict[str, Any]], amount: int) -> li
 
     return sample(queue, amount)
 
-def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist: list[dict[str, Any]]) -> None:
-    """ Replace a track's 'title' and 'source_website' keys' values with values from matching playlist tracks. """
+def replace_data_with_playlist_data(tracks: list[dict[str, Any]], playlist_tracks: list[dict[str, Any]]) -> None:
+    """ Directly replace a track's 'title' and 'source_website' keys' values with values from matching playlist tracks. """
 
-    for track, playlist_track in zip(tracks, playlist):
-        track["title"] = playlist_track["title"]
-        track["source_website"] = playlist_track["source_website"]
+    seen = set()
+
+    for i, orig in enumerate(playlist_tracks):
+        for found in tracks:
+            if orig["webpage_url"] == found["webpage_url"] and i not in seen:
+                found["title"] = orig["title"]
+                found["source_website"] = orig["source_website"]
+
+                seen.add(i)
+                break
 
 # Functions to modify a queue
 def remove_tracks_from_queue(tracks: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
