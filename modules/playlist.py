@@ -365,7 +365,7 @@ class PlaylistCog(commands.Cog):
             queue.clear()
             queue_to_loop.clear()
 
-        result = await self.playlist.select(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, range_start, range_end, random_order)
+        result = await self.playlist.select(self.guild_states, MAX_QUEUE_TRACK_LIMIT, interaction, content, playlist_name, range_start, range_end, random_order, True)
         
         update_guild_states(self.guild_states, interaction, (False, False, False), ("locked_playlists", "is_modifying", "is_extracting"))
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
