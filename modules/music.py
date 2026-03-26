@@ -302,7 +302,7 @@ class MusicCog(commands.Cog):
         await self.handle_error(
             interaction, 
             error, 
-            lambda: update_guild_state(self.guild_states, interaction, False, "is_modifying")
+            lambda: update_guild_states(self.guild_states, interaction, (False, False), ("is_modifying", "user_interrupted_playback"))
         )
 
     @app_commands.command(name="nextinfo", description="Shows information about the next track.")
