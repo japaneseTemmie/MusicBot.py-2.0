@@ -480,7 +480,7 @@ class PlaylistManager:
         if name_exceeds_length(MAX_ITEM_NAME_LENGTH, new_playlist_name):
             return Error(f"New name **{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**.. is too long! Must be < **{MAX_ITEM_NAME_LENGTH}** characters.")
 
-        if new_playlist_name.lower().replace(" ", "") == orig_playlist_name.lower().replace(" ", ""):
+        if new_playlist_name == orig_playlist_name:
             return Error(f"Cannot rename a playlist (**{orig_playlist_name[:MAX_ITEM_NAME_LENGTH]}**) to the same name (**{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**).")
 
         content[new_playlist_name] = content.pop(orig_playlist_name)
