@@ -534,7 +534,7 @@ def rename_tracks_in_queue(max_name_length: int, queue: list[dict[str, Any]], na
         
         track_to_rename, track_index = found_track[0], found_track[1]
 
-        if new_name.replace(" ", "") == track_to_rename["title"].replace(" ", ""):
+        if new_name == track_to_rename["title"]:
             return Error(f"Cannot rename a track (**{track_to_rename['title'][:max_name_length]}**) to the same name (**{new_name[:max_name_length]}**).")
         elif track_index in seen:
             return Error(f"Track **{track_to_rename['title'][:max_name_length]}** was already removed during this operation.")
