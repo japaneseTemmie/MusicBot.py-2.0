@@ -55,8 +55,9 @@ class UtilsCog(commands.Cog):
 
         if entry not in HELP:
             await interaction.response.send_message(
-                f"Could not find help for {entry}.\n"
-                f"Available commands: {', '.join(HELP.keys())}", ephemeral=True
+                f"Could not find help for **{entry}**.\n"
+                f"Available commands: {', '.join(HELP.keys())}",
+                ephemeral=True
             )
             return
         
