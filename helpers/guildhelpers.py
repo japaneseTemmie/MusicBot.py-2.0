@@ -102,6 +102,8 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
     
     if none of the above conditions are met, return False. """
 
+    send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
     roles = await read_guild_json(
         interaction, 
         "roles.json", 
@@ -111,27 +113,27 @@ async def user_has_role(interaction: Interaction, playlist: bool=False) -> bool:
         "Failed to read role contents."
     )
     if isinstance(roles, Error):
-        await interaction.response.send_message(f"I cannot verify your roles temporarily.\nError: {roles.msg}", ephemeral=True) 
+        await send_func(f"I cannot verify your roles temporarily.\nError: {roles.msg}", ephemeral=True) 
         return False # A corrupted file can be abused to get access, therefore we cannot return True here.
 
     role_to_look_for = "playlist" if playlist else "music"
     role_id = roles.get(role_to_look_for, None)
 
     if not roles or\
-        role_id is None:
+        role_id is None: # No role configured
         return True
 
     user_roles = interaction.user.roles
     role = discord.utils.get(interaction.guild.roles, id=int(role_id))
 
     if role is None:
-        await interaction.response.send_message(f"I cannot verify your roles.\nError: Role (ID **{role_id}**) not found in guild.", ephemeral=True)
+        await send_func(f"I cannot verify your roles.\nError: Role (ID **{role_id}**) not found in guild.", ephemeral=True)
         return False
 
     if role in user_roles:
         return True
     
-    await interaction.response.send_message(f"You do not have the required **{role_to_look_for}** role to use this command!", ephemeral=True)
+    await send_func(f"You do not have the required **{role_to_look_for}** role to use this command!", ephemeral=True)
     return False
 
 # Function to add a file lock for a specific guild id if it doesn't exist
@@ -232,20 +234,22 @@ def get_default_state(voice_client: discord.VoiceClient, current_text_channel: d
 async def check_channel(guild_states: dict[str, Any], interaction: Interaction) -> bool:
     """ Check different channel state scenarios and handle them by replying to `interaction`. """
     
+    send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
     if interaction.guild.id not in guild_states or\
         interaction.guild.voice_client is None:
-        await interaction.response.send_message("I'm not in any voice channel!")
+        await send_func("I'm not in any voice channel!")
         return False
     
     if not interaction.user.voice or\
         interaction.user.voice.channel != interaction.guild.voice_client.channel:
-        await interaction.response.send_message("Join my voice channel first.")
+        await send_func("Join my voice channel first.")
         return False
     
     text_channel = guild_states.get(interaction.guild.id, {}).get("interaction_channel", None)
 
     if text_channel and interaction.channel != text_channel:
-        await interaction.response.send_message(f"To avoid results in different channels, please run this command in **{text_channel.mention}**.")
+        await send_func(f"To avoid results in different channels, please run this command in **{text_channel.mention}**.")
         return False
     
     return True
