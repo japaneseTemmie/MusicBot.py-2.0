@@ -2,7 +2,7 @@
 
 from init.logutils import log
 
-from os.path import join, dirname, exists
+from os.path import join, dirname, isfile, isdir
 from os import name
 from sys import exit as sysexit, prefix, base_prefix
 from subprocess import Popen, PIPE
@@ -27,8 +27,8 @@ class CompletedProcess:
 def check_requirements() -> bool:
     """ Check requirements.txt file """
     
-    if not exists(REQUIREMENTS_TXT_PATH):
-        log("Unable to update libs: No requirements.txt", "libupdater")
+    if not isfile(REQUIREMENTS_TXT_PATH):
+        log(f"Unable to update libs: No requirements.txt file present in {PATH}", "libupdater")
         return False
     
     return True
@@ -36,11 +36,11 @@ def check_requirements() -> bool:
 def check_venv() -> bool:
     """ Check if venv and pip exist """
     
-    if not exists(VENV_PATH):
-        log("Unable to update libs: No venv path", "libupdater")
+    if not isdir(VENV_PATH):
+        log(f"Unable to update libs: No venv found at expected path {VENV_PATH}", "libupdater")
         return False
-    elif not exists(VENV_PIP):
-        log("Unable to update libs: No pip in venv", "libupdater")
+    elif not isfile(VENV_PIP):
+        log("Unable to update libs: No pip executable in venv", "libupdater")
         return False
 
     return True
