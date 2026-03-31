@@ -799,7 +799,7 @@ class PlaylistCog(commands.Cog):
         playlist_name = sanitize_name(playlist_name)
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
 
-        update_guild_state(self.guild_states, interaction, (True, True), ("locked_playlists", "is_extracting"))
+        update_guild_states(self.guild_states, interaction, (True, True), ("locked_playlists", "is_extracting"))
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
@@ -820,7 +820,7 @@ class PlaylistCog(commands.Cog):
         )
         result = await self.playlist.add(self.guild_states, interaction, content, playlist_name, queries_split, allowed_query_types, provider)
 
-        update_guild_state(self.guild_states, interaction, (False, False), ("locked_playlists", "is_extracting"))
+        update_guild_states(self.guild_states, interaction, (False, False), ("locked_playlists", "is_extracting"))
         update_query_extraction_state(self.guild_states, interaction, 0, 0, None, None)
 
         if isinstance(result, Error):
