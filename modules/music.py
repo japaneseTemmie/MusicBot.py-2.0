@@ -148,7 +148,7 @@ class MusicCog(commands.Cog):
             added = await add_results_to_queue(interaction, found, queue, MAX_QUEUE_TRACK_LIMIT)
             
             if is_looping_queue:
-                update_loop_queue_add(self.guild_states, interaction)
+                update_loop_queue_add(self.guild_states, interaction, added)
 
             if not voice_client.is_playing() and\
                 not voice_client.is_paused():

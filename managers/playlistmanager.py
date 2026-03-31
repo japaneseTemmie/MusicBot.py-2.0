@@ -323,7 +323,7 @@ class PlaylistManager:
             added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
-                update_loop_queue_add(guild_states, interaction)
+                update_loop_queue_add(guild_states, interaction, added)
 
             return added
         elif isinstance(found, Error):
@@ -368,7 +368,7 @@ class PlaylistManager:
             added = await add_results_to_queue(interaction, found, queue, max_track_limit)
 
             if is_looping_queue:
-                update_loop_queue_add(guild_states, interaction)
+                update_loop_queue_add(guild_states, interaction, added)
 
             return added
         elif isinstance(found, Error):

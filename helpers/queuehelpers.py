@@ -56,25 +56,26 @@ def update_loop_queue_remove(guild_states: dict[str, Any], interaction: Interact
     
     if interaction.guild.id in guild_states:
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
+        seen = set()
 
         for track_to_remove in tracks_to_remove:
             for i, track in enumerate(queue_to_loop.copy()):
-                if track == track_to_remove:
+                if track == track_to_remove and i not in seen:
                     queue_to_loop.pop(i)
+                    seen.add(i)
+
                     break
 
-def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction) -> None:
+def update_loop_queue_add(guild_states: dict[str, Any], interaction: Interaction, added: list[dict[str, Any]]) -> None:
     """ Update the queue to loop with the latest extracted items from a queue.
 
     This function must be called after new tracks have been added to the queue and the `is_looping_queue` state is active. """
     
     if interaction.guild.id in guild_states:
-        queue = guild_states[interaction.guild.id]["queue"]
         queue_to_loop = guild_states[interaction.guild.id]["queue_to_loop"]
 
-        for track in queue:
-            if track not in queue_to_loop:
-                queue_to_loop.append(track)
+        for track in added:
+            queue_to_loop.append(track)
 
 # Functions for checking input and queue, these functions also 'reply' to interactions
 async def check_input_length(interaction: Interaction | None, max_limit: int, input_split: list[Any], msg_on_fail: str | None=None, reply_to_interaction: bool=True) -> list[Any]:
