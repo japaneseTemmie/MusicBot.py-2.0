@@ -6,18 +6,10 @@ from helpers.confighelpers import ConfigCategory, get_config_value, correct_type
 
 import discord
 from os import name
-from typing import Any
-from types import NoneType
-from os.path import dirname
 from platform import python_implementation, python_version, system
 from random import choice
-
-def get_directory(file: str | None=None) -> str:
-    """ Return the directory path of `file`. 
-    
-    If `file` is None, return directory path of the file this function is in. """
-    
-    return dirname(__file__ if file is None else file)
+from typing import Any
+from types import NoneType
 
 def get_python() -> tuple[str, str]:
     """ Return the running Python implementation & version. """

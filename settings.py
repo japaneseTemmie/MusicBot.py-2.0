@@ -1,6 +1,6 @@
 """ General settings configuration for discord.py bot """
 
-from init.info import get_directory, get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
+from init.info import get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
 from init.help import open_help_file
 from init.config import get_config_data
 from init.logsetup import set_up_logging, remove_log
@@ -14,6 +14,7 @@ from discord import Intents
 from cachetools import TTLCache
 from logging import INFO
 from os import getenv
+from os.path import dirname
 from sys import exit as sysexit
 from time import sleep
 from shutil import which
@@ -24,7 +25,7 @@ separator()
 sleep(0.5)
 
 # System info and config
-PATH = get_directory(__file__)
+PATH = dirname(__file__)
 log(f"Working directory: {PATH}")
 separator()
 
