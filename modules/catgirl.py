@@ -5,7 +5,7 @@ from init.constants import COOLDOWNS, NEKOS_MOE_RANDOM_ENDPOINT, NEKOS_MOE_IMAGE
 from bot import Bot, ShardedBot
 from error import Error
 from init.logutils import log_to_discord_log
-from helpers.httphelpers import get_json_response, get_bytes_response
+from helpers.httphelpers import http_get_bytes, http_get_json
 from helpers.cachehelpers import get_cache, store_cache
 
 import discord
@@ -24,20 +24,20 @@ class CatgirlDownloaderCog(commands.Cog):
         
         cache = get_cache(NEKOS_MOE_CACHE, image_id)
 
-        if cache is not None:
-            bytes_response_payload = cache
-        else:
-            bytes_response_payload = await get_bytes_response(self.client.client_http_session, NEKOS_MOE_IMAGE + f"/{image_id}", headers=NEKOS_MOE_REQUEST_HEADERS)
+        if cache is None:
+            response = await http_get_bytes(self.client.client_http_session, NEKOS_MOE_IMAGE + f"/{image_id}", headers=NEKOS_MOE_REQUEST_HEADERS)
             
-            if isinstance(bytes_response_payload, Error):
-                return bytes_response_payload
-            elif not bytes_response_payload.result:
+            if isinstance(response, Error):
+                return response
+            elif not response.result:
                 return Error("Received empty image.")
         
-            store_cache(bytes_response_payload, image_id, NEKOS_MOE_CACHE)
+            store_cache(response, image_id, NEKOS_MOE_CACHE)
+        else:
+            response = cache
 
-        image_bytes = bytes_response_payload.result
-        content_type = bytes_response_payload.response.content_type or "image/jpeg"
+        image_bytes = response.result
+        content_type = response.content_type or "image/jpeg"
         image_extension = content_type.split("/")[-1]
 
         return discord.File(BytesIO(image_bytes), f"{image_id}.{image_extension}")
@@ -45,11 +45,11 @@ class CatgirlDownloaderCog(commands.Cog):
     async def _get_image_metadata(self, url: str) -> dict[str, Any] | Error:
         """ Get image metadata from a valid nekos.moe API URL. """
         
-        json_response_payload = await get_json_response(self.client.client_http_session, url, headers=NEKOS_MOE_REQUEST_HEADERS)
-        if isinstance(json_response_payload, Error):
-            return json_response_payload
+        response = await http_get_json(self.client.client_http_session, url, headers=NEKOS_MOE_REQUEST_HEADERS)
+        if isinstance(response, Error):
+            return response
         
-        return json_response_payload.result
+        return response.result
 
     @app_commands.command(name="get-catgirl", description="Shows a random, SFW-ONLY picture of a catgirl provided by nekos.moe")
     @app_commands.describe(
@@ -64,7 +64,12 @@ class CatgirlDownloaderCog(commands.Cog):
             await interaction.followup.send(data.msg)
             return
 
-        image_data = data["images"][0]
+        images = data["images"]
+        if not images:
+            await interaction.followup.send("Could not find an image.")
+            return
+
+        image_data = images[0]
 
         image_id = image_data["id"]
         image_artist = image_data.get("artist") or "Unknown artist" # API specs says this is not guaranteed

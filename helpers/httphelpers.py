@@ -9,16 +9,20 @@ from json import JSONDecodeError
 from typing import Any
 
 class ResponsePayload:
-    """ Generic response payload. 
-    
-    Contains response itself (only for read-only metadata) and requested result. """
+    """ Generic response payload with additional read-only response attributes and the cached result. """
 
     def __init__(self, response: ClientResponse, result: Any):
-        self.response = response
+        self.content_type = response.content_type
+        self.content_length = response.content_length
+        self.charset = response.charset
+        self.content_disposition = response.content_disposition
+        self.cookies = response.cookies
+        self.headers = response.headers
+        self.status = response.status
         self.result = result
 
-async def get_json_response(session: ClientSession, url: str, **kwargs) -> ResponsePayload | Error:
-    """ GET the url and return a JSON response. 
+async def http_get_json(session: ClientSession, url: str, **kwargs) -> ResponsePayload | Error:
+    """ Make an HTTP GET request the given endpoint and return a JSON response. 
     
     Return a ResponsePayload with hashmap containing the jsonified response as `result` or Error on failure. """
 
@@ -35,8 +39,8 @@ async def get_json_response(session: ClientSession, url: str, **kwargs) -> Respo
     except (JSONDecodeError, ClientError):
         return Error(f"Unable to process request. Failed to decode response.")
 
-async def get_bytes_response(session: ClientSession, url: str, **kwargs) -> ResponsePayload | Error:
-    """ GET the url and return its content as bytes. 
+async def http_get_bytes(session: ClientSession, url: str, **kwargs) -> ResponsePayload | Error:
+    """ Make an HTTP GET request to the given endpoint and return its content as bytes. 
     
     Return ResponsePayload with response content as bytes as `result` or Error on failure. """
 
