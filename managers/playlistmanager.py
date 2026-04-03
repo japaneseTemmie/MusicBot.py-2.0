@@ -477,6 +477,9 @@ class PlaylistManager:
         if not playlist_exists(content, orig_playlist_name):
             return Error(f"Playlist **{orig_playlist_name[:MAX_ITEM_NAME_LENGTH]}** does not exist!")
 
+        if playlist_exists(content, new_playlist_name):
+            return Error(f"A playlist named **{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}** already exists!")
+
         if name_exceeds_length(MAX_ITEM_NAME_LENGTH, new_playlist_name):
             return Error(f"New name **{new_playlist_name[:MAX_ITEM_NAME_LENGTH]}**.. is too long! Must be < **{MAX_ITEM_NAME_LENGTH}** characters.")
 
@@ -492,7 +495,7 @@ class PlaylistManager:
 
         return success, orig_playlist_name, new_playlist_name
         
-    async def rename_item(
+    async def rename_items(
             self, 
             interaction: Interaction, 
             content: dict[str, list], 

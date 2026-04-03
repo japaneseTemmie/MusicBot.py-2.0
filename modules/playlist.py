@@ -1315,7 +1315,7 @@ class PlaylistCog(commands.Cog):
         old_track_names_split = split(old_track_names)
         new_track_names_split = split(new_track_names)
 
-        result = await self.playlist.rename_item(interaction, content, playlist_name, old_track_names_split, new_track_names_split, by_index)
+        result = await self.playlist.rename_items(interaction, content, playlist_name, old_track_names_split, new_track_names_split, by_index)
         
         update_guild_state(self.guild_states, interaction, False, "locked_playlists")
 
