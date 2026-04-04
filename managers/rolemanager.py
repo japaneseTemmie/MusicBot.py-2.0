@@ -117,10 +117,8 @@ class RoleManager:
     async def reset(self, interaction: Interaction) -> Literal[True] | Error:
         """ Reset role structure.
          
+        This function directly writes an empty hashmap to the 'roles.json' file, since opening it would not work in case of corruption.
+
         Returns True or Error. """
         
-        result = await self.write(interaction, {})
-        if isinstance(result, Error):
-            return result
-
-        return True
+        return await self.write(interaction, {})

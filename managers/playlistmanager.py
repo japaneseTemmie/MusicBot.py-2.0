@@ -450,6 +450,8 @@ class PlaylistManager:
     async def delete_all(self, interaction: Interaction) -> Literal[True] | Error:
         """ Deletes every playlist saved in the current guild.
 
+        This function directly writes an empty hashmap to the 'playlists.json' file, since opening it would not work in case of corruption.
+
         Returns a boolean or Error. """
         
         success = await self.write(interaction, {})
