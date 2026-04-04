@@ -11,8 +11,9 @@ from init.logutils import log
 import asyncio
 import discord
 from discord.interactions import Interaction
-from typing import Any, Literal
+from typing import Any, Literal, Callable
 from os.path import join
+from operator import eq
 
 async def read_guild_json(
         interaction: Interaction,
@@ -259,25 +260,38 @@ async def check_guild_state(
         interaction: Interaction,
         state: str,
         condition: Any,
-        msg: str
+        msg: str,
+        operator_func: Callable[[Any, Any], bool]=eq,
+        callbacks: tuple[Callable[[], None]]=None
     ) -> bool:
 
-    """ Check a guild state.
+    """ Check a guild state against a given condition.
     
-    If it matches `condition`, reply to `interaction` with `msg` and return False, else return True. """
+    If `operator_func` with the given condition and state value returns a truthy value, 
+    the check is considered failed and reply to the interaction with `msg`, execute any _synchronous_ callbacks and return False. Otherwise, return True. """
     
-    if interaction.guild.id in guild_states:
-        guild_state = guild_states[interaction.guild.id]
-        
-        if state not in guild_state:
-            log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Cannot check state '{state}'. Not found in guild_states[{interaction.guild.id}].")
-            return False
-        
-        value = guild_state[state]
+    if interaction.guild.id not in guild_states:
+        return False
 
-        if value == condition:
-            await interaction.response.send_message(msg) if not interaction.response.is_done() else\
-            await interaction.followup.send(msg)
-            return False
-        
-        return True
+    guild_state = guild_states[interaction.guild.id]
+    
+    if state not in guild_state:
+        log(f"[GUILDSTATE][SHARD ID {interaction.guild.shard_id}] Cannot check state '{state}'. Not found in guild_states[{interaction.guild.id}].")
+        return False
+    
+    value = guild_state[state]
+
+    if operator_func(value, condition):
+        await interaction.response.send_message(msg) if not interaction.response.is_done() else\
+        await interaction.followup.send(msg)
+
+        if callbacks:
+            for callback in callbacks:
+                try:
+                    callback()
+                except Exception as e:
+                    log(f"Error in callback handler: {e}")
+
+        return False
+    
+    return True
