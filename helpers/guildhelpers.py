@@ -262,7 +262,7 @@ async def check_guild_state(
         condition: Any,
         msg: str,
         operator_func: Callable[[Any, Any], bool]=eq,
-        callbacks: tuple[Callable[[], None]]=None
+        callbacks: tuple[Callable[[], None], ...]=None
     ) -> bool:
 
     """ Check a guild state against a given condition.
