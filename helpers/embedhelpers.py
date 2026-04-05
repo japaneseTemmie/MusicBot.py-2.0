@@ -222,7 +222,7 @@ def generate_extraction_progress_embed(current_item_name: str, total: int, curre
 
     return embed
 
-def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, page_length: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
+def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, total_pages: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
     """ Generate an embed to show tracks in a queue page.
     
     `queue` is a list of 25 tracks. """
@@ -235,7 +235,7 @@ def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, page_
         } for result in queue_page
     ]
 
-    embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page + 1} {'(End)' if page == page_length - 1 else ''}")
+    embed = _get_embed(f"{'Playlist' if is_playlist else 'Queue' if not is_history else 'History'} - Page {page} {'(End)' if page == total_pages else ''}")
     _add_up_to_25(embed, to_add)
     
     embed.set_footer(text=f"Total tracks in page: {len(queue_page)}")

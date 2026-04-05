@@ -15,8 +15,7 @@ from helpers.queuehelpers import (
     update_loop_queue_add, update_loop_queue_remove, update_loop_queue_replace,
     split, get_next_visual_track, get_previous_visual_track,
     find_track, replace_track_in_queue, reposition_track_in_queue, remove_tracks_from_queue, skip_tracks_in_queue,
-    get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string,
-    validate_page_number
+    get_pages, add_filters, clear_filters, get_added_filter_string, get_removed_filter_string, get_active_filter_string
 )
 from helpers.voicehelpers import (
     set_voice_status, close_voice_clients, check_users_in_channel
@@ -1151,20 +1150,22 @@ class MusicCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        if page < 1:
+            await interaction.followup.send("Page cannot be less than **1**.")
+            return
+
         queue = self.guild_states[interaction.guild.id]["queue"]
 
         queue_pages = get_pages(queue)
         total_pages = len(queue_pages)
-        page -= 1
 
-        result = validate_page_number(total_pages, page)
-        if isinstance(result, Error):
-            await interaction.followup.send(result.msg)
+        if page > total_pages:
+            await interaction.followup.send(f"Page number cannot be higher than the maximum amount of pages. (**{total_pages}**)")
             return
 
-        queue_page = queue_pages[page]
+        queue_page = queue_pages[page - 1]
 
-        embed = generate_queue_page_embed(queue_page, page, len(queue_pages))
+        embed = generate_queue_page_embed(queue_page, page, total_pages)
         
         await interaction.followup.send(embed=embed)
 
@@ -1186,20 +1187,22 @@ class MusicCog(commands.Cog):
         
         await interaction.response.defer(thinking=True)
         
+        if page < 1:
+            await interaction.followup.send("Page cannot be less than **1**.")
+            return
+
         track_history = self.guild_states[interaction.guild.id]["queue_history"]
         
         history_pages = get_pages(track_history)
         total_pages = len(history_pages)
-        page -= 1
 
-        result = validate_page_number(total_pages, page)
-        if isinstance(result, Error):
-            await interaction.followup.send(result.msg)
+        if page > total_pages:
+            await interaction.followup.send(f"Page cannot be higher than the maximum amount of pages. (**{total_pages}**)")
             return
 
-        history_page = history_pages[page]
+        history_page = history_pages[page - 1]
 
-        embed = generate_queue_page_embed(history_page, page, len(history_pages), True)
+        embed = generate_queue_page_embed(history_page, page, total_pages, True)
 
         await interaction.followup.send(embed=embed)
 

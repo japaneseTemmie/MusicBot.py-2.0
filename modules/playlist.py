@@ -18,7 +18,7 @@ from helpers.guildhelpers import (
     user_has_role, check_channel, check_guild_state, update_guild_state, update_guild_states, update_query_extraction_state,
 )
 from helpers.queuehelpers import (
-    get_pages, check_input_length, check_queue_length, split, get_random_tracks_from_queue, sanitize_name, validate_page_number
+    get_pages, check_input_length, check_queue_length, split, get_random_tracks_from_queue, sanitize_name
 )
 from helpers.voicehelpers import check_users_in_channel
 
@@ -98,6 +98,9 @@ class PlaylistCog(commands.Cog):
         if locked:
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
             return
+        elif page < 1:
+            await interaction.followup.send("Page cannot be less than **1**.")
+            return
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -121,14 +124,12 @@ class PlaylistCog(commands.Cog):
 
         playlist_pages = get_pages(playlist)
         total_pages = len(playlist_pages)
-        page -= 1
-
-        result = validate_page_number(total_pages, page)
-        if isinstance(result, Error):
-            await interaction.followup.send(result.msg)
+    
+        if page > total_pages:
+            await interaction.followup.send(f"Page cannot be higher than the maximum amount of pages. (**{total_pages}**)")
             return
 
-        playlist_page = playlist_pages[page]
+        playlist_page = playlist_pages[page - 1]
 
         embed = generate_queue_page_embed(playlist_page, page, total_pages, False, True)
 
