@@ -13,11 +13,10 @@ from typing import Any, Literal
 from copy import deepcopy
 from random import randint, sample
 
-# Function to get a list of queue pages to display
-def get_pages(queue: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
-    """ Create a list of queue pages. Each page is 25 elements long. """
+def get_pages(items: list[Any]) -> list[list[Any]]:
+    """ Create a list of pages that contain given items. Each page is 25 elements long. """
 
-    return [queue[i:i+25] for i in range(0, len(queue), 25)]
+    return [items[i:i+25] for i in range(0, len(items), 25)]
 
 def validate_page_number(total: int, page: int) -> Literal[True] | Error:
     """ Check if page number `page` is in a valid ranage [0, `total` - 1]. 
