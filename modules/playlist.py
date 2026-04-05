@@ -1337,9 +1337,12 @@ class PlaylistCog(commands.Cog):
         await self.handle_error(interaction, error)
 
     @app_commands.command(name="playlist-get-saved", description="Shows saved playlists for this guild.")
+    @app_commands.describe(
+        page="The page to view."
+    )
     @app_commands.checks.cooldown(rate=1, per=COOLDOWNS["PLAYLIST_GET_SAVED_COMMAND_COOLDOWN"], key=lambda i: i.guild.id)
     @app_commands.guild_only
-    async def show_saved_playlists(self, interaction: Interaction):
+    async def show_saved_playlists(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction):
@@ -1350,6 +1353,9 @@ class PlaylistCog(commands.Cog):
         locked = self.guild_states[interaction.guild.id]["locked_playlists"]
         if locked:
             await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            return
+        elif page < 1:
+            await interaction.followup.send("Page cannot be less than **1**.")
             return
 
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
@@ -1370,9 +1376,16 @@ class PlaylistCog(commands.Cog):
 
         update_guild_state(self.guild_states, interaction, False, "locked_playlists")
 
+        pages = get_pages(result)
+        total_pages = len(pages)
+
+        if page > total_pages:
+            await interaction.followup.send(f"Page cannot be higher than the maximum amount of pages. (**{total_pages}**)")
+            return
+
         remaining_slots = MAX_PLAYLIST_LIMIT - len(result)
 
-        embed = generate_playlists_embed(result, remaining_slots)
+        embed = generate_playlists_embed(result, remaining_slots, page, total_pages)
 
         await interaction.followup.send(embed=embed)
 

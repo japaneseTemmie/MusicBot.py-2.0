@@ -137,7 +137,7 @@ def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]], playlist_name
 
     return embed
 
-def generate_playlists_embed(names: list[str], remaining: int) -> discord.Embed:
+def generate_playlists_embed(names: list[str], remaining: int, page: int, total_pages: int) -> discord.Embed:
     to_add = [
         {
             "name": f"{i+1}. [ `{name}` ]",
@@ -146,8 +146,8 @@ def generate_playlists_embed(names: list[str], remaining: int) -> discord.Embed:
         } for i, name in enumerate(names)
     ]
     
-    embed = _get_embed("Saved playlists")
-    _add_up_to_24(embed, to_add)
+    embed = _get_embed(f"Saved playlists - Page {page} {'(End)' if page == total_pages else ''}")
+    _add_up_to_25(embed, to_add)
     
     embed.set_footer(text=f"Remaining slots: {remaining}")
 
