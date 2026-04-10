@@ -1,11 +1,11 @@
-""" Moderation helper functions for discord.py bot """
+""" Moderation helpers for discord.py bot """
 
 import discord
 from typing import Callable
 
 # Moderation utilities
-async def get_banned_users(guild: discord.Guild) -> list[discord.User] | list:
-    """ Get a list of `discord.User` objects from a guild's ban entries. """
+async def get_banned_users(guild: discord.Guild) -> list[discord.User]:
+    """ Get a list of maximum 1000 `discord.User` objects from a guild's ban entries. """
 
     members = []
     async for ban_entry in guild.bans():

@@ -66,7 +66,7 @@ def generate_epoch_embed(join_time: str, elapsed_time: str, starter_user: discor
     return embed
 
 def generate_added_track_embed(added: list[dict[str, Any]], is_playlist: bool=False, playlist_name: str | None=None) -> discord.Embed:
-    """ Generate an embed of up to 24 added tracks. """
+    """ Generate an embed of up to 24 added tracks to either the queue or a playlist. """
     
     to_add = [
         {
@@ -101,7 +101,7 @@ def generate_skipped_tracks_embed(skipped: list[dict[str, Any]]) -> discord.Embe
     return embed
 
 def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bool=False, playlist_name: str | None=None) -> discord.Embed:
-    """ Generate an embed showing the removed tracks from a queue. """
+    """ Generate an embed showing the removed tracks from a queue or a playlist. """
 
     to_add = [
         {
@@ -122,7 +122,7 @@ def generate_removed_tracks_embed(removed: list[dict[str, Any]], is_playlist: bo
 def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]], playlist_name: str | None=None) -> discord.Embed:
     """ Generate an embed to show renamed tracks in a queue.
     
-    `renamed` is a list of tuples with old track (`dict`) and new name (`str`). """
+    `renamed` must be a list of tuples with old track (`dict` object) and new name (`str` object). """
     
     to_add = [
         {
@@ -138,6 +138,8 @@ def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]], playlist_name
     return embed
 
 def generate_playlists_embed(names: list[str], remaining: int, page: int, total_pages: int) -> discord.Embed:
+    """ Generate an embed showing the saved playlists for the current guild. """
+    
     to_add = [
         {
             "name": f"[ `{name}` ]",
@@ -223,9 +225,9 @@ def generate_extraction_progress_embed(current_item_name: str, total: int, curre
     return embed
 
 def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, total_pages: int, is_history: bool=False, is_playlist: bool=False) -> discord.Embed:
-    """ Generate an embed to show tracks in a queue page.
+    """ Generate an embed to show tracks in a queue, history or playlist page.
     
-    `queue` is a list of 25 tracks. """
+    `queue` must be a list of exactly 25 tracks. """
     
     to_add = [
         {
@@ -243,7 +245,9 @@ def generate_queue_page_embed(queue_page: list[dict[str, Any]], page: int, total
     return embed
 
 def generate_ping_embed(websocket: float, response: float) -> discord.Embed:
-    """ Generate an embed for websocket and response latency """
+    """ Generate an embed for websocket and response latency. 
+    
+    Color of the embed will be based on the `websocket` latency. """
 
     websocket = round(websocket * 1000, 1)
     response = round(response * 1000, 1)

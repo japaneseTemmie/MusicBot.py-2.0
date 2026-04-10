@@ -60,11 +60,11 @@ async def check_users_in_channel(guild_states: dict[str, Any], member: discord.M
 
     Disconnection from voice channel only occurs if certain conditions are met. In case they aren't, False is returned even if the channel only has the bot in it.
 
-    Special cases in which True is returned:
-    - Voice is locked globally.
-    - A disconnect event is already being handled for the guild.
+    Return True if none are left and the bot is disconnected, False otherwise.
 
-    Returns True if none are left and the bot is disconnected, False otherwise. """
+    Special cases in which True is returned regardless:
+    - Voice is locked globally.
+    - A disconnect event is already being handled for the guild. """
     
     if get_vc_lock():
         return True # bot is disconnected
@@ -244,7 +244,7 @@ async def handle_channel_move(
 
 # Voice channel status
 async def set_voice_status(guild_states: dict[str, Any], interaction: Interaction) -> None:
-    """ Updates the `voice_client` channel status with the `voice_status` guild state. """
+    """ Update the `voice_client` channel status with the `voice_status` guild state. """
     
     if interaction.guild.id in guild_states:
         voice_client = guild_states[interaction.guild.id]["voice_client"]
