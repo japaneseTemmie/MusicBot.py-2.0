@@ -140,10 +140,10 @@ def generate_renamed_tracks_embed(renamed: list[tuple[dict, str]], playlist_name
 def generate_playlists_embed(names: list[str], remaining: int, page: int, total_pages: int) -> discord.Embed:
     to_add = [
         {
-            "name": f"{i+1}. [ `{name}` ]",
+            "name": f"[ `{name}` ]",
             "value": "",
             "inline": False
-        } for i, name in enumerate(names)
+        } for name in names
     ]
     
     embed = _get_embed(f"Saved playlists - Page {page} {'(End)' if page == total_pages else ''}")

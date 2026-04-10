@@ -1384,8 +1384,9 @@ class PlaylistCog(commands.Cog):
             return
 
         remaining_slots = MAX_PLAYLIST_LIMIT - len(result)
+        page_list = pages[page - 1]
 
-        embed = generate_playlists_embed(result, remaining_slots, page, total_pages)
+        embed = generate_playlists_embed(page_list, remaining_slots, page, total_pages)
 
         await interaction.followup.send(embed=embed)
 
