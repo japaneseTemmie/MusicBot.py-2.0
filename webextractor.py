@@ -156,7 +156,9 @@ def prettify_duration(duration: str | float | int) -> str:
         return duration
 
 def prettify_info(info: dict[str, Any], source_website: SourceWebsiteValue | None=None) -> dict[str, Any]:
-    """ Prettify the extracted info with cleaner values. """
+    """ Prettify the extracted info with cleaner values. 
+    
+    Prettify duration as a HH:MM:SS string and date as a date object. """
     
     upload_date = info.get("upload_date", "19700101") # Default to UNIX epoch because why not
     duration = info.get("duration", 0)
