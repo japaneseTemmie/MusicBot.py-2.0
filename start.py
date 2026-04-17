@@ -114,9 +114,6 @@ def main() -> None:
         install_venv()
 
         if venv_exists():
-            log("Checking requirements.txt", "runner")
-            sleep(0.5)
-
             log("Installing dependencies through requirements.txt", "runner")
             sleep(0.5)
 
