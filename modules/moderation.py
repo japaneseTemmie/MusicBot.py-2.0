@@ -11,7 +11,7 @@ from init.constants import (
 )
 from init.logutils import log_to_discord_log
 from bot import Bot, ShardedBot
-from helpers.moderationhelpers import get_purge_check, get_banned_users, get_user_to_unban, remove_markdown_or_mentions
+from helpers.moderationhelpers import get_purge_check, remove_markdown_or_mentions
 from helpers.timehelpers import format_to_seconds_extended
 
 import discord
@@ -172,7 +172,7 @@ class ModerationCog(commands.Cog):
 
     @app_commands.command(name="unban", description="Unbans a member from the guild. See entry in /help for more info.")
     @app_commands.describe(
-        member="The member to unban's username or ID",
+        member_id="The member to unban's ID",
         reason="The unban reason. (defaults to 'None')",
         show="Whether or not to broadcast the action in the current channel. (default False)"
     )
@@ -180,15 +180,19 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.bot_has_permissions(ban_members=True)
     @app_commands.guild_only
-    async def unban_member(self, interaction: Interaction, member: str, reason: str="None", show: bool=False):
-        banned_users = await get_banned_users(interaction.guild)
-        if not banned_users:
-            await interaction.response.send_message("Ban entries are empty.", ephemeral=True)
+    async def unban_member(self, interaction: Interaction, member_id: str, reason: str="None", show: bool=False):
+        if not member_id.isdigit():
+            await interaction.response.send_message("Member ID must be a numeric string.")
             return
 
-        member_to_unban = get_user_to_unban(banned_users, member.strip())
+        try:
+            entry = await interaction.guild.fetch_ban(discord.Object(int(member_id)))
+            member_to_unban = entry.user
+        except discord.errors.NotFound:
+            member_to_unban = None
+
         if member_to_unban is None:
-            await interaction.response.send_message(f"Could not find member **{member}** in ban entries.", ephemeral=True)
+            await interaction.response.send_message(f"Could not find member of ID **{member_id}** in ban entries.", ephemeral=True)
             return
         elif member_to_unban in (interaction.user, interaction.guild.me):
             await interaction.response.send_message(f"Member cannot be yourself or me.", ephemeral=True)

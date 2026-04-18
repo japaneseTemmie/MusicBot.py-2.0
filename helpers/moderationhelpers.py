@@ -4,36 +4,9 @@ import discord
 from typing import Callable
 
 # Moderation utilities
-async def get_banned_users(guild: discord.Guild) -> list[discord.User]:
-    """ Get a list of maximum 1000 `discord.User` objects from a guild's ban entries. """
-
-    members = []
-    async for ban_entry in guild.bans():
-        members.append(ban_entry.user)
-
-    return members
-
 def get_role(roles: list[discord.Role], role: str, get_by_id: bool=False) -> discord.Role | None:
     return discord.utils.get(roles, name=role) if not get_by_id and not role.isdigit() else\
     discord.utils.get(roles, id=int(role))
-
-def get_user_to_unban(banned_users: list[discord.User], member: str | int) -> discord.User:
-    """ Match a given user's name or ID to users in a ban entry list and return the object. """
-    
-    member_obj = None
-    funcs = [
-        lambda: discord.utils.get(banned_users, id=int(member) if member.isdigit() else None),
-        lambda: discord.utils.get(banned_users, name=member.strip()),
-        lambda: discord.utils.get(banned_users, global_name=member.strip())
-    ]
-
-    for func in funcs:
-        member_obj = func()
-
-        if member_obj is not None:
-            break
-
-    return member_obj
 
 def remove_markdown_or_mentions(text: str, markdown: bool, mentions: bool) -> str:
     """ Remove Discord's markdown and mention formatting. """
