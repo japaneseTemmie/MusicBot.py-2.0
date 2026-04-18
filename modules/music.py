@@ -1349,6 +1349,11 @@ class MusicCog(commands.Cog):
 
             await interaction.followup.send("Invalid duration.\nFormat must be **HH:MM:SS**.\nAdditionally, **MM** and **SS** must not be > **59**.")
             return
+        elif min_duration_in_seconds > max_duration_in_seconds:
+            update_guild_state(self.guild_states, interaction, False, "is_editing_filters")
+
+            await interaction.followup.send("Minimum duration cannot be greater than the maximum duration.")
+            return
         
         added = add_filters(filters, {
             "uploader": author.strip() if author is not None else author,
