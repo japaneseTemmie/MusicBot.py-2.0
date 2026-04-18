@@ -75,6 +75,11 @@ class MyCog(commands.Cog): # Subclass commands.Cog
     async def handle_say_hi_error(self, interaction: Interaction, error: Exception):
         # This function will be called when an exception in say_hi() is raised.
         
+        # Special check for cooldown exception
+        if isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True) # Default exception message is good enough
+            return
+
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
-        await interaction.response.send_message("An unknown error occurred.")
+        await interaction.response.send_message("An unknown error occurred.", ephemeral=True)
