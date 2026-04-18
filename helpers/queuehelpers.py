@@ -211,7 +211,7 @@ def get_next_track(
     if is_looping and track_to_loop:
         next_track = track_to_loop
     elif filters:
-        next_track = find_next_filtered_track(queue, filters)
+        next_track = find_next_filtered_track(queue, filters, is_random)
     elif is_random:
         next_track = queue.pop(randint(0, len(queue) - 1))
     else:
@@ -337,7 +337,7 @@ def match_filters(track: dict[str, Any], filters: dict[str, Any]) -> bool:
 
     return True
 
-def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
+def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any], is_random: bool) -> dict[str, Any]:
     """ Find the next track in a queue with the given filters. 
     
     Return the matching track or the next one if no filters match. """
@@ -346,7 +346,7 @@ def find_next_filtered_track(queue: list[dict[str, Any]], filters: dict[str, Any
         if match_filters(track, filters):
             return queue.pop(i)
         
-    return queue.pop(0)
+    return queue.pop(0) if not is_random else queue.pop(randint(0, len(queue) - 1))
 
 # Functions to get stuff from a queue.
 def get_tracks_from_queue(track_names: list[str], queue: list[dict[str, Any]], by_index: bool=False) -> list[dict[str, Any]] | Error:
