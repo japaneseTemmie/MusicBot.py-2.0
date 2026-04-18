@@ -9,14 +9,16 @@ from typing import Any
 from os.path import join, exists
 from os import remove
 
-def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:
-    """ Set up logging to the `discord.log` file in the `dir` root directory. """
+def set_up_logging(root: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:
+    """ Set up logging to the `discord.log` file in the root directory of the project. 
+    
+    Return a generic logging FileHandler, a generic Formatter, a custom Logger object and the log level. """
     
     log("Logging enabled")
     separator()
     log("Setting up logging...")
 
-    path = join(dir, "discord.log")
+    path = join(root, "discord.log")
 
     handler = FileHandler(path, "w", "utf-8")
 
@@ -29,16 +31,18 @@ def set_up_logging(dir: str, config: dict[str, Any]) -> tuple[FileHandler, Forma
     log(f"Log level found: {level}, actual: {VALID_LOG_LEVELS.get(level, INFO)}")
     separator()
 
-    logger = getLogger("discord")
+    logger = getLogger("musicbot")
+    logger.addHandler(handler)
+    logger.setLevel(VALID_LOG_LEVELS.get(level, INFO))
 
     return handler, formatter, logger, level
 
-def remove_log(dir: str) -> tuple[None, None, None, None]:
-    """ Remove the `discord.log` file from the `dir` root folder. """
+def remove_log(root: str) -> tuple[None, None, None, None]:
+    """ Remove the `discord.log` file from the root folder of the project. """
     
     log(f"Logging disabled")
     
-    path = join(dir, "discord.log")
+    path = join(root, "discord.log")
 
     if exists(path):
         try:
