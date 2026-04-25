@@ -26,7 +26,8 @@ These settings allow for configuration of general bot behaviour.
 - `max_query_limit`: The maximum amount of queries for some command arguments. Expects an integer.
 - `max_playlist_limit`: The maximum amount of playlists allowed in a guild. Expects an integer.
 - `max_playlist_track_limit`: The maximum amount of tracks in a playlist allowed. This should preferably be the same as `max_queue_track_limit`. Expects an integer.
-- `max_playlist_name_length`: The maximum amount of characters allowed for each playlist/playlist track. Expects an integer.
+- `max_playlist_name_length`: The maximum amount of characters allowed for each playlist/playlist track. Expects an integer. This should not be too high as it can cause the bot to
+fail to respond to some interactions.
 
 # Module settings
 These settings allow to control which module gets enabled, useful to limit features
