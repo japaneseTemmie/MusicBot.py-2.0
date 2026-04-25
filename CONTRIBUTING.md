@@ -7,7 +7,7 @@ Here's a basic guide on how to contribute code. Make sure you have good knowledg
 2. Clone the fork using `git clone <URL>` on a clean directory.
     - Depending on how you set up git, you may need to use the SSH address. If your git authentication is SSH key-based, then clone using the SSH address. Otherwise,
     you can clone using the HTTPS address.
-3. Make your changes, add files to the commit using `git add -A` or `git add file1 file2 ...` for specific files. Then, commit and push to the remote.
+3. Make your changes. You can also create specific feature branches. Then, add files to the commit using `git add -A` or `git add file1 file2 ...` for only certain files. Finally, commit your work with a good message explaining the changes and push to the remote.
 4. Submit a pull request on the main GitHub repository.
 
 Familiarize yourself with the architecture of the codebase before starting to make changes.
