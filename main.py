@@ -1,4 +1,4 @@
-""" main.py script for discord.py bot """
+""" Main script for discord.py bot """
 
 from settings import COMMAND_PREFIX, ACTIVITY, INTENTS, TOKEN, HANDLER, FORMATTER, LOG_LEVEL, USE_SHARDING
 from init.logutils import log, separator
