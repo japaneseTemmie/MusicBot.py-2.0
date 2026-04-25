@@ -1,4 +1,4 @@
-""" Setup script for discord.py bot. """
+""" Setup and runner script for discord.py bot. """
 
 from os import name
 from subprocess import Popen, SubprocessError, PIPE
@@ -11,9 +11,10 @@ PATH = dirname(__file__)
 VENV_PATH = join(PATH, ".venv")
 VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "python.exe")
 VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
+REQUIREMENTS_PATH = join(PATH, "requirements.txt")
 
 cmd_install_venv = [executable, "-m", "venv", VENV_PATH]
-cmd_install_deps = [VENV_PIP, "install", "-r", "requirements.txt"]
+cmd_install_deps = [VENV_PIP, "install", "-r", REQUIREMENTS_PATH]
 cmd_run_main = [VENV_PYTHON, "main.py"]
 
 # Checks
@@ -32,7 +33,7 @@ def is_in_venv() -> bool:
     return True
 
 def check_requirements() -> bool:
-    if not isfile(join(PATH, "requirements.txt")):
+    if not isfile(REQUIREMENTS_PATH):
         log("requirements.txt file not found.", "runner")
         return False
     
@@ -99,17 +100,25 @@ def install_dependencies() -> None:
     handle_return_code(code, " ".join(cmd_install_deps))
 
 # Main
-def main() -> None:
-    checks = [check_python_ver(), is_in_venv(), check_requirements()]
-    if not all(checks):
-        log("Failure exit", "runner")
-        sysexit(1)
+def _do_checks() -> bool:
+    """ Run checks before running venv installation or main script. """
+    
+    checks = [check_python_ver, is_in_venv, check_requirements]
+    for check in checks:
+        if not check():
+            log("Failure exit.", "runner")
+            return False
+        
+    return True
+
+def _ensure_venv() -> bool:
+    """ Install/verify venv. """
 
     log(f"Verifying venv installation in {VENV_PATH}", "runner")
     sleep(0.5)
     if not venv_exists():
         log(f"venv not found! Creating a new venv in {VENV_PATH}", "runner")
-        sleep(2)
+        sleep(1)
 
         install_venv()
 
@@ -120,10 +129,16 @@ def main() -> None:
             install_dependencies()
         else:
             log("Failed to create venv", "runner")
-            sysexit(1)
+            return False
     else:
         log(f"venv found at {VENV_PATH}", "runner")
         sleep(0.5)
+
+    return True
+
+def main() -> None:
+    if not _do_checks() or not _ensure_venv():
+        sysexit(1)
 
     try:
         log("Running main.py", "runner")
