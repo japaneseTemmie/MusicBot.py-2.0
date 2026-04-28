@@ -17,6 +17,10 @@ def _add_to_config(data: dict[str, Any], defaults: dict[str, Any]) -> None:
         if key not in data:
             data[key] = value
         elif isinstance(value, dict):
+            if not isinstance(data[key], dict):
+                data[key] = defaults[key]
+                continue
+
             _add_to_config(data[key], defaults[key])
 
 def _add_missing_settings(config: dict[str, Any]) -> None:
