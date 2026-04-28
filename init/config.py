@@ -89,12 +89,12 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
 
     return content
 
-def get_config_data(dir: str) -> dict[str, Any] | None:
-    """ Return a hashmap of the `config.json` file.
+def get_config_data(root: str) -> dict[str, Any] | None:
+    """ Return a hashmap of the `config.json` file in the root directory of the project.
      
-    This function also ensures that there are no missing keys and file exists. """
+    This function also ensures that the file exists and there are no missing keys. """
     
-    path = join(dir, "config.json")
+    path = join(root, "config.json")
     default_data = get_default_config_data()
 
     return ensure_config(path, default_data)
