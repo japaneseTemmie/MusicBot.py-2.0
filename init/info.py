@@ -77,7 +77,7 @@ def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> 
     
     Return a success value. """
     
-    if output is None:
+    if not output:
         log(f"FF{ff_type} not found!")
         log("Please visit the project's GitHub repository for detailed installation instructions.")
         
