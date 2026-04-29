@@ -1,6 +1,6 @@
 """ Audio player wrapper module for discord.py bot. """
 
-from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT, OS_NAME
+from settings import CAN_LOG, LOGGER, MAX_TRACK_HISTORY_LIMIT, OS_NAME, FFMPEG_EXEC
 from init.constants import MAX_STREAM_REFRESH_RETRY_COUNT
 from bot import Bot, ShardedBot
 from init.logutils import log, log_to_discord_log
@@ -87,7 +87,7 @@ class AudioPlayer:
             if do_stream_check:
                 track = await check_stream(interaction, self.client.client_http_session, track, MAX_STREAM_REFRESH_RETRY_COUNT)
 
-            source = discord.FFmpegPCMAudio(track["url"], options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
+            source = discord.FFmpegPCMAudio(track["url"], executable=FFMPEG_EXEC, options=ffmpeg_options["options"], before_options=ffmpeg_options["before_options"])
             voice_client.stop()
             voice_client.play(source, after=lambda e: self.handle_playback_end(e, interaction))
         except Exception as e:

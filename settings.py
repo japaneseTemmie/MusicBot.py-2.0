@@ -67,8 +67,8 @@ HANDLER, FORMATTER, LOGGER, LOG_LEVEL_STRING = set_up_logging(PATH, CONFIG) if C
 LOG_LEVEL = VALID_LOG_LEVELS.get(LOG_LEVEL_STRING, INFO)
 
 # FFmpeg validation
-FFMPEG = which("ffmpeg")
-if not handle_which_ff_output(OS_NAME, FFMPEG):
+FFMPEG_EXEC = which("ffmpeg")
+if not handle_which_ff_output(OS_NAME, FFMPEG_EXEC):
     sysexit(1)
 
 # Cache
