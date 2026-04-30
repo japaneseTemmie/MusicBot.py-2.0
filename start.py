@@ -43,7 +43,7 @@ def venv_exists() -> bool:
     return isdir(VENV_PATH) and isfile(VENV_PYTHON) and isfile(VENV_PIP)
 
 # Wrapper for Popen
-def run(command: list[str], sep_process: bool=False) -> int:
+def run(command: list[str], sep_process: bool=False) -> int | None:
     """ Run a command. """
 
     if name == "posix":
@@ -66,7 +66,7 @@ def run(command: list[str], sep_process: bool=False) -> int:
         )
     except SubprocessError as e:
         log(f"An error occurred while spawning subprocess with command '{' '.join(command)}'\nErr: {e}", "runner")
-        sysexit(1)
+        return None
     
     try:
         return process.wait()
@@ -85,8 +85,8 @@ def run(command: list[str], sep_process: bool=False) -> int:
                 process.terminate() # Fallback
         return process.wait()
 
-def handle_return_code(code: int, command: str) -> None:
-    if code != 0:
+def handle_return_code(code: int | None, command: str) -> None:
+    if code is None or code != 0:
         log(f"Running command '{command}' failed. Exiting...", "runner")
         sysexit(1)
 

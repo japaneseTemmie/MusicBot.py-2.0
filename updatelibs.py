@@ -3,9 +3,9 @@
 from init.logutils import log
 
 from os.path import join, dirname, isfile, isdir
-from os import name
 from sys import exit as sysexit, prefix, base_prefix
-from subprocess import Popen, PIPE
+from os import name
+from subprocess import Popen, SubprocessError, PIPE
 
 PATH = dirname(__file__)
 
@@ -13,6 +13,7 @@ REQUIREMENTS_TXT_PATH = join(PATH, "requirements.txt")
 
 VENV_PATH = join(PATH, ".venv")
 VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
+VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
 
 UPDATE_COMMAND_VENV = ["pip", "install", "--upgrade", "-r", REQUIREMENTS_TXT_PATH]
 UPDATE_COMMAND_NO_VENV = [VENV_PIP,] + UPDATE_COMMAND_VENV[1:]
@@ -42,29 +43,40 @@ def check_venv() -> bool:
     elif not isfile(VENV_PIP):
         log("Unable to update libs: No pip executable in venv", "libupdater")
         return False
+    elif not isfile(VENV_PYTHON):
+        log("Unable to update libs: No python3 executable in venv", "libupdater")
+        return False
 
     return True
 
 def is_in_venv() -> bool:
     return prefix != base_prefix
 
-def run(proc: list[str]) -> CompletedProcess:
+def run(cmd: list[str]) -> CompletedProcess:
     """ Run a process. 
     
     Return a `CompletedProcess` instance. """
     
-    process = Popen(proc, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
+    try:
+        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
 
-    return CompletedProcess(stdout.decode(), stderr.decode(), process.returncode, process.pid)
+        return CompletedProcess(stdout.decode(), stderr.decode(), process.returncode, process.pid)
+    except SubprocessError as e:
+        log(f"An error occurred while calling Popen().\nErr: {e}", "libupdater")
+        return None
 
-def main() -> None:
+def _do_checks() -> bool:
+    checks = [check_requirements, check_venv]
+    for check in checks:
+        if not check():
+            log("Failure exit", "libupdater")
+            return False
+        
+    return True
+
+def _do_update() -> bool:
     process = None
-    checks = [check_requirements(), check_venv()]
-    if not all(checks):
-        log("Failure exit", "libupdater")
-        sysexit(1)
-
     if is_in_venv():
         log(f"Running '{" ".join(UPDATE_COMMAND_VENV)}'", "libupdater")
         process = run(UPDATE_COMMAND_VENV)
@@ -79,8 +91,20 @@ def main() -> None:
         else:
             print("Process stderr:\n", process.stderr)
             log(f"Process {process.pid} failed with code {process.code}", "libupdater")
+
+        return True
+    else:
+        log("Running subprocess failed.", "libupdater")
+    
+    return False
+
+def main() -> None:
+    if not _do_checks():
+        sysexit(1)
+
+    _do_update()
         
-        log("done", "libupdater")
+    log("done", "libupdater")
 
 if __name__ == "__main__":
     main()
