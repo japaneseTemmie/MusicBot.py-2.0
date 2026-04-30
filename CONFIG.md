@@ -21,6 +21,7 @@ These settings allow for configuration of general bot behaviour.
   - `critical`: Log critical errors.
 - `use_sharding`: Enables sharding. _Required_ by Discord for bots that are in >= 2500 guilds. Expects a boolean.
 - `auto_delete_unused_guild_data`: Allows the bot to auto-delete guild data from the `guild_data` folder in the root directory of the project that is no longer associated with a guild. Expects a boolean.
+- `ffmpeg_bin`: A filesystem path that points to a valid ffmpeg binary program. This is prioritized over the default system-defined one. Expects null (use the system-defined one) or a string. **Be careful when using symlinked binary programs, as the bot does _NOT_ check for program authenticity**.
 - `max_queue_track_limit`: The maximum **queue** track limit allowed. Expects an integer.
 - `max_history_track_limit`: The maximum **history** track limit allowed. Expects an integer.
 - `max_query_limit`: The maximum amount of queries for some command arguments. Expects an integer.

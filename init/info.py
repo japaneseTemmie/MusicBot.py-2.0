@@ -5,7 +5,8 @@ from init.logutils import log, separator
 from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, correct_value_in
 
 import discord
-from os import name
+from os import name, access, X_OK
+from os.path import islink, exists
 from platform import python_implementation, python_version, system
 from random import choice
 from typing import Any
@@ -70,14 +71,14 @@ def get_status(status_type: str | None) -> discord.Status:
     return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if status_type is None else\
     VALID_STATUSES.get(status_type, discord.Status.online)
 
-def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> bool:
-    """ Check output from which() and assess whether or not ffmpeg is installed. 
+def check_ffmpeg_path_output(os: str, path: str | None, user_defined_path: str | None, ff_type: str="mpeg") -> bool:
+    """ Check given path and assess whether or not ffmpeg is installed. 
     
     Additionally, print information on how to install ffmpeg if not found. 
     
     Return a success value. """
     
-    if not output:
+    if not path:
         log(f"FF{ff_type} not found!")
         log("Please visit the project's GitHub repository for detailed installation instructions.")
         
@@ -88,7 +89,20 @@ def handle_which_ff_output(os: str, output: str | None, ff_type: str="mpeg") -> 
     
         return False
     
-    log(f"Found FF{ff_type} at {output}")
+    if path is user_defined_path:
+        log(f"Using user-defined ffmpeg binary at {user_defined_path}")
+
+        if not exists(user_defined_path):
+            log("User-defined ffmpeg binary does not exist!")
+            return False
+        if islink(user_defined_path):
+            log("WARNING: User-defined ffmpeg path is a symlink, please check its pointer!")
+        if not access(user_defined_path, X_OK):
+            log("User-defined ffmpeg binary is not executable!")
+            return False
+    else:
+        log(f"Found FF{ff_type} at {path}")
+
     separator()
 
     return True

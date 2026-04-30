@@ -28,6 +28,16 @@ def correct_type(value: Any, expected: Type, default: Any) -> Any:
     
     return default
 
+def correct_type_in(value: Any, expected: tuple[Type, ...], default: Any) -> Any:
+    """ Correct a value's type given a tuple of expected types. 
+    
+    Default value is returned if value is not an expected type. """
+    
+    if type(value) not in expected:
+        return default
+    
+    return value
+
 def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
     """ Correct a config value given an 'allowlist' 
     
@@ -69,7 +79,8 @@ def get_other_default_config_data() -> dict[str, Any]:
             "enable_logging": True,
             "log_level": "normal",
             "use_sharding": False,
-            "auto_delete_unused_guild_data": True
+            "auto_delete_unused_guild_data": True,
+            "ffmpeg_bin": None
         }
     }
 

@@ -1,17 +1,18 @@
 """ General settings configuration for discord.py bot """
 
-from init.info import get_python, get_os, get_activity, get_activity_data, get_status, handle_which_ff_output
+from init.info import get_python, get_os, get_activity, get_activity_data, get_status, check_ffmpeg_path_output
 from init.help import open_help_file
 from init.config import get_config_data
 from init.logsetup import set_up_logging, remove_log
 from init.logutils import log, separator
 from init.constants import MAX_FETCH_CALLS, VALID_LOG_LEVELS
-from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, get_default_yt_dlp_config_data
+from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, correct_type_in, get_default_yt_dlp_config_data
 
 import asyncio
 import discord
 from discord import Intents
 from cachetools import TTLCache
+from types import NoneType
 from logging import INFO
 from os import getenv
 from os.path import dirname
@@ -51,6 +52,7 @@ COMMAND_PREFIX = correct_type(get_config_value(CONFIG, "command_prefix", ConfigC
 USE_SHARDING = correct_type(get_config_value(CONFIG, "use_sharding", ConfigCategory.OTHER.value), bool, False)
 ENABLE_FILE_BACKUPS = correct_type(get_config_value(CONFIG, "enable_file_backups", ConfigCategory.OTHER.value), bool, True)
 CAN_AUTO_DELETE_GUILD_DATA = correct_type(get_config_value(CONFIG, "auto_delete_unused_guild_data", ConfigCategory.OTHER.value), bool, True)
+_USER_FFMPEG_EXEC = correct_type_in(get_config_value(CONFIG, "ffmpeg_bin", ConfigCategory.OTHER.value), (NoneType, str), None)
 
 MAX_QUEUE_TRACK_LIMIT = correct_type(get_config_value(CONFIG, "max_queue_track_limit", ConfigCategory.LIMITS.value), int, 100)
 MAX_TRACK_HISTORY_LIMIT = correct_type(get_config_value(CONFIG, "max_history_track_limit", ConfigCategory.LIMITS.value), int, 200)
@@ -67,8 +69,8 @@ HANDLER, FORMATTER, LOGGER, LOG_LEVEL_STRING = set_up_logging(PATH, CONFIG) if C
 LOG_LEVEL = VALID_LOG_LEVELS.get(LOG_LEVEL_STRING, INFO)
 
 # FFmpeg validation
-FFMPEG_EXEC = which("ffmpeg")
-if not handle_which_ff_output(OS_NAME, FFMPEG_EXEC):
+FFMPEG_EXEC = which("ffmpeg") if not _USER_FFMPEG_EXEC else _USER_FFMPEG_EXEC
+if not check_ffmpeg_path_output(OS_NAME, FFMPEG_EXEC, _USER_FFMPEG_EXEC):
     sysexit(1)
 
 # Cache
