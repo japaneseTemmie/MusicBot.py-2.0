@@ -13,7 +13,7 @@ REQUIREMENTS_TXT_PATH = join(PATH, "requirements.txt")
 
 VENV_PATH = join(PATH, ".venv")
 VENV_PIP = join(VENV_PATH, "bin", "pip") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
-VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "pip.exe")
+VENV_PYTHON = join(VENV_PATH, "bin", "python3") if name == "posix" else join(VENV_PATH, "Scripts", "python.exe")
 
 UPDATE_COMMAND_VENV = ["pip", "install", "--upgrade", "-r", REQUIREMENTS_TXT_PATH]
 UPDATE_COMMAND_NO_VENV = [VENV_PIP,] + UPDATE_COMMAND_VENV[1:]
