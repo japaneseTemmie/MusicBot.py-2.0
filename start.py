@@ -85,19 +85,21 @@ def run(command: list[str], sep_process: bool=False) -> int | None:
                 process.terminate() # Fallback
         return process.wait()
 
-def handle_return_code(code: int | None, command: str) -> None:
+def handle_return_code(code: int | None, command: str) -> bool:
     if code is None or code != 0:
         log(f"Running command '{command}' failed. Exiting...", "runner")
-        sysexit(1)
+        return False
+    
+    return True
 
 # Installer functions
-def install_venv() -> None:
+def install_venv() -> bool:
     code = run(cmd_install_venv)
-    handle_return_code(code, " ".join(cmd_install_venv))
+    return handle_return_code(code, " ".join(cmd_install_venv))
 
-def install_dependencies() -> None:
+def install_dependencies() -> bool:
     code = run(cmd_install_deps)
-    handle_return_code(code, " ".join(cmd_install_deps))
+    return handle_return_code(code, " ".join(cmd_install_deps))
 
 # Main
 def _do_checks() -> bool:
@@ -120,13 +122,15 @@ def _ensure_venv() -> bool:
         log(f"venv not found! Creating a new venv in {VENV_PATH}", "runner")
         sleep(1)
 
-        install_venv()
+        if not install_venv():
+            return False
 
         if venv_exists():
             log("Installing dependencies through requirements.txt", "runner")
             sleep(0.5)
 
-            install_dependencies()
+            if not install_dependencies():
+                return False
         else:
             log("Failed to create venv", "runner")
             return False

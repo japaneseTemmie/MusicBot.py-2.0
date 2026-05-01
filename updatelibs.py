@@ -52,7 +52,7 @@ def check_venv() -> bool:
 def is_in_venv() -> bool:
     return prefix != base_prefix
 
-def run(cmd: list[str]) -> CompletedProcess:
+def run(cmd: list[str]) -> CompletedProcess | None:
     """ Run a process. 
     
     Return a `CompletedProcess` instance. """
