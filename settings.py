@@ -6,7 +6,7 @@ from init.config import get_config_data
 from init.logsetup import set_up_logging, remove_log
 from init.logutils import log, separator
 from init.constants import MAX_FETCH_CALLS, VALID_LOG_LEVELS
-from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, correct_type_in, get_default_yt_dlp_config_data
+from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, get_default_yt_dlp_config_data
 
 import asyncio
 import discord
@@ -52,7 +52,7 @@ COMMAND_PREFIX = correct_type(get_config_value(CONFIG, "command_prefix", ConfigC
 USE_SHARDING = correct_type(get_config_value(CONFIG, "use_sharding", ConfigCategory.OTHER.value), bool, False)
 ENABLE_FILE_BACKUPS = correct_type(get_config_value(CONFIG, "enable_file_backups", ConfigCategory.OTHER.value), bool, True)
 CAN_AUTO_DELETE_GUILD_DATA = correct_type(get_config_value(CONFIG, "auto_delete_unused_guild_data", ConfigCategory.OTHER.value), bool, True)
-_USER_FFMPEG_EXEC = correct_type_in(get_config_value(CONFIG, "ffmpeg_bin", ConfigCategory.OTHER.value), (NoneType, str), None)
+_USER_FFMPEG_EXEC = correct_type(get_config_value(CONFIG, "ffmpeg_bin", ConfigCategory.OTHER.value), (NoneType, str), None)
 
 MAX_QUEUE_TRACK_LIMIT = correct_type(get_config_value(CONFIG, "max_queue_track_limit", ConfigCategory.LIMITS.value), int, 100)
 MAX_TRACK_HISTORY_LIMIT = correct_type(get_config_value(CONFIG, "max_history_track_limit", ConfigCategory.LIMITS.value), int, 200)

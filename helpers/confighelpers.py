@@ -18,7 +18,7 @@ class ConfigCategory(Enum):
     ACTIVITY = "activity"
     MODULES = "modules"
 
-def correct_type(value: Any, expected: Type, default: Any) -> Any:
+def correct_type(value: Any, expected: Type | tuple[Type, ...], default: Any) -> Any:
     """ Correct a config value type. 
 
     Return corrected value. """
@@ -27,16 +27,6 @@ def correct_type(value: Any, expected: Type, default: Any) -> Any:
         return value
     
     return default
-
-def correct_type_in(value: Any, expected: tuple[Type, ...], default: Any) -> Any:
-    """ Correct a value's type given a tuple of expected types. 
-    
-    Default value is returned if value is not an expected type. """
-    
-    if type(value) not in expected:
-        return default
-    
-    return value
 
 def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
     """ Correct a config value given an 'allowlist' 
