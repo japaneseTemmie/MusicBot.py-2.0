@@ -9,7 +9,7 @@ These settings allow for configuration of general bot behaviour.
 - `activity_name`: The **name** of the activity. Appears after the type. Expects a string.
 - `activity_type`: The activity type. Can be `playing`, `watching` or `listening`. Expects a string.
 - `activity_state`: The activity state. For `playing` and `listening` activity types only. Appears under the name.
-- `status_type`: The bot status. Can be `online`, `idle`, `do_not_disturb`, `invisible` or `null` for a random status. Expects a string or null.
+- `status_type`: The bot status. Can be `online`, `idle`, `do_not_disturb`, or `null` for a random status. Expects a string or null.
 - `enable_file_backups`: Allows for in-RAM backup of `playlists.json` and `roles.json` guild files in case of a bad write. 
   Requires double the memory needed to open the file for each call. Expects a boolean.
 - `enable_logging`: Enables logging of `discord.py` errors/debug messages/warnings depending on the selected `log_level`. Expects a boolean.
