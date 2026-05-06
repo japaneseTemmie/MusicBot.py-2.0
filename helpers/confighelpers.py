@@ -38,7 +38,7 @@ def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
     
     return default
 
-def get_config_value(config: dict[str, Any], name: str, category: ConfigCategoryValue | None=None) -> Any:
+def get_config_value(config: dict[str, Any], name: str, category: ConfigCategoryValue | None=None) -> Any | None:
     """ Get a config value given name and category. 
     
     If category is not given, return matching category. """
@@ -47,7 +47,7 @@ def get_config_value(config: dict[str, Any], name: str, category: ConfigCategory
     return location.get(name)
      
 # Defaults
-def get_default_yt_dlp_config_data() -> dict[str, Any]:
+def get_default_yt_dlp_config_data() -> dict[str, dict[str, Any]]:
     return {
         ConfigCategory.YT_DLP.value: {
             "quiet": True,
@@ -61,7 +61,7 @@ def get_default_yt_dlp_config_data() -> dict[str, Any]:
         }
     }
 
-def get_other_default_config_data() -> dict[str, Any]:
+def get_other_default_config_data() -> dict[str, dict[str, Any]]:
     return {
         ConfigCategory.OTHER.value: {
             "command_prefix": "?",
@@ -74,7 +74,7 @@ def get_other_default_config_data() -> dict[str, Any]:
         }
     }
 
-def get_default_limits_config_data() -> dict[str, int]:
+def get_default_limits_config_data() -> dict[str, dict[str, int]]:
     return {
         ConfigCategory.LIMITS.value: {
             "max_queue_track_limit": 100,
@@ -86,7 +86,7 @@ def get_default_limits_config_data() -> dict[str, int]:
         }
     }
 
-def get_default_activity_config_data() -> dict[str, Any]:
+def get_default_activity_config_data() -> dict[str, dict[str, Any]]:
     return {
         ConfigCategory.ACTIVITY.value: {
             "enable_activity": False,
@@ -97,7 +97,7 @@ def get_default_activity_config_data() -> dict[str, Any]:
         }
     }
 
-def get_default_modules_config_data() -> dict[str, bool]:
+def get_default_modules_config_data() -> dict[str, dict[str, bool]]:
     return {
         ConfigCategory.MODULES.value: {
             "enable_ModerationCog": True,
