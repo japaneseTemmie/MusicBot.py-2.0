@@ -51,7 +51,7 @@ def get_default_yt_dlp_config_data() -> dict[str, dict[str, Any]]:
     return {
         ConfigCategory.YT_DLP.value: {
             "quiet": True,
-            "no_playlist": True,
+            "noplaylist": True,
             "format": "bestaudio[ext=m4a]/bestaudio",
             "no_warnings": True,
             "getcomments": False,
