@@ -111,7 +111,7 @@ def get_default_modules_config_data() -> dict[str, dict[str, bool]]:
         }
     }
 
-def get_default_config_data() -> dict[str, Any]:
+def get_default_config_data() -> dict[str, dict[str, Any]]:
     config = {}
 
     config.update(get_default_yt_dlp_config_data())
