@@ -17,7 +17,7 @@ async def fetch_query(
         extraction_state_amount: int=1,
         extraction_state_max_length: int=1,
         query_name: str=None,
-        allowed_query_types: tuple[str] | None=None,
+        allowed_query_types: tuple[SourceWebsiteValue] | None=None,
         provider: SourceWebsiteValue | None=None
     ) -> dict[str, Any] | list[dict[str, Any]] | Error:
     """ Extract a query from its website, catch any errors and return the result. """
@@ -51,7 +51,7 @@ async def fetch_queries(
         interaction: Interaction,
         queries: list[str] | list[dict[str, Any]],
         query_names: list[str] | None=None,
-        allowed_query_types: tuple[str]=None,
+        allowed_query_types: tuple[SourceWebsiteValue]=None,
         provider: SourceWebsiteValue | None=None,
         ignore_errors: bool=False
     ) -> list[dict[str, Any]] | Error:
