@@ -11,7 +11,7 @@ from helpers.queuehelpers import (
 )
 from helpers.extractorhelpers import fetch_queries, add_results_to_queue
 from helpers.guildhelpers import read_guild_json, write_guild_json
-from webextractor import SourceWebsiteValue
+from webextractor import SearchWebsiteIDValue
 from error import Error
 from bot import Bot, ShardedBot
 
@@ -203,7 +203,7 @@ class PlaylistManager:
             playlist_name: str,
             old: str,
             new: str,
-            provider: SourceWebsiteValue | None=None,
+            provider: SearchWebsiteIDValue | None=None,
             by_index: bool=False,
             write_to_file: bool=True
         ) -> tuple[Literal[True] | Error, dict[str, Any], dict[str, Any]] | Error:
@@ -426,7 +426,7 @@ class PlaylistManager:
             playlist_name: str, 
             queries: list[str], 
             allowed_query_types: tuple[str], 
-            provider: SourceWebsiteValue | None=None,
+            provider: SearchWebsiteIDValue | None=None,
             write_to_file: bool=True
         ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:
         """ Adds a list of queries to the given playlist.
@@ -454,9 +454,7 @@ class PlaylistManager:
 
         Returns a boolean or Error. """
         
-        success = await self.write(interaction, {})
-
-        return success
+        return await self.write(interaction, {})
 
     async def rename(
             self, 

@@ -31,6 +31,11 @@ SourceWebsiteValue = Literal[
     "SoundCloud search"
 ]
 
+SearchWebsiteIDValue = Literal[
+    "youtube",
+    "soundcloud"
+]
+
 class SourceWebsite(Enum):
     YOUTUBE_PLAYLIST = "YouTube Playlist"
     YOUTUBE = "YouTube"
@@ -114,7 +119,7 @@ FAST_SEEK_SUPPORT_DOMAINS = (
     SourceWebsite.NEWGROUNDS.value
 )
 
-def get_query_type(query: str, provider: SourceWebsiteValue | None) -> QueryType:
+def get_query_type(query: str, provider: SearchWebsiteIDValue | None) -> QueryType:
     """ Match a regex pattern to a user-given query, so we know what kind of query we're working with. 
 
     `provider` is the optional search provider to use when queries don't match the supported regex patterns.

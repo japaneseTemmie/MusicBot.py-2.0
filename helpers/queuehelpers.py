@@ -3,7 +3,7 @@
 from settings import MAX_ITEM_NAME_LENGTH
 from init.constants import RAW_FILTER_TO_VISUAL_TEXT, NEED_TIME_FORMATTING_TO_MINUTES_FILTERS, MAX_SKIP_AMOUNT
 from error import Error
-from webextractor import SourceWebsite, SourceWebsiteValue, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
+from webextractor import SourceWebsite, SourceWebsiteValue, SearchWebsiteIDValue, YOUTUBE_DOMAINS, SOUNDCLOUD_DOMAINS, BANDCAMP_DOMAINS
 from helpers.timehelpers import format_to_seconds, format_to_minutes
 from helpers.extractorhelpers import fetch_query
 
@@ -446,7 +446,7 @@ async def replace_track_in_queue(
         queue: list[dict[str, Any]],
         track: str, 
         new_track: str,
-        provider: SourceWebsiteValue | None=None,
+        provider: SearchWebsiteIDValue | None=None,
         is_playlist: bool=False,
         by_index: bool=False
     ) -> tuple[dict[str, Any], dict[str, Any]] | Error:
