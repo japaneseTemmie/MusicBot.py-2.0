@@ -5,10 +5,12 @@ from init.logutils import log, separator
 
 from os.path import join, exists
 
-def open_help_file(dir: str) -> dict[str, str] | None:
-    """ Attempts to open the `help.json` file in the `dir` folder. If unreadable or missing, returns None. Otherwise, returns the contents of the file in hashmap. """
+def open_help_file(root: str) -> dict[str, str] | None:
+    """ Attempts to open the `help.json` file in the root folder of the project. 
     
-    path = join(dir, "help.json")
+    If unreadable or missing, returns None. Otherwise, returns the contents of the file in hashmap. """
+    
+    path = join(root, "help.json")
     if not exists(path):
         log(f"No help file found. /help will not be available.")
         separator()
