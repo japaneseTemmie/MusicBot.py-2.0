@@ -66,7 +66,7 @@ class ModuleLoader:
 
         return imported_modules
     
-    def get_enable_values_from_config(self, config: dict[str, Any], class_names: list[str]) -> list[tuple[str, bool]]:
+    def get_enable_values_from_config(self, config: dict[str, dict[str, Any]], class_names: list[str]) -> list[tuple[str, bool]]:
         """ Returns the corresponding enable value for each Cog in `config.json` """
         
         values = []

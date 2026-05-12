@@ -9,7 +9,7 @@ from typing import Any
 from os.path import join, exists
 from os import remove
 
-def set_up_logging(root: str, config: dict[str, Any]) -> tuple[FileHandler, Formatter, Logger, str]:
+def set_up_logging(root: str, config: dict[str, dict[str, Any]]) -> tuple[FileHandler, Formatter, Logger, str]:
     """ Set up logging to the `discord.log` file in the root directory of the project. 
     
     Return a generic logging FileHandler, a generic Formatter, a custom Logger object and the log level. """

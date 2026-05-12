@@ -30,7 +30,7 @@ def get_os() -> tuple[str, str, str | None]:
 
     return os, name, kernel
 
-def get_activity_data(config: dict[str, Any]) -> dict[str, Any]:
+def get_activity_data(config: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """ Get bot activity metadata to send to the Discord API based on given configuration. 
     
     Return value has the following available keys: `status_type`, `activity_enabled`, `activity_name`, `activity_type` and `activity_state`. """

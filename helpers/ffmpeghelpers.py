@@ -146,7 +146,7 @@ async def check_player_crash(
         interaction: Interaction, 
         stream_url_checks_session: ClientSession, 
         guild_states: dict[str, Any], 
-        play_track_func: Awaitable
+        play_track_func: Callable[..., Awaitable[Any]]
     ) -> bool:
     """ Check if the voice player has crashed. 
     

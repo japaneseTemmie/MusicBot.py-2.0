@@ -11,7 +11,7 @@ from helpers.queuehelpers import (
 )
 from helpers.extractorhelpers import fetch_queries, add_results_to_queue
 from helpers.guildhelpers import read_guild_json, write_guild_json
-from webextractor import SearchWebsiteIDValue
+from webextractor import SearchWebsiteIDValue, SourceWebsiteValue
 from error import Error
 from bot import Bot, ShardedBot
 
@@ -425,7 +425,7 @@ class PlaylistManager:
             content: dict[str, list], 
             playlist_name: str, 
             queries: list[str], 
-            allowed_query_types: tuple[str], 
+            allowed_query_types: tuple[SourceWebsiteValue], 
             provider: SearchWebsiteIDValue | None=None,
             write_to_file: bool=True
         ) -> tuple[Literal[True] | Error, list[dict[str, Any]]] | Error:

@@ -23,7 +23,7 @@ def _add_to_config(data: dict[str, Any], defaults: dict[str, Any]) -> None:
 
             _add_to_config(data[key], defaults[key])
 
-def _add_missing_settings(config: dict[str, Any]) -> None:
+def _add_missing_settings(config: dict[str, dict[str, Any]]) -> None:
     """ Check config and compare it to default settings, if any keys are missing, add them accordingly. """
 
     default = get_default_config_data()
@@ -31,7 +31,7 @@ def _add_missing_settings(config: dict[str, Any]) -> None:
     # Check if keys are missing
     _add_to_config(config, default)
 
-def check_config(config: dict[str, Any]) -> dict[str, Any] | None:
+def check_config(config: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]] | None:
     """ Checks if config file has any missing keys. If so, adds them with default values. """
     
     orig_config = deepcopy(config)
@@ -43,7 +43,7 @@ def check_config(config: dict[str, Any]) -> dict[str, Any] | None:
     
     return None
 
-def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | None:
+def ensure_config(path: str, default_data: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]] | None:
     """ Checks if config file exists. If not, creates a new one with default settings.
     
     Also checks the output content for missing keys and applies the default key if missing. """
@@ -89,7 +89,7 @@ def ensure_config(path: str, default_data: dict[str, Any]) -> dict[str, Any] | N
 
     return content
 
-def get_config_data(root: str) -> dict[str, Any] | None:
+def get_config_data(root: str) -> dict[str, dict[str, Any]] | None:
     """ Return a hashmap of the `config.json` file in the root directory of the project.
      
     This function also ensures that the file exists and there are no missing keys. """

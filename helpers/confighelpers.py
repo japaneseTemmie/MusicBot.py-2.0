@@ -38,7 +38,7 @@ def correct_value_in(value: Any, allowed: tuple[Any, ...], default: Any) -> Any:
     
     return default
 
-def get_config_value(config: dict[str, Any], name: str, category: ConfigCategoryValue | None=None) -> Any | None:
+def get_config_value(config: dict[str, dict[str, Any]], name: str, category: ConfigCategoryValue | None=None) -> Any | None:
     """ Get a config value given name and category. 
     
     If category is not given, return matching category. """

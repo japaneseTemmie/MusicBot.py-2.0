@@ -3,7 +3,7 @@
 from settings import CAN_LOG, LOGGER
 from init.logutils import log_to_discord_log
 
-def _add_zeroes(parts: list[str], length_limit: int):
+def _add_zeroes(parts: list[str], length_limit: int) -> None:
     missing = length_limit - len(parts)
     
     for _ in range(missing):
