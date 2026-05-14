@@ -3,7 +3,8 @@
 from settings import (
     ACTIVITY_DATA, ACTIVITY, STATUS,
     ROLE_LOCKS, PLAYLIST_LOCKS, 
-    LOGGER, CAN_LOG, CONFIG
+    LOGGER, CAN_LOG, CONFIG,
+    YDL
 )
 from init.constants import MAX_IO_SYNC_WAIT_TIME, HTTP_CLIENT_SESSION_TIMEOUT
 from loader import ModuleLoader
@@ -90,9 +91,7 @@ class BotMixin:
 
         await super().close()
 
-        if self.client_http_session is not None:
-            await self.client_http_session.close()
-            log("Closed aiohttp ClientSession")
+        await self.close_sessions()
 
         separator()
         log(f"Bai bai :{'3' * randint(1, 10)}")
@@ -203,6 +202,18 @@ class BotMixin:
         self.client_http_session = ClientSession(timeout=ClientTimeout(HTTP_CLIENT_SESSION_TIMEOUT))
         log(f"Set up a generic aiohttp ClientSession with {HTTP_CLIENT_SESSION_TIMEOUT}s request timeout.")
         separator()
+
+    async def close_sessions(self) -> None:
+        """ Close any active sessions, such as yt_dlp.YoutubeDL() and aiohttp.ClientSession(). """
+        
+        if self.client_http_session is not None and\
+            not self.client_http_session.closed:
+            await self.client_http_session.close()
+
+            log("Closed aiohttp ClientSession")
+        
+        YDL.close()
+        log("Closed yt_dlp YoutubeDL session")
 
     async def handle_filesystem_tasks(self) -> bool:
         """ Handle filesystem tasks such as checking the `guild_data` directory and unused data """

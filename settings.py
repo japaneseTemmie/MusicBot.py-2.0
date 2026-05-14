@@ -12,6 +12,7 @@ import asyncio
 import discord
 from discord import Intents
 from cachetools import TTLCache
+from yt_dlp import YoutubeDL
 from types import NoneType
 from logging import INFO
 from os import getenv
@@ -81,6 +82,9 @@ ROLE_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 PLAYLIST_FILE_CACHE = TTLCache(maxsize=16384, ttl=3600)
 EXTRACTOR_CACHE = TTLCache(maxsize=16384, ttl=600)
 NEKOS_MOE_CACHE = TTLCache(maxsize=8192, ttl=3600)
+
+# Set up YoutubeDL instance
+YDL = YoutubeDL(YDL_OPTIONS)
 
 # Global locks
 FILE_OPERATIONS_LOCKED = asyncio.Event()

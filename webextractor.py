@@ -7,7 +7,7 @@ Supported websites
 - SoundCloud (Songs and sets)
 - Bandcamp (Songs and albums) """
 
-from settings import YDL_OPTIONS, CAN_LOG, LOGGER, EXTRACTOR_CACHE, MAX_ITEM_NAME_LENGTH
+from settings import YDL, CAN_LOG, LOGGER, EXTRACTOR_CACHE, MAX_ITEM_NAME_LENGTH
 from init.logutils import log_to_discord_log
 from helpers.timehelpers import format_to_minutes
 from helpers.cachehelpers import get_cache, store_cache
@@ -16,7 +16,6 @@ from error import Error
 import re
 from enum import Enum
 from datetime import datetime, date
-from yt_dlp import YoutubeDL
 from typing import Any, Literal
 
 SourceWebsiteValue = Literal[
@@ -210,11 +209,10 @@ def fetch(query: str, query_type: QueryType, allow_cache: bool=True) -> dict[str
             return cache
 
     try:
-        with YoutubeDL(YDL_OPTIONS) as ydl:
-            if not query_type.is_url:
-                info = ydl.extract_info(query_type.search_string + query, download=False)
-            else:
-                info = ydl.extract_info(query, download=False)
+        if not query_type.is_url:
+            info = YDL.extract_info(query_type.search_string + query, download=False)
+        else:
+            info = YDL.extract_info(query, download=False)
     except Exception as e:
         log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
 
