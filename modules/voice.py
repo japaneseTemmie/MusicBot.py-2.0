@@ -95,6 +95,8 @@ class VoiceCog(commands.Cog):
 
     @join_channel.error
     async def handle_join_channel_error(self, interaction: Interaction, error: Exception):
+        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+
         if isinstance(error, app_commands.errors.CommandOnCooldown):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
@@ -102,8 +104,6 @@ class VoiceCog(commands.Cog):
         log_to_discord_log(error, can_log=CAN_LOG, logger=LOGGER)
 
         log(f"[CONNECT][SHARD ID {interaction.guild.shard_id}] Failed to connect to voice channel ID {interaction.channel.id} in guild ID {interaction.guild.id}")
-
-        send_func = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
 
         await send_func(
             f"Something went wrong while connecting. "
@@ -122,9 +122,9 @@ class VoiceCog(commands.Cog):
             not await check_vc_lock(True, interaction):
             return
         
-        await interaction.response.defer(thinking=True)
-
         update_guild_state(self.guild_states, interaction, True, "voice_client_locked")
+
+        await interaction.response.defer(thinking=True)
 
         locked_playlists = self.guild_states[interaction.guild.id]["locked_playlists"]
         if locked_playlists:
