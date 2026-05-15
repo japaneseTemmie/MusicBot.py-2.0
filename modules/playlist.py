@@ -2,7 +2,7 @@
 
 Handles commands for interacting with low-level file components. """
 
-from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT, MAX_PLAYLIST_LIMIT
+from settings import CAN_LOG, LOGGER, MAX_QUEUE_TRACK_LIMIT, MAX_QUERY_LIMIT, MAX_PLAYLIST_LIMIT, MAX_PLAYLIST_TRACK_LIMIT
 from init.constants import COOLDOWNS
 from bot import Bot, ShardedBot
 from managers.playlistmanager import PlaylistManager
@@ -89,20 +89,19 @@ class PlaylistCog(commands.Cog):
     async def show_playlist(self, interaction: Interaction, playlist_name: str, page: int):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-        elif page < 1:
-            await interaction.followup.send("Page cannot be less than **1**.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
 
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
+
+        if page < 1:
+            update_guild_state(self.guild_states, interaction, False, "locked_playlists")
+        
+            await interaction.followup.send("Page cannot be less than **1**.")
+            return
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -152,18 +151,14 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -175,7 +170,7 @@ class PlaylistCog(commands.Cog):
             return
         
         queue = deepcopy(self.guild_states[interaction.guild.id]["queue"])
-        current_track = self.guild_states[interaction.guild.id]["current_track"]
+        current_track = deepcopy(self.guild_states[interaction.guild.id]["current_track"])
         if not queue and not current_track:
             update_guild_state(self.guild_states, interaction, False, "locked_playlists")
 
@@ -217,21 +212,17 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nPlease wait for the other action first.") or\
             not await check_guild_state(self.guild_states, interaction, "queue_history", [], "Queue history is empty. Nothing to add."):
             return
         
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send("A playlist is currently locked, please wait.")
-            return
-
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
 
+        await interaction.response.defer(thinking=True)
+
         playlist_name = sanitize_name(playlist_name)
-        history = deepcopy(self.guild_states[interaction.guild.id]["queue_history"])
+        history = deepcopy(self.guild_states[interaction.guild.id]["queue_history"])[:MAX_PLAYLIST_TRACK_LIMIT]
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
@@ -271,18 +262,14 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "current_track", None, "No track is currently playing!") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send("A playlist is currently locked, please wait.")
-            return
-
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         current_track = deepcopy(self.guild_states[interaction.guild.id]["current_track"])
@@ -330,22 +317,19 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
+        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting"))
+
         await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
         queue_to_loop = self.guild_states[interaction.guild.id]["queue_to_loop"]
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-
-        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting"))
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -401,17 +385,13 @@ class PlaylistCog(commands.Cog):
     async def create_playlist(self, interaction: Interaction, playlist_name: str):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -447,17 +427,13 @@ class PlaylistCog(commands.Cog):
     async def delete_playlist(self, interaction: Interaction, playlist_name: str, erase_contents_only: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -503,17 +479,13 @@ class PlaylistCog(commands.Cog):
     async def remove_playlist_track(self, interaction: Interaction, playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -552,17 +524,13 @@ class PlaylistCog(commands.Cog):
     async def delete_all_playlists(self, interaction: Interaction):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
-        await interaction.response.defer(thinking=True)
-        
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         result = await self.playlist.delete_all(interaction)
 
@@ -589,17 +557,13 @@ class PlaylistCog(commands.Cog):
     async def rename_playlist(self, interaction: Interaction, playlist_name: str, new_playlist_name: str):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-        
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         new_playlist_name = sanitize_name(new_playlist_name)
@@ -661,17 +625,13 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it."):
             return
 
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-        
         update_guild_states(self.guild_states, interaction, (True, True), ("locked_playlists", "is_extracting"))
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
@@ -724,17 +684,13 @@ class PlaylistCog(commands.Cog):
     async def reposition_playlist_track(self, interaction: Interaction, playlist_name: str, track_name: str, new_index: int, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -786,17 +742,13 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it."):
             return
 
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-
         update_guild_states(self.guild_states, interaction, (True, True), ("locked_playlists", "is_extracting"))
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         provider = search_provider.value if search_provider else SearchWebsiteID.YOUTUBE_SEARCH.value
@@ -857,17 +809,13 @@ class PlaylistCog(commands.Cog):
     async def copy_playlist(self, interaction: Interaction, playlist_name: str, target_playlist_name: str):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
+
+        update_guild_state(self.guild_states, interaction, True, "locked_playlists")
 
         await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send("A playlist is currently locked, please wait.")
-            return
-        
-        update_guild_state(self.guild_states, interaction, True, "locked_playlists")
 
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
@@ -909,17 +857,13 @@ class PlaylistCog(commands.Cog):
     async def move_playlist(self, interaction: Interaction, playlist_name: str, target_playlist_name: str):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send("A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
@@ -963,17 +907,13 @@ class PlaylistCog(commands.Cog):
     async def copy_playlist_tracks(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction):
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
-        
-        await interaction.response.defer(thinking=True)
 
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send("A playlist is currently locked, please wait.")
-            return
-        
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
@@ -1017,17 +957,13 @@ class PlaylistCog(commands.Cog):
     async def move_playlist_tracks(self, interaction: Interaction, playlist_name: str, target_playlist_name: str, track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
         target_playlist_name = sanitize_name(target_playlist_name)
@@ -1071,21 +1007,18 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
 
+        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting"))    
+
         await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-
-        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting"))    
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -1140,22 +1073,18 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_modifying", True, "The queue is currently being modified, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it.") or\
             not await check_guild_state(self.guild_states, interaction, "voice_client_locked", True, "Voice state currently locked!\nWait for the other action first."):
             return
         
+        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting"))
+
         await interaction.response.defer(thinking=True)
 
         voice_client = self.guild_states[interaction.guild.id]["voice_client"]
         queue = self.guild_states[interaction.guild.id]["queue"]
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-        
-        update_guild_states(self.guild_states, interaction, (True, True, True), ("locked_playlists", "is_modifying", "is_extracting")) 
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -1223,17 +1152,13 @@ class PlaylistCog(commands.Cog):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
             not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait.") or\
             not await check_guild_state(self.guild_states, interaction, "is_extracting", True, "Please wait for the current extraction process to finish. Use `/extraction-progress` to see the status or `/stop-extraction` to stop it."):
             return
         
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-        
         update_guild_states(self.guild_states, interaction, (True, True), ("locked_playlists", "is_extracting"))
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -1290,17 +1215,13 @@ class PlaylistCog(commands.Cog):
     async def rename_playlist_track(self, interaction: Interaction, playlist_name: str, old_track_names: str, new_track_names: str, by_index: bool=False):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-        
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
         
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
 
         playlist_name = sanitize_name(playlist_name)
 
@@ -1345,20 +1266,19 @@ class PlaylistCog(commands.Cog):
     async def show_saved_playlists(self, interaction: Interaction, page: int):
         if not await user_has_role(interaction) or\
             not await user_has_role(interaction, playlist=True) or\
-            not await check_channel(self.guild_states, interaction):
-            return
-        
-        await interaction.response.defer(thinking=True)
-
-        locked = self.guild_states[interaction.guild.id]["locked_playlists"]
-        if locked:
-            await interaction.followup.send(f"A playlist is currently locked, please wait.")
-            return
-        elif page < 1:
-            await interaction.followup.send("Page cannot be less than **1**.")
+            not await check_channel(self.guild_states, interaction) or\
+            not await check_guild_state(self.guild_states, interaction, "locked_playlists", True, "A playlist is currently locked, please wait."):
             return
 
         update_guild_state(self.guild_states, interaction, True, "locked_playlists")
+
+        await interaction.response.defer(thinking=True)
+
+        if page < 1:
+            update_guild_state(self.guild_states, interaction, False, "locked_playlists")
+
+            await interaction.followup.send("Page cannot be less than **1**.")
+            return
 
         content = await self.playlist.read(interaction)
         if isinstance(content, Error):
