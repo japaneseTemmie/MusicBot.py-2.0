@@ -1,4 +1,4 @@
-# This project is no longer maintained. Discord sucks.
+# This project is now partially maintained due to the enshittification of Discord.
 
 # MusicBot.py 2.0
 An improved version of **MusicBot.py**, a multipurpose Discord bot. Now with **Application commands**, **multi-guild**, **multi-website** support and
