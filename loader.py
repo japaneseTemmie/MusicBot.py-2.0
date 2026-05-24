@@ -25,7 +25,7 @@ class ModuleLoader:
         
         if not isdir(self.path):
             log(f"Invalid modules path '{self.path}'")
-            return None
+            return
 
         try:
             return listdir(self.path)
@@ -33,7 +33,7 @@ class ModuleLoader:
             log(f"An error occured while opening directory '{self.path}'\nErr: {e}")
             log_to_discord_log(e, can_log=CAN_LOG, logger=LOGGER)
             
-            return None
+            return
 
     def get_module_names(self) -> list[str] | list:
         """ Return a list of module directory + names. """
