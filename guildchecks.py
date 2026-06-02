@@ -22,7 +22,7 @@ def delete_guild_tree(path: str) -> bool:
     try:
         rmtree(path)
         log(f"Removed tree {path}")
-    except OSError as e:
+    except (OSError, PermissionError, FileNotFoundError) as e:
         log(f"An error occurred while deleting {path}\nErr: {e}")
         return False
 
@@ -77,19 +77,23 @@ def is_in_guild(guild_id: int, guild_ids: set[int]) -> bool:
 def find_guilds_to_delete(user: str, guild_ids: set[int]) -> list[str]:
     """ Find guilds that aren't in the bot's known list and schedule them for deletion. """
     
+    folders = []
     to_delete = []
     path = join(PATH, "guild_data")
 
     try:
         with scandir(path) as iterator:
-            for entry in iterator:
-                if entry.is_dir() and entry.name.isdigit() and not is_in_guild(int(entry.name), guild_ids):
-                    log(f"{user} is not in guild ID {entry.name}, will be scheduled for removal.")
-
-                    full_file_path = join(path, entry.name)
-                    to_delete.append(full_file_path)
-    except OSError as e:
+            folders = list(iterator)
+    except Exception as e:
         log(f"Unable to iterate over {path} due to error, skipping guild cleanup.\nErr: {e}")
+        return to_delete
+
+    for entry in folders:
+        if entry.is_dir() and entry.name.isdigit() and not is_in_guild(int(entry.name), guild_ids):
+            log(f"{user} is not in guild ID {entry.name}, will be scheduled for removal.")
+
+            full_file_path = join(path, entry.name)
+            to_delete.append(full_file_path)
 
     return to_delete
 
