@@ -5,7 +5,7 @@ from init.logutils import log, separator
 from helpers.confighelpers import ConfigCategory, get_config_value, correct_type, correct_value_in
 
 import discord
-from os import name, access, X_OK
+from os import X_OK, name as os_name, access
 from os.path import islink, exists
 from platform import python_implementation, python_version, system
 from random import choice
@@ -18,17 +18,17 @@ def get_python() -> tuple[str, str]:
     return python_implementation(), python_version()
 
 def get_os() -> tuple[str, str, str | None]:
-    """ Return OS info as a tuple with OS pretty name (e.g Linux), name (e.g posix), and kernel version (if available). """
+    """ Return OS info as a tuple with OS pretty name (e.g Linux), generic name (e.g posix), and kernel version (if available). """
 
-    os = system()
+    os_pretty_name = system()
 
-    if name == "posix":
+    if os_name == "posix":
         from os import uname
         kernel = uname().release
     else:
         kernel = None
 
-    return os, name, kernel
+    return os_pretty_name, os_name, kernel
 
 def get_activity_data(config: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """ Get bot activity metadata to send to the Discord API based on given configuration. 
@@ -71,7 +71,7 @@ def get_status(status_type: str | None) -> discord.Status:
     return choice((discord.Status.online, discord.Status.idle, discord.Status.do_not_disturb)) if status_type is None else\
     VALID_STATUSES.get(status_type, discord.Status.online)
 
-def check_ffmpeg_path_output(os: str, path: str | None, user_defined_path: str | None, ff_type: str="mpeg") -> bool:
+def check_ffmpeg_path_output(os_generic_name: str, path: str | None, user_defined_path: str | None, ff_type: str="mpeg") -> bool:
     """ Check given path and assess whether or not ffmpeg is installed. 
     
     Additionally, print information on how to install ffmpeg if not found. 
@@ -82,7 +82,7 @@ def check_ffmpeg_path_output(os: str, path: str | None, user_defined_path: str |
         log(f"FF{ff_type} not found!")
         log("Please visit the project's GitHub repository for detailed installation instructions.")
         
-        if os == "posix":
+        if os_generic_name == "posix":
             log(f"If you're running a Debian/Ubuntu based Linux distro, install the full binary set with 'sudo apt install ffmpeg'.\nOtherwise, check your distro's repositories or compile it from source.")
         else:
             log(f"If you're running Windows, make sure the FF{ff_type} executable is in the PATH environment variable.")
