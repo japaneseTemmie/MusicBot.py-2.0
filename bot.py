@@ -43,13 +43,14 @@ class BotMixin:
         await self.setup_client_session()
 
     async def on_ready(self) -> None:
-        if self.has_finished_on_ready:
-            separator()
-            log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
-            separator()
-            return
-
         async with self.setup_lock:
+            if self.has_finished_on_ready:
+                separator()
+                log(f"[reconnect?] on_ready() function triggered after first initialization. Ignoring.")
+                separator()
+
+                return
+            
             set_global_locks(True, True)
 
             log(f"Logged in as {self.user.name}")
@@ -66,9 +67,9 @@ class BotMixin:
             log(f"Ready with {len(self.loaded_cogs)} modules and {len(self.synced_commands)} commands :{'3' * randint(1, 10)}")
             separator()
 
-            self.has_finished_on_ready = True
-
             set_global_locks(False, False)
+
+            self.has_finished_on_ready = True
 
     async def on_shard_ready(self, shard_id: int) -> None:
         log(f"Shard {shard_id} is ready.")
